@@ -37,7 +37,7 @@ export default function EmpresasPage(){
   const [showNew,setShowNew]=useState(false)
   const [statusOf,setStatusOf]=useState<Tenant|null>(null)
   const [toast,  setToast]  =useState('')
-  const [form,   setForm]   ]=useState({name:'',email:'',phone:'',planId:'',supervisorName:'',supervisorEmail:'',supervisorPassword:'',spreadsheetId:'',evolutionInstance:''})
+  const [form,   setForm]   =useState({name:'',email:'',phone:'',planId:'',supervisorName:'',supervisorEmail:'',supervisorPassword:'',spreadsheetId:'',evolutionInstance:''})
   const [saving, setSaving] =useState(false)
   const [newStatus,setNewStatus]=useState<Tenant['status']>('trial')
 
