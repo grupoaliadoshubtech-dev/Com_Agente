@@ -51,7 +51,7 @@ function getRequiredRoles(pathname: string): UserRole[] | null {
 // ─────────────────────────────────────────────────────────────
 
 export default withAuth(
-  function middleware(req: NextRequest & { nextauth?: { token?: Record<string, unknown> } }) {
+  function middleware(req: any) {
     const { pathname } = req.nextUrl
 
     if (isPublic(pathname)) return NextResponse.next()

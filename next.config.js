@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverActions: { allowedOrigins: ['localhost:3000'] },
+    missingSuspenseWithCSRBailout: false,
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'comagente.trackermap.app.br'],
+    },
   },
 }
-
 module.exports = nextConfig
