@@ -7,7 +7,7 @@ const PERIOD:Record<string,string>={monthly:'Mensal',yearly:'Anual',custom:'Cust
 function PlanModal({plan,onClose,onSaved}:{plan?:Plan;onClose:()=>void;onSaved:()=>void}){
   const [name,    setName]    =useState(plan?.name??'')
   const [price,   setPrice]   =useState(plan?String(plan.price/100):'')
-  const [period,  setPeriod]  ]=useState<Plan['period']>(plan?.period??'monthly')
+  const [period,  setPeriod]  =useState<Plan['period']>(plan?.period??'monthly')
   const [maxI,    setMaxI]    =useState(String(plan?.maxInstances??1))
   const [maxA,    setMaxA]    =useState(String(plan?.maxAttendants??2))
   const [feats,   setFeats]   =useState(plan?.features.join('\n')??' ')
