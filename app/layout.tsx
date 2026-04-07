@@ -18,7 +18,7 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: 'Agência de Atendimento Digital',
-  description: 'Handoff perfeito entre IA e Humanos no WhatsApp',
+  description: 'Agência de Atendimento Digital',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
