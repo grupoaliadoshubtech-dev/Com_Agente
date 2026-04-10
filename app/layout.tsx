@@ -1,8 +1,10 @@
 // app/layout.tsx
-import type { Metadata } from 'next'
+// FASE 3: Adicionado meta tags PWA, viewport mobile, apple-touch-icon
+import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Space_Grotesk } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from '@/components/session-provider'
+import { PWARegister } from '@/components/pwa-register'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -17,8 +19,26 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: 'Agência de Atendimento Digital',
-  description: 'Handoff perfeito entre IA e Humanos no WhatsApp',
+  title: 'ComAgente',
+  description: 'Agência de Atendimento Digital',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ComAgente',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/icon-192.png',
+  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#111214',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={`${dmSans.variable} ${spaceGrotesk.variable}`}>
       <body className="bg-base text-white font-sans antialiased min-h-screen">
         <SessionProvider>{children}</SessionProvider>
+        <PWARegister />
       </body>
     </html>
   )

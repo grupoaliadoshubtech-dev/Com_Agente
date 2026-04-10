@@ -1,5 +1,5 @@
 'use client'
-// app/(app)/layout.tsx — Redesign: Dual theme · Sidebar retrátil · SVG icons · Mobile
+// app/(app)/layout.tsx — CONSOLIDADO (Fases 5+6: Templates + Distribuição na nav)
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -28,6 +28,10 @@ const IC = {
   menu:        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
   stop:        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>,
   master:      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>,
+  // FASE 5: Templates
+  templates:   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>,
+  // FASE 6: Distribuição
+  distribuicao:<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="12" y1="14" x2="6" y2="20"/><line x1="12" y1="14" x2="18" y2="20"/><circle cx="6" cy="20" r="2"/><circle cx="18" cy="20" r="2"/></svg>,
 }
 
 const MAIN_NAV    = [
@@ -38,9 +42,11 @@ const MAIN_NAV    = [
   { label:'Satisfação',    href:'/satisfacao',   icon:'satisfacao',   badge:'',  toggle:'canViewSatisfacao' },
 ]
 const CONFIG_NAV  = [
-  { label:'Conexão WhatsApp',href:'/supervisor/conexao',icon:'conexao',  badge:'', toggle:'' },
-  { label:'Equipe',          href:'/supervisor/equipe', icon:'equipe',   badge:'', toggle:'' },
-  { label:'Planos',          href:'/supervisor/planos', icon:'planos',   badge:'', toggle:'' },
+  { label:'Conexão WhatsApp',  href:'/supervisor/conexao',      icon:'conexao',      badge:'', toggle:'' },
+  { label:'Equipe',            href:'/supervisor/equipe',       icon:'equipe',       badge:'', toggle:'' },
+  { label:'Planos',            href:'/supervisor/planos',       icon:'planos',       badge:'', toggle:'' },
+  { label:'Respostas Rápidas', href:'/supervisor/templates',    icon:'templates',    badge:'', toggle:'' },
+  { label:'Distribuição',      href:'/supervisor/distribuicao', icon:'distribuicao', badge:'', toggle:'' },
 ]
 const MASTER_NAV  = [
   { label:'Empresas',        href:'/admin/empresas',   icon:'empresas',  badge:'', toggle:'' },
@@ -50,18 +56,20 @@ const MASTER_NAV  = [
 ]
 
 const PAGE_META: Record<string, [string, string]> = {
-  '/workspace':          ['Workspace',        'Fila de atendimento em tempo real'],
-  '/dashboard':          ['Dashboard',        'Visão geral da operação'],
-  '/crm':                ['CRM / Clientes',   'Base de clientes cadastrados'],
-  '/transcricoes':       ['Transcrições',     'Histórico de atendimentos'],
-  '/satisfacao':         ['Satisfação',       'Avaliações dos clientes'],
-  '/supervisor/conexao': ['Conexão WhatsApp', 'Status da instância Evolution'],
-  '/supervisor/equipe':  ['Equipe',           'Gestão de atendentes'],
-  '/supervisor/planos':  ['Planos',           'Assinatura atual'],
-  '/admin/empresas':     ['Empresas',         'Gestão de tenants'],
-  '/admin/planos':       ['Planos Master',    'CRUD de assinaturas'],
-  '/admin/blacklist':    ['Blacklist Global', 'Números bloqueados'],
-  '/admin/logs':         ['Log de Erros',     'Erros do sistema'],
+  '/workspace':               ['Workspace',          'Fila de atendimento em tempo real'],
+  '/dashboard':               ['Dashboard',          'Visão geral da operação'],
+  '/crm':                     ['CRM / Clientes',     'Base de clientes cadastrados'],
+  '/transcricoes':            ['Transcrições',       'Histórico de atendimentos'],
+  '/satisfacao':              ['Satisfação',         'Avaliações dos clientes'],
+  '/supervisor/conexao':      ['Conexão WhatsApp',   'Status da instância Evolution'],
+  '/supervisor/equipe':       ['Equipe',             'Gestão de atendentes'],
+  '/supervisor/planos':       ['Planos',             'Assinatura atual'],
+  '/supervisor/templates':    ['Respostas Rápidas',  'Templates de mensagem para atendentes'],
+  '/supervisor/distribuicao': ['Distribuição',       'Atribuição automática de atendimentos'],
+  '/admin/empresas':          ['Empresas',           'Gestão de tenants'],
+  '/admin/planos':            ['Planos Master',      'CRUD de assinaturas'],
+  '/admin/blacklist':         ['Blacklist Global',   'Números bloqueados'],
+  '/admin/logs':              ['Log de Erros',       'Erros do sistema'],
 }
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
@@ -103,7 +111,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     return !!(user as Record<string, unknown>)?.[toggle]
   }
 
-  // Sidebar nav item
   function NavBtn({ label, href, icon, badge, toggle }: typeof MAIN_NAV[0]) {
     if (!isVisible(toggle)) return null
     const active = pathname.startsWith(href)
@@ -133,12 +140,10 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   const sidebarContent = (
     <>
-      {/* Collapse btn */}
       <button onClick={()=>setCol(c=>!c)} style={{position:'absolute',right:-12,top:22,width:24,height:24,borderRadius:'50%',background:'var(--bg-card)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:10,color:'var(--txt-2)',boxShadow:'var(--shadow-sm)',transform:col?'rotate(180deg)':'rotate(0deg)',transition:'transform .22s'}}>
         {IC.chevron}
       </button>
 
-      {/* Logo */}
       <div style={{height:58,display:'flex',alignItems:'center',padding:'0 16px',gap:10,borderBottom:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
         <div style={{width:32,height:32,borderRadius:9,background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:14,color:'#0a0a0a'}}>CA</div>
         <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'#fff',opacity:col?0:1,width:col?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,width .2s'}}>
@@ -146,7 +151,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* Nav */}
       <div style={{flex:1,padding:'10px 8px',overflowY:'auto',overflowX:'hidden'}}>
         <SecLabel label="Principal" />
         {MAIN_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
@@ -167,7 +171,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </button>
       </div>
 
-      {/* User */}
       <div style={{padding:8,borderTop:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
         <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:10,background:'rgba(255,255,255,.04)'}}>
           <div style={{width:32,height:32,borderRadius:'50%',background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#0a0a0a'}}>{initials}</div>
@@ -182,27 +185,19 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
-
-      {/* Mobile overlay */}
       {mobOpen && <div onClick={()=>setMobOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:25}}/>}
 
-      {/* SIDEBAR — desktop */}
       <aside className="hide-mobile" style={{width:col?64:230,background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,.06)',display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden',position:'relative',zIndex:30,transition:'width .22s ease'}}>
         {sidebarContent}
       </aside>
 
-      {/* SIDEBAR — mobile (fixed) */}
       <aside className="show-mobile" style={{position:'fixed',top:0,left:0,bottom:0,width:240,background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,.06)',display:'flex',flexDirection:'column',overflow:'hidden',zIndex:40,transform:mobOpen?'translateX(0)':'translateX(-100%)',transition:'transform .22s ease'}}>
         {sidebarContent}
       </aside>
 
-      {/* MAIN */}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
-
-        {/* TOPBAR */}
         <header className="topbar-base" style={{height:58,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',flexShrink:0,gap:12}}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
-            {/* Hamburger mobile */}
             <button className="show-mobile btn-icon" onClick={()=>setMobOpen(o=>!o)} style={{display:'none'}}>{IC.menu}</button>
             <div>
               <div className="font-display" style={{fontSize:16,fontWeight:700,color:'var(--txt)'}}>{pageTitle}</div>
@@ -224,18 +219,16 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* CONTENT */}
         <main style={{flex:1,overflow:'hidden'}}>{children}</main>
       </div>
 
-      {/* Kill modal */}
       {killModal && (
         <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setKillModal(false)}}>
           <div className="card animate-slide-up" style={{maxWidth:380,width:'100%',padding:24}}>
             <div className="font-display" style={{fontSize:16,fontWeight:700,marginBottom:8,color:'var(--txt)'}}>🛑 Kill Switch Global</div>
             <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:20}}>
               Pausará a IA em <strong style={{color:'var(--txt)'}}>TODOS os atendimentos</strong>.
-              Grava <code style={{background:'var(--bg-input)',padding:'2px 6px',borderRadius:4,fontSize:12}}>"ALL"</code> na Fila_Humana.
+              Grava <code style={{background:'var(--bg-input)',padding:'2px 6px',borderRadius:4,fontSize:12}}>{'"ALL"'}</code> na Fila_Humana.
             </p>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button className="btn-outline" onClick={()=>setKillModal(false)} style={{padding:'8px 16px',fontSize:13}}>Cancelar</button>
@@ -245,10 +238,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Toast */}
       {toast && <div className="toast-base">{toast}</div>}
 
-      {/* Bottom nav mobile */}
       <nav className="show-mobile" style={{position:'fixed',bottom:0,left:0,right:0,height:60,background:'var(--bg-sidebar)',borderTop:'1px solid rgba(255,255,255,.08)',zIndex:20,justifyContent:'space-around',alignItems:'center',padding:'0 4px',display:'none'}}>
         {[{ic:IC.workspace,lb:'Chat',hr:'/workspace'},{ic:IC.dashboard,lb:'Analytics',hr:'/dashboard'},{ic:IC.crm,lb:'Clientes',hr:'/crm'},{ic:IC.satisfacao,lb:'Avaliações',hr:'/satisfacao'},{ic:IC.conexao,lb:'Config',hr:'/supervisor/conexao'}].map(item=>(
           <button key={item.hr} onClick={()=>nav(item.hr)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'6px 10px',borderRadius:10,cursor:'pointer',color:pathname.startsWith(item.hr)?'var(--neon)':'#A0A0A0',background:'transparent',border:'none',flex:1,fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:10,fontWeight:500}}>

@@ -23,6 +23,8 @@ const ROLE_MAP: Record<string, UserRole[]> = {
   '/supervisor/conexao':         ['master', 'supervisor'],
   '/supervisor/equipe':          ['master', 'supervisor'],
   '/supervisor/planos':          ['master', 'supervisor'],
+  '/supervisor/templates':       ['master', 'supervisor'],
+  '/supervisor/distribuicao':    ['master', 'supervisor'],
 
   // Workspace — todos os autenticados
   '/workspace':                  ['master', 'supervisor', 'atendente'],

@@ -2,28 +2,21 @@
 // lib/evolution/client.ts
 //
 // Cliente HTTP tipado para a Evolution API v2.
-// Todas as chamadas passam por aqui — zero fetch espalhado.
-//
-// Variáveis de ambiente necessárias por tenant:
-//   EVOLUTION_API_URL      → ex: https://agenciadia-evolution-api.nxwkfd.easypanel.host
-//   EVOLUTION_API_KEY      → API key global (header apikey)
-//
-// Cada tenant tem sua própria instância WhatsApp (instance name).
-// O instance name fica salvo na coluna evolutionInstance da aba Empresas.
+// FASE 2: Adicionado getMediaBase64 para download de mídia.
 // ─────────────────────────────────────────────────────────────
 
 export interface EvolutionConfig {
-  baseUrl:      string   // sem trailing slash
+  baseUrl:      string
   apiKey:       string
-  instanceName: string   // ex: "agenciadia"
+  instanceName: string
 }
 
 // ── Tipos de payload ─────────────────────────────────────────
 
 export interface SendTextPayload {
-  number:  string          // formato: 557199999999 (sem +, sem @)
+  number:  string
   text:    string
-  delay?:  number          // ms antes de enviar (simula digitação)
+  delay?:  number
   quoted?: { key: { id: string } }
 }
 
@@ -32,7 +25,7 @@ export interface SendMediaPayload {
   mediatype: 'image' | 'document' | 'audio' | 'video'
   mimetype:  string
   caption?:  string
-  media:     string        // URL pública ou base64
+  media:     string
   fileName?: string
 }
 
@@ -63,6 +56,36 @@ export interface WebhookConfig {
   events:   string[]
 }
 
+// ── Tipos para Chat ──────────────────────────────────────────
+
+export interface EvolutionChat {
+  id:            string
+  remoteJid:     string
+  pushName?:     string
+  profilePicUrl?: string
+  lastMessage?:  {
+    key:          { id: string; fromMe: boolean; remoteJid: string }
+    message?:     Record<string, unknown>
+    messageTimestamp?: number
+    pushName?:    string
+  }
+  updatedAt?:    string
+  unreadCount?:  number
+}
+
+export interface EvolutionMessage {
+  key: {
+    id:        string
+    fromMe:    boolean
+    remoteJid: string
+  }
+  pushName?:        string
+  message?:         Record<string, unknown>
+  messageTimestamp?: number | string
+  messageType?:     string
+  status?:          string
+}
+
 // ── Cliente ───────────────────────────────────────────────────
 
 export class EvolutionClient {
@@ -76,7 +99,6 @@ export class EvolutionClient {
     this.instanceName = config.instanceName
   }
 
-  // ── Fábrica estática (usa env vars) ────────────────────────
   static fromEnv(instanceName: string): EvolutionClient {
     const baseUrl = process.env.EVOLUTION_API_URL
     const apiKey  = process.env.EVOLUTION_API_KEY
@@ -86,7 +108,6 @@ export class EvolutionClient {
     return new EvolutionClient({ baseUrl, apiKey, instanceName })
   }
 
-  // ── HTTP helper ─────────────────────────────────────────────
   private async request<T>(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     path:   string,
@@ -100,7 +121,6 @@ export class EvolutionClient {
         'apikey': this.apiKey,
       },
       body: body ? JSON.stringify(body) : undefined,
-      // Sem cache — dados em tempo real
       cache: 'no-store',
     })
 
@@ -116,68 +136,72 @@ export class EvolutionClient {
   // INSTÂNCIA
   // ════════════════════════════════════════════════════════════
 
-  /** Status da conexão WhatsApp da instância. */
   async getStatus(): Promise<InstanceStatusResponse> {
-    return this.request<InstanceStatusResponse>(
-      'GET',
-      `/instance/connectionState/${this.instanceName}`
-    )
+    return this.request<InstanceStatusResponse>('GET', `/instance/connectionState/${this.instanceName}`)
   }
 
-  /** Gera QR Code para conectar via WhatsApp Web. */
   async getQRCode(): Promise<QRCodeResponse> {
-    return this.request<QRCodeResponse>(
-      'GET',
-      `/instance/connect/${this.instanceName}`
-    )
+    return this.request<QRCodeResponse>('GET', `/instance/connect/${this.instanceName}`)
   }
 
-  /** Desconecta (logout) da instância. */
   async logout(): Promise<{ status: string }> {
-    return this.request<{ status: string }>(
-      'DELETE',
-      `/instance/logout/${this.instanceName}`
-    )
+    return this.request<{ status: string }>('DELETE', `/instance/logout/${this.instanceName}`)
   }
 
-  /** Reinicia a instância. */
   async restart(): Promise<{ status: string }> {
-    return this.request<{ status: string }>(
-      'PUT',
-      `/instance/restart/${this.instanceName}`
-    )
+    return this.request<{ status: string }>('PUT', `/instance/restart/${this.instanceName}`)
   }
 
   // ════════════════════════════════════════════════════════════
   // WEBHOOK
   // ════════════════════════════════════════════════════════════
 
-  /**
-   * Configura o webhook da instância.
-   * Chame durante provisionamento do tenant.
-   */
   async setWebhook(config: WebhookConfig): Promise<void> {
-    await this.request<unknown>(
-      'POST',
-      `/webhook/set/${this.instanceName}`,
-      {
-        webhook: {
-          enabled: config.enabled,
-          url:     config.url,
-          events:  config.events,
-          // Envia dados completos no body do webhook
-          webhookByEvents: false,
-          webhookBase64:   false,
-        },
-      }
-    )
+    await this.request<unknown>('POST', `/webhook/set/${this.instanceName}`, {
+      webhook: { enabled: config.enabled, url: config.url, events: config.events, webhookByEvents: false, webhookBase64: false },
+    })
   }
 
-  /** Lê a configuração atual do webhook. */
   async getWebhook(): Promise<{ webhook: WebhookConfig }> {
-    return this.request<{ webhook: WebhookConfig }>(
-      'GET',
-      `/webhook/find/${this.instanceName}`
+    return this.request<{ webhook: WebhookConfig }>('GET', `/webhook/find/${this.instanceName}`)
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // CHATS
+  // ════════════════════════════════════════════════════════════
+
+  async findChats(): Promise<EvolutionChat[]> {
+    return this.request<EvolutionChat[]>('POST', `/chat/findChats/${this.instanceName}`, {})
+  }
+
+  async findMessages(remoteJid: string, count = 50): Promise<EvolutionMessage[]> {
+    const result = await this.request<{ messages?: { records: EvolutionMessage[] } }>(
+      'POST', `/chat/findMessages/${this.instanceName}`,
+      { where: { key: { remoteJid } }, limit: count }
+    )
+    if (Array.isArray(result)) return result as unknown as EvolutionMessage[]
+    if (result?.messages?.records) return result.messages.records
+    return []
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // MÍDIA — FASE 2 (NOVO)
+  // ════════════════════════════════════════════════════════════
+
+  /**
+   * Baixa mídia de uma mensagem como base64.
+   * Usa o endpoint /chat/getBase64FromMediaMessage da Evolution API.
+   * @param messageId - ID da mensagem que contém a mídia
+   * @param remoteJid - JID do contato
+   */
+  async getMediaBase64(messageId: string, remoteJid: string): Promise<{
+    base64:   string
+    mimetype: string
+    fileName?: string
+  }> {
+    return this.request<{ base64: string; mimetype: string; fileName?: string }>(
+      'POST', `/chat/getBase64FromMediaMessage/${this.instanceName}`,
+      { message: { key: { id: messageId, remoteJid } } }
     )
   }
 
@@ -185,46 +209,21 @@ export class EvolutionClient {
   // MENSAGENS
   // ════════════════════════════════════════════════════════════
 
-  /** Envia mensagem de texto. */
   async sendText(payload: SendTextPayload): Promise<{ key: { id: string } }> {
-    return this.request(
-      'POST',
-      `/message/sendText/${this.instanceName}`,
-      payload
-    )
+    return this.request('POST', `/message/sendText/${this.instanceName}`, payload)
   }
 
-  /** Envia mídia (imagem, áudio, documento, vídeo). */
   async sendMedia(payload: SendMediaPayload): Promise<{ key: { id: string } }> {
-    return this.request(
-      'POST',
-      `/message/sendMedia/${this.instanceName}`,
-      payload
-    )
+    return this.request('POST', `/message/sendMedia/${this.instanceName}`, payload)
   }
 
-  /**
-   * Simula "digitando..." ou "gravando..." para o contato.
-   * Use antes de enviar mensagem para experiência mais natural.
-   */
   async sendPresence(payload: SendPresencePayload): Promise<void> {
-    await this.request(
-      'POST',
-      `/chat/sendPresence/${this.instanceName}`,
-      payload
-    )
+    await this.request('POST', `/chat/sendPresence/${this.instanceName}`, payload)
   }
 
-  /**
-   * Envia texto com simulação de digitação antes.
-   * Delay automático proporcional ao tamanho da mensagem.
-   */
   async sendTextWithTyping(number: string, text: string): Promise<{ key: { id: string } }> {
-    // Simula digitação: ~40ms por caractere, mín 800ms, máx 4000ms
     const typingMs = Math.min(Math.max(text.length * 40, 800), 4000)
-
     await this.sendPresence({ number, presence: 'composing', delay: typingMs })
-
     return this.sendText({ number, text, delay: typingMs })
   }
 
@@ -232,37 +231,20 @@ export class EvolutionClient {
   // PERFIL / CONTATO
   // ════════════════════════════════════════════════════════════
 
-  /** Verifica se o número existe no WhatsApp. */
   async checkNumber(number: string): Promise<{ exists: boolean; jid: string }> {
     const res = await this.request<Array<{ exists: boolean; jid: string }>>(
-      'POST',
-      `/chat/whatsappNumbers/${this.instanceName}`,
-      { numbers: [number] }
+      'POST', `/chat/whatsappNumbers/${this.instanceName}`, { numbers: [number] }
     )
     return res[0] ?? { exists: false, jid: '' }
   }
 
-  /** Busca informações do perfil de um contato. */
-  async getContactInfo(number: string): Promise<{
-    name?: string
-    pushName?: string
-    profilePictureUrl?: string
-  }> {
-    return this.request(
-      'POST',
-      `/chat/fetchProfile/${this.instanceName}`,
-      { number }
-    )
+  async getContactInfo(number: string): Promise<{ name?: string; pushName?: string; profilePictureUrl?: string }> {
+    return this.request('POST', `/chat/fetchProfile/${this.instanceName}`, { number })
   }
 }
 
-// ── Helpers de formatação de número ──────────────────────────
+// ── Helpers ──────────────────────────────────────────────────
 
-/**
- * Normaliza número para formato Evolution API.
- * Remove caracteres não numéricos, garante DDI 55.
- * Ex: "(71) 9 9999-9999" → "5571999999999"
- */
 export function normalizeNumber(raw: string): string {
   const digits = raw.replace(/\D/g, '')
   if (digits.startsWith('55')) return digits
@@ -270,10 +252,11 @@ export function normalizeNumber(raw: string): string {
   return `55${digits}`
 }
 
-/**
- * Extrai número limpo de um JID do WhatsApp.
- * Ex: "5571999999999@s.whatsapp.net" → "5571999999999"
- */
 export function jidToNumber(jid: string): string {
   return jid.split('@')[0].split(':')[0]
+}
+
+export function numberToJid(number: string): string {
+  const clean = normalizeNumber(number)
+  return `${clean}@s.whatsapp.net`
 }

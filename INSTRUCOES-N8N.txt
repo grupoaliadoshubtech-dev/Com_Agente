@@ -1,0 +1,71 @@
+// ─────────────────────────────────────────────────────────────
+// FASE 8 — INSTRUÇÕES DE CONFIGURAÇÃO DO N8N
+// ─────────────────────────────────────────────────────────────
+//
+// O payload enviado ao n8n agora inclui campos extras:
+//
+// CAMPOS NOVOS no webhook do n8n:
+//
+//   conversationHistory  → Histórico completo formatado (20 últimas mensagens)
+//   compactHistory       → Versão resumida (5 últimas mensagens)
+//   detectedIntent       → Intenção detectada: compra|suporte|cancelamento|informacao|agendamento|reclamacao|elogio|null
+//   systemInstructions   → Instruções do sistema para o Gemini (contexto + regras)
+//   clientEtapa          → Etapa no funil CRM: novo|em_atendimento|proposta_enviada|etc
+//   clientTags           → Tags do cliente separadas por vírgula
+//
+// ─────────────────────────────────────────────────────────────
+// COMO CONFIGURAR NO N8N:
+// ─────────────────────────────────────────────────────────────
+//
+// No nó do Gemini/ChatGPT no n8n, adicione ao System Prompt:
+//
+//   {{ $json.systemInstructions }}
+//
+//   {{ $json.conversationHistory }}
+//
+// E na mensagem do usuário:
+//
+//   {{ $json.text }}
+//
+// Isso faz o Gemini receber:
+// 1. As instruções de como se comportar (com base na intenção)
+// 2. O histórico completo da conversa (memória)
+// 3. A mensagem atual do cliente
+//
+// ─────────────────────────────────────────────────────────────
+// EXEMPLO DE PROMPT COMPLETO NO N8N:
+// ─────────────────────────────────────────────────────────────
+//
+// System Prompt:
+// ```
+// Você é Ana Maria, assistente virtual da empresa.
+// Responda de forma profissional, amigável e objetiva.
+// Use emojis com moderação.
+//
+// {{ $json.systemInstructions }}
+//
+// {{ $json.conversationHistory }}
+// ```
+//
+// User Message:
+// ```
+// {{ $json.text }}
+// ```
+//
+// ─────────────────────────────────────────────────────────────
+// O QUE MUDA PARA O GEMINI:
+// ─────────────────────────────────────────────────────────────
+//
+// ANTES (sem contexto):
+//   Gemini recebia apenas a mensagem atual do cliente.
+//   Cada mensagem era tratada como uma conversa nova.
+//   O Gemini repetia perguntas já respondidas.
+//
+// AGORA (com contexto):
+//   Gemini recebe as últimas 20 mensagens da conversa.
+//   Sabe o que já foi dito e o que o cliente já informou.
+//   Não repete perguntas. Continua de onde parou.
+//   Sabe a intenção do cliente e age de acordo.
+//   Usa o nome do cliente naturalmente.
+//
+// ─────────────────────────────────────────────────────────────

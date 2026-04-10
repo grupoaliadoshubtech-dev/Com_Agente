@@ -164,3 +164,159 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 
 @media (max-width:768px) { .hide-mobile { display:none !important; } }
 @media (min-width:769px) { .hide-desktop { display:none !important; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   FASE 3 — Adicionar ao FINAL do globals.css
+   Responsividade mobile para Workspace e layout geral
+═══════════════════════════════════════════════════════════════ */
+
+/* ── PWA: Standalone mode ─────────────────────────────────────
+   Remove scrollbars e ajusta para tela cheia quando instalado */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Safe area para iPhones com notch */
+  .topbar-base {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+}
+
+/* ── Mobile: Workspace responsivo ─────────────────────────────
+   Sidebar vira drawer, chat ocupa tela cheia */
+@media (max-width: 768px) {
+  /* Esconde show-mobile por padrão e mostra */
+  .show-mobile { display: flex !important; }
+
+  /* Workspace: sidebar e chat empilhados */
+  .workspace-container {
+    flex-direction: column !important;
+  }
+
+  /* Sidebar de chats: largura total no mobile */
+  .workspace-container > aside {
+    width: 100% !important;
+    max-height: 45vh;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+
+  /* Chat area: ocupa o restante */
+  .workspace-container > div:last-child {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Topbar: compacta */
+  .topbar-base {
+    padding: 0 12px !important;
+    height: 50px !important;
+  }
+
+  /* Sidebar do layout principal: já é controlada pelo layout.tsx */
+
+  /* Cards e modais: margens menores */
+  .card {
+    margin: 8px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Tabelas: scroll horizontal */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Input de mensagem: mais compacto */
+  textarea {
+    font-size: 16px !important; /* Previne zoom no iOS */
+  }
+
+  /* Modal overlay: padding menor */
+  .modal-bg {
+    padding: 12px !important;
+  }
+
+  /* Esconde elementos desnecessários no mobile */
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* ── Mobile: Layout principal ─────────────────────────────────
+   Bottom nav + sidebar como drawer */
+@media (max-width: 768px) {
+  /* Esconde sidebar desktop */
+  aside.hide-mobile {
+    display: none !important;
+  }
+
+  /* Mostra bottom nav */
+  nav.show-mobile {
+    display: flex !important;
+  }
+
+  /* Mostra hamburger */
+  button.show-mobile {
+    display: flex !important;
+  }
+
+  /* Content padding para não ficar atrás do bottom nav */
+  main {
+    padding-bottom: 60px;
+  }
+}
+
+/* ── Tablet: Ajustes intermediários ──────────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Sidebar mais estreita no tablet */
+  .workspace-container > aside {
+    width: 240px !important;
+  }
+}
+
+/* ── Touch: Melhorias de toque ────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  /* Aumenta áreas de toque */
+  button, .ia-toggle, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Remove hover effects em touch */
+  button:hover, .btn-outline:hover, .btn-theme:hover {
+    filter: none;
+  }
+
+  /* Scroll momentum */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Notch / Safe areas ──────────────────────────────────────── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  nav.show-mobile {
+    padding-bottom: calc(4px + env(safe-area-inset-bottom)) !important;
+    height: calc(60px + env(safe-area-inset-bottom)) !important;
+  }
+
+  main {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Print: esconde elementos de UI ──────────────────────────── */
+@media print {
+  aside, nav, .topbar-base, .btn-neon, .btn-outline, .ia-toggle,
+  .toast-base, button {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

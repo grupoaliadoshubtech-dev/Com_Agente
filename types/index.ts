@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────────────────────
-// types/index.ts  —  Tipos de domínio do AAD
+// types/index.ts — Tipos de domínio do ComAgente
+// FASE 4: Adicionado campos de funil, tags e follow-up no CRM
 // ─────────────────────────────────────────────────────────────
 
 // ── RBAC ─────────────────────────────────────────────────────
@@ -10,9 +11,8 @@ export interface AuthUser {
   email: string
   name: string
   role: UserRole
-  tenantId: string        // ID da planilha do tenant (Google Sheets)
+  tenantId: string
   tenantName: string
-  // Toggles controlados pelo supervisor
   canViewDashboard: boolean
   canViewCRM: boolean
   canViewTranscricoes: boolean
@@ -21,13 +21,13 @@ export interface AuthUser {
 
 // ── TENANT (Empresa) ──────────────────────────────────────────
 export interface Tenant {
-  id: string              // ID da planilha Google Sheets do tenant
+  id: string
   name: string
   email: string
   phone: string
   planId: string
   status: 'active' | 'inactive' | 'trial'
-  createdAt: string       // ISO 8601
+  createdAt: string
   evolutionInstance?: string
 }
 
@@ -35,11 +35,11 @@ export interface Tenant {
 export interface Plan {
   id: string
   name: string
-  price: number           // em centavos (0 = sob consulta)
+  price: number
   period: 'monthly' | 'yearly' | 'custom'
   maxInstances: number
   maxAttendants: number
-  features: string[]      // JSON serializado na planilha
+  features: string[]
   isActive: boolean
 }
 
@@ -52,7 +52,6 @@ export interface UserRecord {
   name: string
   role: UserRole
   phone?: string
-  // Toggles do supervisor
   canViewDashboard: boolean
   canViewCRM: boolean
   canViewTranscricoes: boolean
@@ -63,10 +62,10 @@ export interface UserRecord {
 
 // ── HANDOFF ───────────────────────────────────────────────────
 export interface HandoffRecord {
-  telefone: string        // número do cliente OU "ALL" (kill switch)
+  telefone: string
   status: 'pausado' | 'ativo'
-  timestamp: string       // ISO 8601
-  atendente: string       // ID do atendente logado
+  timestamp: string
+  atendente: string
 }
 
 // ── LEAD ─────────────────────────────────────────────────────
@@ -82,12 +81,31 @@ export interface LeadRecord {
   createdAt: string
 }
 
-// ── CLIENTE (CRM) ─────────────────────────────────────────────
+// ── CLIENTE (CRM) — FASE 4: Campos de funil e follow-up ─────
+export type CRMStage =
+  | 'novo'
+  | 'em_atendimento'
+  | 'proposta_enviada'
+  | 'aguardando_resposta'
+  | 'negociacao'
+  | 'fechado'
+  | 'perdido'
+
 export interface ClientRecord {
-  telefone: string
-  nome: string
-  status: string
-  historico?: string
+  telefone:       string
+  nome:           string
+  status:         string
+  historico?:     string
+  // Fase 4: campos de funil
+  etapa?:         CRMStage
+  tags?:          string        // tags separadas por vírgula
+  ultimoContato?: string        // ISO date
+  proximoFollowUp?: string      // ISO date
+  valorEstimado?: string        // valor em reais
+  atendente?:     string        // atendente responsável
+  notas?:         string        // notas internas
+  origem?:        string        // como chegou (WhatsApp, site, indicação)
+  createdAt?:     string        // data de criação
 }
 
 // ── ATENDIMENTO (Transcrição) ─────────────────────────────────
@@ -98,7 +116,7 @@ export interface AtendimentoRecord {
   inicio: string
   fim?: string
   duracao?: string
-  atendente: string       // ID do humano OU "Bot"
+  atendente: string
   satisfacao?: number
 }
 

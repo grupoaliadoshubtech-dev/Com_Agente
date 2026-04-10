@@ -1,294 +1,622 @@
 'use client'
+// ─────────────────────────────────────────────────────────────
 // app/(app)/workspace/page.tsx
-// Workspace de Chat — zona de handoff IA ↔ Humano
+// CONSOLIDADO — Chat em tempo real (F1) + Mídia (F2) + Templates (F5)
+// ─────────────────────────────────────────────────────────────
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useHandoff } from '@/lib/hooks/use-handoff'
+import { useTemplates } from '@/lib/hooks/use-templates'
+import { TemplateMenu } from '@/components/template-menu'
 
-interface QueueContact {
-  id:        string
-  name:      string
-  initials:  string
-  preview:   string
-  time:      string
-  sentiment: '😀' | '😡' | '😐'
-  iaOn:      boolean
+// ── Tipos ────────────────────────────────────────────────────
+
+interface ChatContact {
+  telefone: string; remoteJid: string; nome: string; preview: string
+  timestamp: string; iaStatus: string; unreadCount: number; profilePicUrl: string | null
 }
 
 interface ChatMessage {
-  type:    'bot' | 'human' | 'client'
-  text:    string
-  time:    string
+  id: string; remoteJid: string; type: 'incoming' | 'outgoing'; text: string
+  time: string; timestamp: string; pushName: string; fromMe: boolean
+  mediaType: string | null; mimetype: string | null; caption: string | null
+  duration: number | null; fileName: string | null; isPtt: boolean; status: string | null
 }
 
-// Dados iniciais — em produção vêm de polling ou WebSocket sobre o Sheets
-const INITIAL_QUEUE: QueueContact[] = [
-  { id: '557198001001', name: 'Carlos Mendes',  initials: 'CM', preview: 'Qual o preço do plano anual?', time: '2m', sentiment: '😀', iaOn: true  },
-  { id: '557198002002', name: 'Fernanda Lima',  initials: 'FL', preview: 'Já fiz o pagamento!',          time: '5m', sentiment: '😀', iaOn: true  },
-  { id: '557198003003', name: 'Roberto Alves',  initials: 'RA', preview: 'Isso é golpe?',               time: '8m', sentiment: '😡', iaOn: false },
-  { id: '557198004004', name: 'Mariana Costa',  initials: 'MC', preview: 'Não recebi confirmação',      time: '12m',sentiment: '😀', iaOn: true  },
-  { id: '557198005005', name: 'Diego Souza',    initials: 'DS', preview: 'Tenho uma frota de 12 veículos',time:'18m',sentiment: '😀', iaOn: false },
-]
+// ── Config ───────────────────────────────────────────────────
 
-const MOCK_MESSAGES: Record<string, ChatMessage[]> = {
-  '557198001001': [
-    { type: 'client', text: 'Olá! Quero saber sobre o rastreamento.', time: '09:01' },
-    { type: 'bot',    text: 'Oi Carlos! Sou a Ana Maria da TrackerMap. 😊 O rastreamento é para você ou sua empresa?', time: '09:01' },
-    { type: 'client', text: 'Para mim, tenho 1 carro.', time: '09:02' },
-    { type: 'bot',    text: 'Perfeito! O mais escolhido é o PREMIUM — R$ 49,90/mês com garantia vitalícia. Posso enviar os detalhes?', time: '09:02' },
-    { type: 'client', text: 'Qual o preço do plano anual?', time: '09:04' },
-  ],
-  '557198003003': [
-    { type: 'client', text: 'Quem é você?', time: '08:50' },
-    { type: 'bot',    text: 'Olá! Sou a Ana Maria, assistente virtual da TrackerMap!', time: '08:50' },
-    { type: 'client', text: 'Isso é golpe?', time: '08:51' },
-    { type: 'human',  text: 'Olá Roberto, somos empresa legítima. Posso enviar nosso site e CNPJ para conferir. 🙂', time: '08:53' },
-  ],
+const CHAT_POLL = 5000
+const MSG_POLL  = 3000
+
+// ── Helpers ──────────────────────────────────────────────────
+
+function ini(n: string) { return n.split(' ').map(x => x[0]).slice(0, 2).join('').toUpperCase() || '??' }
+
+function timeAgo(iso: string) {
+  if (!iso) return ''
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (m < 1) return 'agora'; if (m < 60) return m + 'm'
+  const h = Math.floor(m / 60); if (h < 24) return h + 'h'
+  const d = Math.floor(h / 24); if (d < 7) return d + 'd'
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
+
+function fmtPhone(p: string) {
+  if (p.length === 13 && p.startsWith('55'))
+    return `+${p.slice(0, 2)} (${p.slice(2, 4)}) ${p.slice(4, 9)}-${p.slice(9)}`
+  return p
+}
+
+function fmtDuration(sec: number | null) {
+  if (!sec) return '0:00'
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+// ── Componente de Mídia ──────────────────────────────────────
+
+function MediaBubble({ msg }: { msg: ChatMessage }) {
+  const [mediaData, setMediaData] = useState<{ base64: string; mimetype: string } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [playing, setPlaying] = useState(false)
+
+  const loadMedia = useCallback(async () => {
+    if (mediaData || loading || !msg.mediaType) return
+    if (msg.mediaType === 'location' || msg.mediaType === 'contact') return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/evolution/media?messageId=${msg.id}&remoteJid=${encodeURIComponent(msg.remoteJid)}`)
+      const data = await res.json()
+      if (data.success && data.data) {
+        setMediaData({ base64: data.data.base64, mimetype: data.data.mimetype })
+      } else {
+        setError(true)
+      }
+    } catch { setError(true) }
+    finally { setLoading(false) }
+  }, [msg.id, msg.remoteJid, msg.mediaType, mediaData, loading])
+
+  // Auto-load imagens e stickers
+  useEffect(() => {
+    if (msg.mediaType === 'image' || msg.mediaType === 'sticker') loadMedia()
+  }, [msg.mediaType, loadMedia])
+
+  const isOut = msg.type === 'outgoing'
+
+  // ── Imagem ─────────────────────────────────────────────
+  if (msg.mediaType === 'image' || msg.mediaType === 'sticker') {
+    return (
+      <div>
+        {loading && <div style={{ width: 220, height: 160, borderRadius: 12, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#888' }}>Carregando...</div>}
+        {error && <div style={{ padding: '8px 12px', fontSize: 12, color: '#EF4444' }}>Erro ao carregar imagem</div>}
+        {mediaData && (
+          <img
+            src={`data:${mediaData.mimetype};base64,${mediaData.base64}`}
+            alt="imagem"
+            style={{ maxWidth: 260, maxHeight: 300, borderRadius: 12, display: 'block' }}
+          />
+        )}
+        {msg.caption && <p style={{ fontSize: 13, marginTop: 4, padding: '0 2px' }}>{msg.caption}</p>}
+      </div>
+    )
+  }
+
+  // ── Áudio ──────────────────────────────────────────────
+  if (msg.mediaType === 'audio') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 200 }}>
+        <button
+          onClick={async () => {
+            if (!mediaData) { await loadMedia(); return }
+            if (audioRef.current) {
+              if (playing) { audioRef.current.pause(); setPlaying(false) }
+              else { audioRef.current.play(); setPlaying(true) }
+            }
+          }}
+          style={{
+            width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
+            background: isOut ? 'rgba(0,0,0,0.15)' : 'rgba(163,230,53,0.2)',
+            color: isOut ? '#0a0a0a' : 'var(--neon)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0,
+          }}>
+          {loading ? '...' : playing ? '⏸' : '▶'}
+        </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            height: 4, borderRadius: 2, width: '100%',
+            background: isOut ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.1)',
+          }} />
+          <div style={{ fontSize: 10, marginTop: 3, opacity: 0.7 }}>
+            {msg.isPtt ? '🎤 ' : '🎵 '}{fmtDuration(msg.duration)}
+          </div>
+        </div>
+        {mediaData && (
+          <audio
+            ref={audioRef}
+            src={`data:${mediaData.mimetype};base64,${mediaData.base64}`}
+            onEnded={() => setPlaying(false)}
+            style={{ display: 'none' }}
+          />
+        )}
+      </div>
+    )
+  }
+
+  // ── Vídeo ──────────────────────────────────────────────
+  if (msg.mediaType === 'video') {
+    return (
+      <div>
+        {!mediaData && !loading && (
+          <button onClick={loadMedia} style={{
+            width: 220, height: 130, borderRadius: 12, border: 'none', cursor: 'pointer',
+            background: 'rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 6, color: '#888', fontSize: 12,
+          }}>
+            <span style={{ fontSize: 28 }}>▶</span>
+            Carregar vídeo {msg.duration ? `(${fmtDuration(msg.duration)})` : ''}
+          </button>
+        )}
+        {loading && <div style={{ width: 220, height: 130, borderRadius: 12, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#888' }}>Carregando...</div>}
+        {error && <div style={{ padding: '8px 12px', fontSize: 12, color: '#EF4444' }}>Erro ao carregar vídeo</div>}
+        {mediaData && (
+          <video
+            controls
+            style={{ maxWidth: 280, maxHeight: 200, borderRadius: 12 }}
+            src={`data:${mediaData.mimetype};base64,${mediaData.base64}`}
+          />
+        )}
+        {msg.caption && <p style={{ fontSize: 13, marginTop: 4 }}>{msg.caption}</p>}
+      </div>
+    )
+  }
+
+  // ── Documento ──────────────────────────────────────────
+  if (msg.mediaType === 'document') {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0',
+        minWidth: 200, cursor: 'pointer',
+      }} onClick={async () => {
+        if (!mediaData) { await loadMedia(); return }
+        // Download do documento
+        const link = document.createElement('a')
+        link.href = `data:${mediaData.mimetype};base64,${mediaData.base64}`
+        link.download = msg.fileName ?? 'documento'
+        link.click()
+      }}>
+        <div style={{
+          width: 40, height: 44, borderRadius: 8, flexShrink: 0,
+          background: isOut ? 'rgba(0,0,0,0.12)' : 'rgba(163,230,53,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+        }}>
+          📄
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {msg.fileName ?? 'Documento'}
+          </p>
+          <p style={{ fontSize: 10, opacity: 0.6 }}>
+            {loading ? 'Baixando...' : 'Clique para baixar'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Localização ────────────────────────────────────────
+  if (msg.mediaType === 'location') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 22 }}>📍</span>
+        <span style={{ fontSize: 13 }}>{msg.text || 'Localização compartilhada'}</span>
+      </div>
+    )
+  }
+
+  // ── Contato ────────────────────────────────────────────
+  if (msg.mediaType === 'contact') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 22 }}>👤</span>
+        <span style={{ fontSize: 13 }}>{msg.text || 'Contato compartilhado'}</span>
+      </div>
+    )
+  }
+
+  return null
+}
+
+// ── Componente principal ─────────────────────────────────────
 
 export default function WorkspacePage() {
   const { data: session } = useSession()
   const handoff = useHandoff()
 
-  const [queue,           setQueue]           = useState<QueueContact[]>(INITIAL_QUEUE)
-  const [selected,        setSelected]        = useState<QueueContact | null>(null)
-  const [messages,        setMessages]        = useState<ChatMessage[]>([])
-  const [inputText,       setInputText]       = useState('')
-  const [blacklistModal,  setBlacklistModal]  = useState<QueueContact | null>(null)
-  const [killModal,       setKillModal]       = useState(false)
-  const [toast,           setToast]           = useState('')
+  const [chats, setChats]         = useState<ChatContact[]>([])
+  const [selected, setSelected]   = useState<ChatContact | null>(null)
+  const [messages, setMessages]   = useState<ChatMessage[]>([])
+  const [input, setInput]         = useState('')
+  const [search, setSearch]       = useState('')
+  const [loading, setLoading]     = useState(true)
+  const [loadingMsg, setLoadingMsg] = useState(false)
+  const [sending, setSending]     = useState(false)
+  const [toast, setToast]         = useState('')
+  const [blModal, setBlModal]     = useState<ChatContact | null>(null)
+  const [showAttach, setShowAttach] = useState(false)
+  const tpl = useTemplates()
 
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(''), 3000)
+  const endRef      = useRef<HTMLDivElement>(null)
+  const selectedRef = useRef<ChatContact | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { selectedRef.current = selected }, [selected])
+
+  function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
+
+  // ── Fetch chats ────────────────────────────────────────────
+
+  const fetchChats = useCallback(async () => {
+    try {
+      const r = await fetch('/api/evolution/chats', { cache: 'no-store' })
+      const d = await r.json()
+      if (d.success && d.data) setChats(d.data)
+    } catch {} finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { fetchChats(); const i = setInterval(fetchChats, CHAT_POLL); return () => clearInterval(i) }, [fetchChats])
+
+  // ── Fetch messages ─────────────────────────────────────────
+
+  const fetchMessages = useCallback(async (phone: string) => {
+    try {
+      const r = await fetch(`/api/evolution/messages?phone=${phone}&count=80`, { cache: 'no-store' })
+      const d = await r.json()
+      if (d.success && d.data) setMessages(d.data)
+    } catch {} finally { setLoadingMsg(false) }
+  }, [])
+
+  useEffect(() => {
+    if (!selected) return
+    const i = setInterval(() => { if (selectedRef.current) fetchMessages(selectedRef.current.telefone) }, MSG_POLL)
+    return () => clearInterval(i)
+  }, [selected, fetchMessages])
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+  function openChat(c: ChatContact) { setSelected(c); setMessages([]); setLoadingMsg(true); fetchMessages(c.telefone) }
+
+  // ── Toggle IA ──────────────────────────────────────────────
+
+  async function toggleIA(phone: string) {
+    const c = chats.find(x => x.telefone === phone); if (!c) return
+    const on = c.iaStatus === 'ativo'
+    const res = on ? await handoff.pausar(phone) : await handoff.retomar(phone)
+    if (!res.success) { showToast('Erro: ' + res.error); return }
+    const ns = on ? 'pausado' : 'ativo'
+    setChats(prev => prev.map(x => x.telefone === phone ? { ...x, iaStatus: ns } : x))
+    if (selected?.telefone === phone) setSelected(s => s ? { ...s, iaStatus: ns } : s)
+    showToast(on ? '⏸ IA pausada' : '▶ IA reativada')
   }
 
-  function openChat(contact: QueueContact) {
-    setSelected(contact)
-    setMessages(MOCK_MESSAGES[contact.id] ?? [])
+  // ── Enviar texto ───────────────────────────────────────────
+
+  async function sendMsg() {
+    if (!input.trim() || !selected || sending) return
+    const text = input.trim()
+    setSending(true)
+    try {
+      const r = await fetch('/api/evolution/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: selected.telefone, text, withTyping: true }),
+      })
+      const d = await r.json()
+      if (d.success) {
+        const now = new Date()
+        setMessages(prev => [...prev, {
+          id: `local_${Date.now()}`, remoteJid: '', type: 'outgoing', text,
+          time: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: now.toISOString(), pushName: session?.user?.name ?? 'Atendente',
+          fromMe: true, mediaType: null, mimetype: null, caption: null,
+          duration: null, fileName: null, isPtt: false, status: null,
+        }])
+        setInput(''); showToast('✓ Mensagem enviada')
+      } else showToast('Erro: ' + d.error)
+    } catch { showToast('Erro de conexão') } finally { setSending(false) }
   }
 
-  async function toggleIA(id: string) {
-    const contact = queue.find(c => c.id === id)
-    if (!contact) return
+  // ── Enviar mídia (Fase 2) ──────────────────────────────────
 
-    const action = contact.iaOn ? 'pausar' : 'retomar'
-    const res    = await (contact.iaOn
-      ? handoff.pausar(id)
-      : handoff.retomar(id))
+  async function sendFile(file: File) {
+    if (!selected) return
+    setSending(true)
+    setShowAttach(false)
 
-    if (!res.success) { showToast(`Erro: ${res.error}`); return }
+    try {
+      // Converter para base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          resolve(result.split(',')[1]) // Remove o prefixo data:...;base64,
+        }
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'))
+        reader.readAsDataURL(file)
+      })
 
-    setQueue(q => q.map(c => c.id === id ? { ...c, iaOn: !c.iaOn } : c))
-    if (selected?.id === id) setSelected(s => s ? { ...s, iaOn: !s.iaOn } : s)
-    showToast(action === 'pausar' ? `IA pausada — gravado na Fila Humana` : `IA reativada`)
+      // Detectar tipo de mídia
+      let mediatype: 'image' | 'document' | 'audio' | 'video' = 'document'
+      if (file.type.startsWith('image/')) mediatype = 'image'
+      else if (file.type.startsWith('audio/')) mediatype = 'audio'
+      else if (file.type.startsWith('video/')) mediatype = 'video'
+
+      const r = await fetch('/api/evolution/send-media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: selected.telefone,
+          media: base64,
+          mediatype,
+          mimetype: file.type,
+          fileName: file.name,
+          caption: mediatype === 'image' ? '' : undefined,
+        }),
+      })
+      const d = await r.json()
+      if (d.success) {
+        showToast(`✓ ${mediatype === 'image' ? 'Imagem' : mediatype === 'audio' ? 'Áudio' : mediatype === 'video' ? 'Vídeo' : 'Arquivo'} enviado`)
+        // Recarrega mensagens para mostrar a mídia enviada
+        setTimeout(() => fetchMessages(selected.telefone), 2000)
+      } else showToast('Erro: ' + d.error)
+    } catch (err) {
+      showToast('Erro ao enviar arquivo')
+      console.error(err)
+    } finally { setSending(false) }
   }
 
-  async function confirmKillSwitch() {
-    const res = await handoff.killSwitch()
-    if (!res.success) { showToast(`Erro: ${res.error}`); setKillModal(false); return }
-    setQueue(q => q.map(c => ({ ...c, iaOn: false })))
-    if (selected) setSelected(s => s ? { ...s, iaOn: false } : s)
-    setKillModal(false)
-    showToast('🛑 Kill Switch — IA pausada para TODOS (ALL gravado)')
+  // ── Blacklist ──────────────────────────────────────────────
+
+  async function confirmBl() {
+    if (!blModal) return
+    try {
+      const r = await fetch('/api/blacklist', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefone: blModal.telefone, motivo: 'Bloqueado pelo atendente' }),
+      })
+      const d = await r.json()
+      setBlModal(null); showToast(d.success ? '🚫 Bloqueado' : 'Erro: ' + d.error); fetchChats()
+    } catch { setBlModal(null); showToast('Erro ao bloquear') }
   }
 
-  async function confirmBlacklist() {
-    if (!blacklistModal) return
-    const res = await fetch('/api/blacklist', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ telefone: blacklistModal.id, motivo: 'Bloqueado pelo atendente' }),
-    })
-    const data = await res.json()
-    setBlacklistModal(null)
-    showToast(data.success ? `🚫 ${blacklistModal.name} bloqueado` : `Erro: ${data.error}`)
-  }
+  // ── Filtro ─────────────────────────────────────────────────
 
-  function sendMessage() {
-    if (!inputText.trim() || !selected) return
-    const msg: ChatMessage = {
-      type: 'human',
-      text: inputText.trim(),
-      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    }
-    setMessages(prev => [...prev, msg])
-    setInputText('')
-    showToast('Mensagem enviada')
-  }
+  const filteredChats = search
+    ? chats.filter(c => c.nome.toLowerCase().includes(search.toLowerCase()) || c.telefone.includes(search))
+    : chats
 
-  const iaMacroLabel = (on: boolean) => on ? 'IA Ativa' : 'Atendimento Humano'
+  const iaOn = (c: ChatContact) => c.iaStatus === 'ativo'
+
+  // ── Render ─────────────────────────────────────────────────
 
   return (
     <div className="flex h-full">
+      {/* Input de arquivo oculto */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+        style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) sendFile(f); e.target.value = '' }}
+      />
 
-      {/* ── Queue ─────────────────────────────────────────────── */}
-      <aside className="w-[290px] border-r flex flex-col flex-shrink-0 overflow-hidden" style={{ borderColor: 'var(--border)' }}>
-        <div className="px-4 py-3 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
-          <span className="text-[13px] font-semibold">Fila de Atendimento</span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--neon)', color: '#0a0a0a' }}>
-            {queue.length}
-          </span>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {queue.map(contact => (
-            <div
-              key={contact.id}
-              onClick={() => openChat(contact)}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all border ${
-                selected?.id === contact.id
-                  ? 'bg-neon-dim border-neon'
-                  : 'border-transparent hover:bg-white/[0.03]'
-              }`}
-            >
-              <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-semibold text-secondary-aad bg-input-aad">
-                {contact.initials}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium truncate">{contact.name}</p>
-                <p className="text-[11px] text-muted truncate">{contact.preview}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                <div className="flex items-center gap-1">
-                  <span className="text-[14px]">{contact.sentiment}</span>
-                  <button
-                    onClick={e => { e.stopPropagation(); setBlacklistModal(contact) }}
-                    className="text-[12px] opacity-30 hover:opacity-100 transition-opacity"
-                    title="Blacklist"
-                  >🚫</button>
-                </div>
-                <p className="text-[10px] text-muted">{contact.time}</p>
-                <div
-                  onClick={e => { e.stopPropagation(); toggleIA(contact.id) }}
-                  className={`ia-toggle ${contact.iaOn ? 'ia-toggle-on' : 'ia-toggle-off'}`}
-                  title={contact.iaOn ? 'Pausar IA' : 'Retomar IA'}
-                />
-              </div>
+      {/* ── Sidebar de Chats ─────────────────────────────────── */}
+      <aside className="w-[310px] border-r flex flex-col flex-shrink-0 overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+        <div className="px-3 py-2.5 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[13px] font-semibold">Conversas</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--neon)', color: '#0a0a0a' }}>{chats.length}</span>
+              <button onClick={fetchChats} className="text-[11px] px-2 py-0.5 rounded border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
             </div>
-          ))}
+          </div>
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome ou número..."
+            className="w-full px-3 py-1.5 text-[12px] rounded-lg" style={{ background: 'var(--bg-input)', border: '1px solid var(--border)' }} />
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {loading ? <div className="flex items-center justify-center py-12 text-[13px] text-muted">Carregando...</div>
+          : filteredChats.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-[13px] text-muted gap-2">
+              <span className="text-2xl">📭</span><span>{search ? 'Nenhum resultado' : 'Nenhuma conversa'}</span>
+            </div>
+          ) : filteredChats.map(c => {
+            const isSel = selected?.telefone === c.telefone
+            return (
+              <div key={c.telefone} onClick={() => openChat(c)}
+                className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-all border-b"
+                style={{ borderColor: 'rgba(255,255,255,0.04)', background: isSel ? 'rgba(163,230,53,0.08)' : 'transparent' }}
+                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}>
+                <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-semibold"
+                  style={{ background: iaOn(c) ? 'rgba(163,230,53,0.15)' : 'rgba(255,255,255,0.06)', color: iaOn(c) ? 'var(--neon)' : 'var(--text-secondary)', border: `1px solid ${iaOn(c) ? 'rgba(163,230,53,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+                  {ini(c.nome)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[13px] font-medium truncate" style={{ color: 'var(--txt)' }}>{c.nome}</p>
+                    <span className="text-[10px] text-muted flex-shrink-0 ml-2">{timeAgo(c.timestamp)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-[11px] text-muted truncate pr-2">{c.preview || 'Sem mensagens'}</p>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {c.unreadCount > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--neon)', color: '#0a0a0a' }}>{c.unreadCount}</span>}
+                      <div className="w-2 h-2 rounded-full" style={{ background: iaOn(c) ? 'var(--neon)' : '#EF4444' }} title={iaOn(c) ? 'IA Ativa' : 'IA Pausada'} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </aside>
 
-      {/* ── Chat ──────────────────────────────────────────────── */}
+      {/* ── Área de Chat ──────────────────────────────────────── */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {selected ? (
-          <>
-            {/* Chat header */}
-            <div className="px-4 py-3 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-semibold text-neon"
-                  style={{ background: 'var(--neon-dim)', border: '1px solid var(--border-neon)' }}>
-                  {selected.initials}
-                </div>
-                <div>
-                  <p className="text-[14px] font-semibold">{selected.name}</p>
-                  <div className="flex items-center gap-1.5 text-[11px]" style={{ color: selected.iaOn ? 'var(--neon)' : 'var(--text-secondary)' }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: selected.iaOn ? 'var(--neon)' : 'var(--text-secondary)' }} />
-                    {iaMacroLabel(selected.iaOn)}
-                  </div>
-                </div>
+        {selected ? (<>
+          {/* Header */}
+          <div className="px-4 py-2.5 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
+                style={{ background: 'rgba(163,230,53,0.12)', color: 'var(--neon)', border: '1px solid rgba(163,230,53,0.25)' }}>
+                {ini(selected.nome)}
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => toggleIA(selected.id)}
-                  disabled={handoff.loading}
-                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium border border-aad text-secondary-aad hover:border-neon hover:text-neon transition-all"
-                >
-                  {selected.iaOn ? '⏸ Pausar IA' : '▶ Retomar IA'}
-                </button>
-                <button
-                  onClick={() => showToast('Atendimento finalizado')}
-                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium border border-aad text-secondary-aad hover:border-neon hover:text-neon transition-all"
-                >
-                  ✓ Finalizar
-                </button>
+              <div>
+                <p className="text-[14px] font-semibold" style={{ color: 'var(--txt)' }}>{selected.nome}</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 text-[11px]" style={{ color: iaOn(selected) ? 'var(--neon)' : '#EF4444' }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: iaOn(selected) ? 'var(--neon)' : '#EF4444' }} />
+                    {iaOn(selected) ? 'IA Ativa' : 'Atendimento Humano'}
+                  </div>
+                  <span className="text-[10px] text-muted font-mono">{fmtPhone(selected.telefone)}</span>
+                </div>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => toggleIA(selected.telefone)} disabled={handoff.loading}
+                className="px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all"
+                style={{ borderColor: iaOn(selected) ? '#EF4444' : 'var(--neon)', color: iaOn(selected) ? '#EF4444' : 'var(--neon)', background: iaOn(selected) ? 'rgba(239,68,68,0.08)' : 'rgba(163,230,53,0.08)' }}>
+                {iaOn(selected) ? '⏸ Pausar IA' : '▶ Retomar IA'}
+              </button>
+              <button onClick={() => setBlModal(selected)} className="px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-red-500 text-muted hover:text-red-400 transition-all" title="Blacklist">🚫</button>
+              <button onClick={() => fetchMessages(selected.telefone)} className="px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
+            </div>
+          </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5">
-              {messages.map((msg, i) => {
-                const isHuman  = msg.type === 'human'
-                const isClient = msg.type === 'client'
-                return (
-                  <div key={i} className={`flex ${isHuman ? 'justify-end' : 'justify-start'} max-w-[70%] ${isHuman ? 'self-end' : 'self-start'}`}>
-                    <div>
-                      <p className={`text-[10px] text-muted mb-1 ${isHuman ? 'text-right' : ''} px-1`}>
-                        {msg.type === 'bot' ? '🤖 Ana Maria (IA)' : msg.type === 'human' ? '👤 Atendente' : '📱 Cliente'} · {msg.time}
-                      </p>
-                      <div
-                        className="px-3.5 py-2.5 rounded-xl text-[13px] leading-relaxed"
-                        style={isHuman
-                          ? { background: 'var(--neon)', color: '#0a0a0a', fontWeight: 500, borderBottomRightRadius: 4 }
-                          : { background: 'rgba(255,255,255,0.06)', borderBottomLeftRadius: 4 }
-                        }
-                      >
-                        {msg.text}
-                      </div>
+          {/* Mensagens */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-1.5" style={{ background: 'rgba(0,0,0,0.15)' }}>
+            {loadingMsg ? <div className="flex-1 flex items-center justify-center text-[13px] text-muted">Carregando mensagens...</div>
+            : messages.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center flex-col gap-2 text-muted">
+                <span className="text-2xl">💬</span><p className="text-[13px]">Nenhuma mensagem encontrada</p>
+              </div>
+            ) : messages.map(msg => {
+              const isOut = msg.type === 'outgoing'
+              const hasMedia = msg.mediaType && msg.mediaType !== 'location' && msg.mediaType !== 'contact'
+              const hasText = msg.text && !hasMedia // Texto puro (sem mídia que já mostra o texto como caption)
+
+              return (
+                <div key={msg.id} className={`flex ${isOut ? 'justify-end' : 'justify-start'}`}>
+                  <div style={{ maxWidth: '65%' }}>
+                    <div className="px-3 py-2 rounded-xl text-[13px] leading-relaxed"
+                      style={isOut
+                        ? { background: 'var(--neon)', color: '#0a0a0a', fontWeight: 500, borderBottomRightRadius: 4 }
+                        : { background: 'rgba(255,255,255,0.08)', borderBottomLeftRadius: 4 }}>
+
+                      {/* Renderiza mídia */}
+                      {msg.mediaType && <MediaBubble msg={msg} />}
+
+                      {/* Texto (se não tem mídia, ou se mídia é location/contact que já mostra texto no componente) */}
+                      {hasText && !msg.mediaType && <span>{msg.text}</span>}
                     </div>
+                    <p className={`text-[9px] text-muted mt-0.5 px-1 ${isOut ? 'text-right' : ''}`}>
+                      {msg.time}
+                      {isOut && msg.status === 'READ' && ' ✓✓'}
+                      {isOut && msg.status === 'DELIVERY_ACK' && ' ✓✓'}
+                      {isOut && msg.status === 'SERVER_ACK' && ' ✓'}
+                    </p>
                   </div>
-                )
-              })}
+                </div>
+              )
+            })}
+            <div ref={endRef} />
+          </div>
+
+          {/* Input + Anexo */}
+          <div className="px-4 py-3 border-t flex gap-2 items-end flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+            {/* Botão de anexo */}
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setShowAttach(!showAttach)}
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-[18px] transition-all flex-shrink-0"
+                style={{ background: showAttach ? 'rgba(163,230,53,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${showAttach ? 'rgba(163,230,53,0.3)' : 'var(--border)'}`, color: showAttach ? 'var(--neon)' : 'var(--text-secondary)' }}>
+                +
+              </button>
+              {showAttach && (
+                <div style={{
+                  position: 'absolute', bottom: 50, left: 0, borderRadius: 12, padding: 8, minWidth: 160,
+                  background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
+                }}>
+                  {[
+                    { icon: '📷', label: 'Imagem', accept: 'image/*' },
+                    { icon: '🎵', label: 'Áudio', accept: 'audio/*' },
+                    { icon: '🎬', label: 'Vídeo', accept: 'video/*' },
+                    { icon: '📄', label: 'Documento', accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip' },
+                  ].map(item => (
+                    <button key={item.label} onClick={() => {
+                      if (fileInputRef.current) { fileInputRef.current.accept = item.accept; fileInputRef.current.click() }
+                    }}
+                      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[13px] transition-all"
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--txt)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <span>{item.icon}</span><span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Input */}
-            <div className="px-4 py-3 border-t flex gap-2 items-end flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
-              <textarea
-                value={inputText}
-                onChange={e => setInputText(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                placeholder="Digite sua mensagem... (Enter para enviar)"
-                rows={1}
-                className="flex-1 px-3.5 py-2.5 text-[13px] resize-none"
-                style={{ minHeight: 40, maxHeight: 100 }}
-              />
-              <button
-                onClick={sendMessage}
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-[16px] transition-all hover:scale-105 flex-shrink-0"
-                style={{ background: 'var(--neon)', color: '#0a0a0a' }}
-              >→</button>
+            <div style={{ flex: 1, position: 'relative' }}>
+              {tpl.showMenu && tpl.filtered.length > 0 && (
+                <TemplateMenu
+                  templates={tpl.filtered}
+                  selectedIdx={tpl.selectedIdx}
+                  onSelect={(t) => { setInput(tpl.selectTemplate(t, input)) }}
+                  onClose={tpl.closeMenu}
+                />
+              )}
+              <textarea value={input}
+                onChange={e => { setInput(e.target.value); tpl.handleInputChange(e.target.value) }}
+                onKeyDown={e => {
+                  const handled = tpl.handleKeyDown(e, (newText) => setInput(newText), input)
+                  if (handled) return
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg() }
+                }}
+                placeholder="Digite / para respostas rápidas..."
+                rows={1} className="flex-1 px-3.5 py-2.5 text-[13px] resize-none rounded-xl"
+                style={{ width: '100%', minHeight: 42, maxHeight: 120, background: 'var(--bg-input)', border: '1px solid var(--border)' }} />
             </div>
-          </>
-        ) : (
+
+            <button onClick={sendMsg} disabled={sending || !input.trim()}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-[16px] transition-all hover:scale-105 flex-shrink-0 disabled:opacity-40"
+              style={{ background: 'var(--neon)', color: '#0a0a0a' }}>
+              {sending ? '...' : '→'}
+            </button>
+          </div>
+        </>) : (
           <div className="flex-1 flex items-center justify-center flex-col gap-3 text-muted">
-            <span className="text-4xl">💬</span>
-            <p className="text-[13px]">Selecione um atendimento na fila</p>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style={{ background: 'rgba(163,230,53,0.08)', border: '1px solid rgba(163,230,53,0.15)' }}>💬</div>
+            <p className="text-[14px] font-medium" style={{ color: 'var(--txt)' }}>ComAgente Workspace</p>
+            <p className="text-[12px] text-center max-w-[280px]">Selecione uma conversa para começar. As conversas atualizam automaticamente.</p>
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="w-2 h-2 rounded-full" style={{ background: 'var(--neon)' }} /><span className="text-[11px]">IA Ativa</span>
+              <span className="w-2 h-2 rounded-full ml-3" style={{ background: '#EF4444' }} /><span className="text-[11px]">Atendimento Humano</span>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Blacklist Modal ────────────────────────────────────── */}
-      {blacklistModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-card-aad border border-aad rounded-xl p-6 max-w-[360px] w-full animate-slide-up">
-            <h3 className="font-display text-[16px] font-semibold mb-2">🚫 Adicionar à Blacklist?</h3>
-            <p className="text-[13px] text-secondary-aad mb-5 leading-relaxed">
-              Tem certeza que deseja bloquear <strong className="text-white">{blacklistModal.name}</strong>?
-              Esta ação será gravada na planilha Blacklist e o número não receberá mais mensagens do bot.
-            </p>
+      {/* ── Modal Blacklist ────────────────────────────────────── */}
+      {blModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }} onClick={e => { if (e.target === e.currentTarget) setBlModal(null) }}>
+          <div className="rounded-xl p-6 max-w-[380px] w-full" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <h3 className="text-[16px] font-semibold mb-2" style={{ color: 'var(--txt)' }}>🚫 Blacklist</h3>
+            <p className="text-[13px] mb-5" style={{ color: 'var(--text-secondary)' }}>Bloquear <strong style={{ color: 'var(--txt)' }}>{blModal.nome}</strong> ({fmtPhone(blModal.telefone)})?</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setBlacklistModal(null)} className="px-4 py-2 rounded-lg text-[13px] border border-aad text-secondary-aad hover:border-neon hover:text-neon transition-all">Cancelar</button>
-              <button onClick={confirmBlacklist} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white" style={{ background: 'var(--danger)' }}>Confirmar bloqueio</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Kill Switch Modal ──────────────────────────────────── */}
-      {killModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-card-aad border border-aad rounded-xl p-6 max-w-[380px] w-full animate-slide-up">
-            <h3 className="font-display text-[16px] font-semibold mb-2">🛑 Kill Switch Global</h3>
-            <p className="text-[13px] text-secondary-aad mb-5 leading-relaxed">
-              Esta ação vai pausar a IA em <strong className="text-white">TODOS os atendimentos</strong>.
-              O registro será gravado com telefone <code className="text-neon">"ALL"</code> na aba Fila_Humana.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setKillModal(false)} className="px-4 py-2 rounded-lg text-[13px] border border-aad text-secondary-aad hover:border-neon hover:text-neon transition-all">Cancelar</button>
-              <button onClick={confirmKillSwitch} disabled={handoff.loading} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white" style={{ background: 'var(--danger)' }}>
-                {handoff.loading ? 'Pausando...' : 'Pausar toda a IA'}
-              </button>
+              <button onClick={() => setBlModal(null)} className="px-4 py-2 rounded-lg text-[13px] border" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>Cancelar</button>
+              <button onClick={confirmBl} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white" style={{ background: '#EF4444' }}>Confirmar</button>
             </div>
           </div>
         </div>
@@ -296,8 +624,8 @@ export default function WorkspacePage() {
 
       {/* ── Toast ─────────────────────────────────────────────── */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full text-[13px] font-medium z-[200] animate-fade-in"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-neon)', color: 'var(--neon)' }}>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full text-[13px] font-medium z-[200]"
+          style={{ background: 'var(--bg-card)', border: '1px solid rgba(163,230,53,0.3)', color: 'var(--neon)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
           {toast}
         </div>
       )}
