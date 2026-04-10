@@ -3,8 +3,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { AtendimentoRecord } from '@/types'
 
-function fmtDT(iso:string){if(!iso)return'—';try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return iso}}
-function fmtDur(ini:string,fim:string){if(!ini||!fim)return'—';const m=Math.round((new Date(fim).getTime()-new Date(ini).getTime())/60000);if(isNaN(m)||m<0)return'—';return m<60?`${m}min`:`${Math.floor(m/60)}h ${m%60}min`}
+function fmtDT(iso?:string){if(!iso)return'—';try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return iso}}
+function fmtDur(ini:string,fim?:string){if(!ini||!fim)return'—';const m=Math.round((new Date(fim).getTime()-new Date(ini).getTime())/60000);if(isNaN(m)||m<0)return'—';return m<60?`${m}min`:`${Math.floor(m/60)}h ${m%60}min`}
 function Stars({n}:{n?:number}){if(!n)return <span style={{color:'var(--txt-3)',fontSize:12}}>—</span>;return <span style={{fontSize:13}}>{[1,2,3,4,5].map(i=><span key={i} style={{color:i<=n?'#F59E0B':'var(--txt-3)'}}>★</span>)}</span>}
 
 export default function TranscricoesPage(){

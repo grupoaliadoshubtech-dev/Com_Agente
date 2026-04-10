@@ -98,7 +98,7 @@ export default function LoginClient() {
             Com<span style={{ color: 'var(--neon)' }}>Agente</span>
           </h1>
           <p style={{ fontSize: 13, color: 'var(--txt-2)' }}>
-            Handoff perfeito entre IA e Humanos no WhatsApp
+            Agência de Atendimento Digital
           </p>
         </div>
 
@@ -246,7 +246,7 @@ export default function LoginClient() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--txt-3)', marginTop: 20 }}>
-          Desenvolvido por <span style={{ color: 'var(--txt-2)', fontWeight: 600 }}>Agência DIA</span>
+          Desenvolvido por <span style={{ color: 'var(--txt-2)', fontWeight: 600 }}>Grupo Aliados Hub Tech</span>
         </p>
       </div>
     </main>
