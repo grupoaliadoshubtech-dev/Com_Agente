@@ -87,8 +87,9 @@ export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const { telefone, ...updates } = parsed.data
 
     // Adiciona timestamp do último contato automaticamente
-    await repo.updateClient(telefone, {
+   await repo.updateClient(telefone, {
       ...updates,
+      etapa: updates.etapa as CRMStage | undefined,
       ultimoContato: new Date().toISOString(),
     })
 
