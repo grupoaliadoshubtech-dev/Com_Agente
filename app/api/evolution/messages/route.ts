@@ -1,12 +1,10 @@
 // app/api/evolution/messages/route.ts
-// GET /api/evolution/messages?phone=5571999999999&count=50
-// FASE 2: Agora retorna dados de mídia (mediaType, mimetype, caption, duration, fileName)
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { EvolutionClient, numberToJid } from '@/lib/evolution/client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
+import { findAllMessages } from '@/lib/evolution/db-client'
 import type { ApiResponse } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -51,71 +49,20 @@ function extractMediaInfo(message?: Record<string, unknown>): {
   if (!message) return none
 
   const img = message.imageMessage as Record<string, unknown> | undefined
-  if (img) return {
-    mediaType: 'image',
-    mimetype: (img.mimetype as string) ?? 'image/jpeg',
-    caption: (img.caption as string) ?? null,
-    duration: null,
-    fileName: null,
-    isPtt: false,
-  }
+  if (img) return { mediaType: 'image', mimetype: (img.mimetype as string) ?? 'image/jpeg', caption: (img.caption as string) ?? null, duration: null, fileName: null, isPtt: false }
 
   const aud = message.audioMessage as Record<string, unknown> | undefined
-  if (aud) return {
-    mediaType: 'audio',
-    mimetype: (aud.mimetype as string) ?? 'audio/ogg',
-    caption: null,
-    duration: (aud.seconds as number) ?? null,
-    fileName: null,
-    isPtt: (aud.ptt as boolean) ?? false,
-  }
+  if (aud) return { mediaType: 'audio', mimetype: (aud.mimetype as string) ?? 'audio/ogg', caption: null, duration: (aud.seconds as number) ?? null, fileName: null, isPtt: (aud.ptt as boolean) ?? false }
 
   const vid = message.videoMessage as Record<string, unknown> | undefined
-  if (vid) return {
-    mediaType: 'video',
-    mimetype: (vid.mimetype as string) ?? 'video/mp4',
-    caption: (vid.caption as string) ?? null,
-    duration: (vid.seconds as number) ?? null,
-    fileName: null,
-    isPtt: false,
-  }
+  if (vid) return { mediaType: 'video', mimetype: (vid.mimetype as string) ?? 'video/mp4', caption: (vid.caption as string) ?? null, duration: (vid.seconds as number) ?? null, fileName: null, isPtt: false }
 
   const doc = message.documentMessage as Record<string, unknown> | undefined
-  if (doc) return {
-    mediaType: 'document',
-    mimetype: (doc.mimetype as string) ?? 'application/pdf',
-    caption: null,
-    duration: null,
-    fileName: (doc.title as string) ?? (doc.fileName as string) ?? 'documento',
-    isPtt: false,
-  }
+  if (doc) return { mediaType: 'document', mimetype: (doc.mimetype as string) ?? 'application/pdf', caption: null, duration: null, fileName: (doc.title as string) ?? (doc.fileName as string) ?? 'documento', isPtt: false }
 
-  if (message.stickerMessage) return {
-    mediaType: 'sticker',
-    mimetype: 'image/webp',
-    caption: null,
-    duration: null,
-    fileName: null,
-    isPtt: false,
-  }
-
-  if (message.locationMessage) return {
-    mediaType: 'location',
-    mimetype: null,
-    caption: null,
-    duration: null,
-    fileName: null,
-    isPtt: false,
-  }
-
-  if (message.contactMessage) return {
-    mediaType: 'contact',
-    mimetype: null,
-    caption: null,
-    duration: null,
-    fileName: null,
-    isPtt: false,
-  }
+  if (message.stickerMessage) return { mediaType: 'sticker', mimetype: 'image/webp', caption: null, duration: null, fileName: null, isPtt: false }
+  if (message.locationMessage) return { mediaType: 'location', mimetype: null, caption: null, duration: null, fileName: null, isPtt: false }
+  if (message.contactMessage) return { mediaType: 'contact', mimetype: null, caption: null, duration: null, fileName: null, isPtt: false }
 
   return none
 }
@@ -137,23 +84,22 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     // Tenant com cache de 60s
     const cacheKey = session.user.tenantId
     const cachedTenant = tenantCache.get(cacheKey)
-    const tenant = cachedTenant && Date.now() - cachedTenant.ts < 60000
+    const tenant = (cachedTenant && Date.now() - cachedTenant.ts < 60000
       ? cachedTenant.data
       : await tenantsRepo.findById(cacheKey).then(t => {
           tenantCache.set(cacheKey, { data: t, ts: Date.now() })
           return t
-        }) as { evolutionInstance?: string } | null
+        })) as { evolutionInstance?: string } | null
 
-    const instanceName = (tenant as { evolutionInstance?: string } | null)?.evolutionInstance
+    const instanceName = tenant?.evolutionInstance
     if (!instanceName) {
       return NextResponse.json({ success: false, error: 'Instância não configurada' }, { status: 400 })
     }
 
-    const client = EvolutionClient.fromEnv(instanceName)
     const jid = numberToJid(phone)
-    const { findAllMessages } = await import('@/lib/evolution/db-client')
-const instanceId = '8d9a15b5-e063-4e2d-9900-3f5929c6129a'
-const rawMessages = await findAllMessages(jid, instanceId, count)
+
+    // Busca todas as mensagens direto do PostgreSQL (fromMe true e false)
+    const rawMessages = await findAllMessages(jid, instanceName, count)
 
     const messages = rawMessages
       .filter(msg => {
