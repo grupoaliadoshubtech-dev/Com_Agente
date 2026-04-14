@@ -1,11 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-    ...
-  },
-  staticPageGenerationTimeout: 10,  // ← adicionar esta linha
-const nextConfig = {
+  staticPageGenerationTimeout: 10,
   experimental: {
     missingSuspenseWithCSRBailout: false,
     serverActions: {
@@ -17,8 +12,6 @@ const nextConfig = {
       ],
     },
   },
-
-  // Headers para PWA e segurança
   async headers() {
     return [
       {
@@ -53,5 +46,4 @@ const nextConfig = {
     ]
   },
 }
-
 module.exports = nextConfig
