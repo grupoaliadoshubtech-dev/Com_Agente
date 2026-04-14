@@ -2,6 +2,12 @@
 const nextConfig = {
   experimental: {
     missingSuspenseWithCSRBailout: false,
+    ...
+  },
+  staticPageGenerationTimeout: 10,  // ← adicionar esta linha
+const nextConfig = {
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
     serverActions: {
       allowedOrigins: [
         'localhost:3000',
