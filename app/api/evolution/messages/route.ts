@@ -151,7 +151,9 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
 
     const client = EvolutionClient.fromEnv(instanceName)
     const jid = numberToJid(phone)
-    const rawMessages = await client.findMessages(jid, count)
+    const { findAllMessages } = await import('@/lib/evolution/db-client')
+const instanceId = '8d9a15b5-e063-4e2d-9900-3f5929c6129a'
+const rawMessages = await findAllMessages(jid, instanceId, count)
 
     const messages = rawMessages
       .filter(msg => {
