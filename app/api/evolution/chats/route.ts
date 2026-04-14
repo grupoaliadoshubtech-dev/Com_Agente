@@ -61,13 +61,13 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
 
     // Filtra e formata
     const formatted = chats
-      .filter(chat => {
-        // Remove grupos e status broadcasts
-        if (!chat.remoteJid) return false
-        if (chat.remoteJid.endsWith('@g.us')) return false
-        if (chat.remoteJid === 'status@broadcast') return false
-        return true
-      })
+     .filter(chat => {
+  if (!chat.remoteJid) return false
+  if (chat.remoteJid.endsWith('@g.us')) return false
+  if (chat.remoteJid === 'status@broadcast') return false
+  if (!chat.remoteJid.endsWith('@s.whatsapp.net')) return false  // ← adicionar esta linha
+  return true
+})
       .map(chat => {
         const phone = jidToNumber(chat.remoteJid)
         const lastMsg = chat.lastMessage
