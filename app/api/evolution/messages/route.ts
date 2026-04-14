@@ -12,6 +12,7 @@ import type { ApiResponse } from '@/types'
 export const dynamic = 'force-dynamic'
 
 const tenantsRepo = new TenantsRepository()
+const tenantCache = new Map<string, { data: unknown; ts: number }>()
 
 function extractText(message?: Record<string, unknown>): string {
   if (!message) return ''
@@ -23,7 +24,7 @@ function extractText(message?: Record<string, unknown>): string {
   const vid = message.videoMessage as Record<string, unknown> | undefined
   if (vid) return (vid.caption as string) ?? ''
   const doc = message.documentMessage as Record<string, unknown> | undefined
-  if (doc) return (doc.title as string) ?? ''
+  if (doc) return (doc.title as string) ?? (doc.fileName as string) ?? ''
   if (message.audioMessage) return ''
   if (message.stickerMessage) return ''
   if (message.locationMessage) {
@@ -133,8 +134,17 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
   }
 
   try {
-    const tenant = await tenantsRepo.findById(session.user.tenantId)
-    const instanceName = tenant?.evolutionInstance
+    // Tenant com cache de 60s
+    const cacheKey = session.user.tenantId
+    const cachedTenant = tenantCache.get(cacheKey)
+    const tenant = cachedTenant && Date.now() - cachedTenant.ts < 60000
+      ? cachedTenant.data
+      : await tenantsRepo.findById(cacheKey).then(t => {
+          tenantCache.set(cacheKey, { data: t, ts: Date.now() })
+          return t
+        }) as { evolutionInstance?: string } | null
+
+    const instanceName = (tenant as { evolutionInstance?: string } | null)?.evolutionInstance
     if (!instanceName) {
       return NextResponse.json({ success: false, error: 'Instância não configurada' }, { status: 400 })
     }
@@ -149,7 +159,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
         if (!m) return false
         if (m.reactionMessage) return false
         if (m.protocolMessage) return false
-        // Aceita mensagens com texto OU mídia
         const text = extractText(m)
         const media = extractMediaInfo(m)
         return text !== '' || media.mediaType !== null
@@ -172,7 +181,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
           timestamp: ts.toISOString(),
           pushName:  msg.pushName ?? phone,
           fromMe,
-          // Dados de mídia (Fase 2)
           mediaType: media.mediaType,
           mimetype:  media.mimetype,
           caption:   media.caption,
