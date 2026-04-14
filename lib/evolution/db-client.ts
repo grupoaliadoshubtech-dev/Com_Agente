@@ -1,7 +1,4 @@
 // lib/evolution/db-client.ts
-// Acesso direto ao PostgreSQL da Evolution API para buscar mensagens recebidas
-// (contorna bug da Evolution API que retorna apenas fromMe: true)
-
 import { Pool } from 'pg'
 
 const pool = new Pool({
@@ -21,11 +18,30 @@ export interface DBMessage {
   status?: string
 }
 
+// Cache de instanceId por nome de instância
+const instanceIdCache = new Map<string, { id: string; ts: number }>()
+
+export async function getInstanceId(instanceName: string): Promise<string | null> {
+  const cached = instanceIdCache.get(instanceName)
+  if (cached && Date.now() - cached.ts < 300000) return cached.id // cache 5 min
+
+  const result = await pool.query<{ id: string }>(
+    `SELECT id FROM "Instance" WHERE name = $1 LIMIT 1`,
+    [instanceName]
+  )
+  if (!result.rows[0]) return null
+  instanceIdCache.set(instanceName, { id: result.rows[0].id, ts: Date.now() })
+  return result.rows[0].id
+}
+
 export async function findAllMessages(
   remoteJid: string,
-  instanceId: string,
+  instanceName: string,
   limit = 50
 ): Promise<DBMessage[]> {
+  const instanceId = await getInstanceId(instanceName)
+  if (!instanceId) return []
+
   const result = await pool.query<{
     key: DBMessage['key']
     pushName: string
@@ -41,6 +57,7 @@ export async function findAllMessages(
      LIMIT $3`,
     [remoteJid, instanceId, limit]
   )
+
   return result.rows.map(row => ({
     key: row.key,
     pushName: row.pushName,
