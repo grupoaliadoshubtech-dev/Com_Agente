@@ -2,7 +2,6 @@
 // GET /api/evolution/chats
 // Proxy para Evolution API — lista conversas com último preview.
 // Filtra grupos e status broadcasts, retorna apenas chats individuais.
-
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -14,6 +13,8 @@ import type { ApiResponse } from '@/types'
 export const dynamic = 'force-dynamic'
 
 const tenantsRepo = new TenantsRepository()
+const tenantCache = new Map<string, { data: unknown; ts: number }>()
+const handoffCache = new Map<string, { data: unknown[]; ts: number }>()
 
 function extractText(message?: Record<string, unknown>): string {
   if (!message) return ''
@@ -37,9 +38,17 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
   }
 
   try {
-    // Resolve instância do tenant
-    const tenant = await tenantsRepo.findById(session.user.tenantId)
-    const instanceName = tenant?.evolutionInstance
+    // Tenant com cache de 60s
+    const cacheKey = session.user.tenantId
+    const cachedTenant = tenantCache.get(cacheKey)
+    const tenant = cachedTenant && Date.now() - cachedTenant.ts < 60000
+      ? cachedTenant.data
+      : await tenantsRepo.findById(cacheKey).then(t => {
+          tenantCache.set(cacheKey, { data: t, ts: Date.now() })
+          return t
+        }) as { evolutionInstance?: string } | null
+
+    const instanceName = (tenant as { evolutionInstance?: string } | null)?.evolutionInstance
     if (!instanceName) {
       return NextResponse.json({
         success: false,
@@ -48,37 +57,36 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     }
 
     const client = EvolutionClient.fromEnv(instanceName)
-
-    // Busca chats da Evolution API
     const chats = await client.findChats()
 
-    // Busca status de handoff para cada contato
-    const handoff = new HandoffRepository(session.user.tenantId)
+    // Handoff com cache de 30s
+    const cachedHandoff = handoffCache.get(cacheKey)
     let handoffRecords: Array<{ telefone: string; status: string; timestamp: string; atendente: string }> = []
-    try {
-      handoffRecords = await handoff.getAll()
-    } catch {}
+    if (cachedHandoff && Date.now() - cachedHandoff.ts < 30000) {
+      handoffRecords = cachedHandoff.data as typeof handoffRecords
+    } else {
+      try {
+        const handoff = new HandoffRepository(cacheKey)
+        handoffRecords = await handoff.getAll()
+        handoffCache.set(cacheKey, { data: handoffRecords, ts: Date.now() })
+      } catch {}
+    }
 
-    // Filtra e formata
     const formatted = chats
-     .filter(chat => {
-  if (!chat.remoteJid) return false
-  if (chat.remoteJid.endsWith('@g.us')) return false
-  if (chat.remoteJid === 'status@broadcast') return false
-  if (!chat.remoteJid.endsWith('@s.whatsapp.net')) return false  // ← adicionar esta linha
-  return true
-})
+      .filter(chat => {
+        if (!chat.remoteJid) return false
+        if (chat.remoteJid.endsWith('@g.us')) return false
+        if (chat.remoteJid === 'status@broadcast') return false
+        if (!chat.remoteJid.endsWith('@s.whatsapp.net')) return false
+        return true
+      })
       .map(chat => {
         const phone = jidToNumber(chat.remoteJid)
         const lastMsg = chat.lastMessage
-
-        // Busca status de handoff
         const handoffEntry = handoffRecords
           .filter(h => h.telefone === phone || h.telefone === 'ALL')
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
         const iaStatus = handoffEntry?.status === 'pausado' ? 'pausado' : 'ativo'
-
-        // Extrai preview da última mensagem
         const preview = lastMsg?.message
           ? extractText(lastMsg.message as Record<string, unknown>)
           : ''
@@ -86,7 +94,6 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
           ? new Date(Number(lastMsg.messageTimestamp) * 1000).toISOString()
           : chat.updatedAt ?? new Date().toISOString()
         const fromMe = lastMsg?.key?.fromMe ?? false
-
         return {
           telefone: phone,
           remoteJid: chat.remoteJid,
@@ -98,7 +105,6 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
           profilePicUrl: chat.profilePicUrl ?? null,
         }
       })
-      // Ordena por timestamp (mais recente primeiro)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 100)
 
