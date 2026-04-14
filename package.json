@@ -20,6 +20,7 @@
     "tailwindcss": "^3.4.1",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38"
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -30,5 +31,6 @@
     "typescript": "^5",
     "eslint": "^8",
     "eslint-config-next": "14.2.5"
+    "@types/pg": "^8.11.3"
   }
 }
