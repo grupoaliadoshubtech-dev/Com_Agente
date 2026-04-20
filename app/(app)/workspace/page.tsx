@@ -257,7 +257,7 @@ export default function WorkspacePage() {
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
 
-  // ── Fetch chats ────────────────────────────────────────────
+ // ── Fetch chats ────────────────────────────────────────────
 
   const fetchChats = useCallback(async () => {
     try {
@@ -267,20 +267,28 @@ export default function WorkspacePage() {
     } catch {} finally { setLoading(false) }
   }, [])
 
-   // ── Fetch messages ─────────────────────────────────────────
+  // Inicia o polling de chats
+  useEffect(() => {
+    fetchChats()
+    const i = setInterval(fetchChats, CHAT_POLL)
+    return () => clearInterval(i)
+  }, [fetchChats])
 
- const fetchMessages = useCallback(async (phone: string, lidJid?: string | null) => {
-  try {
-    const lid = lidJid ? `&lid=${encodeURIComponent(lidJid)}` : ''
-    const r = await fetch(`/api/evolution/messages?phone=${phone}&count=80${lid}`, { cache: 'no-store' })
-    const d = await r.json()
-    if (d.success && d.data) setMessages(d.data)
-  } catch {} finally { setLoadingMsg(false) }
- }, [])
+  // ── Fetch messages ─────────────────────────────────────────
+
+  const fetchMessages = useCallback(async (phone: string, lidJid?: string | null) => {
+    try {
+      const lid = lidJid ? `&lid=${encodeURIComponent(lidJid)}` : ''
+      const r = await fetch(`/api/evolution/messages?phone=${phone}&count=80${lid}`, { cache: 'no-store' })
+      const d = await r.json()
+      if (d.success && d.data) setMessages(d.data)
+    } catch {} finally { setLoadingMsg(false) }
+  }, [])
 
   useEffect(() => {
     if (!selected) return
     const i = setInterval(() => { if (selectedRef.current) fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid) }, MSG_POLL)
+    return () => clearInterval(i)
   }, [selected, fetchMessages])
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
