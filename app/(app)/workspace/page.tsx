@@ -267,8 +267,7 @@ export default function WorkspacePage() {
     } catch {} finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { fetchChats(); const i = setInterval(fetchChats, CHAT_POLL); return () => clearInterval(i) }, [fetchChats])
-
+  const i = setInterval(() => { if (selectedRef.current) fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid) }, MSG_POLL)
   // ── Fetch messages ─────────────────────────────────────────
 
  const fetchMessages = useCallback(async (phone: string, lidJid?: string | null) => {
@@ -369,7 +368,7 @@ export default function WorkspacePage() {
       if (d.success) {
         showToast(`✓ ${mediatype === 'image' ? 'Imagem' : mediatype === 'audio' ? 'Áudio' : mediatype === 'video' ? 'Vídeo' : 'Arquivo'} enviado`)
         // Recarrega mensagens para mostrar a mídia enviada
-        setTimeout(() => fetchMessages(selected.telefone), 2000)
+        setTimeout(() => fetchMessages(selected.telefone, selected.lidJid), 2000)
       } else showToast('Erro: ' + d.error)
     } catch (err) {
       showToast('Erro ao enviar arquivo')
@@ -491,7 +490,7 @@ export default function WorkspacePage() {
                 {iaOn(selected) ? '⏸ Pausar IA' : '▶ Retomar IA'}
               </button>
               <button onClick={() => setBlModal(selected)} className="px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-red-500 text-muted hover:text-red-400 transition-all" title="Blacklist">🚫</button>
-              <button onClick={() => fetchMessages(selected.telefone)} className="px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
+              <button onClick={() => fetchMessages(selected.telefone, selected.lidJid)} className="px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
             </div>
           </div>
 
