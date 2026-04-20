@@ -122,7 +122,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
           remoteJid: msg.key.remoteJid,
           type: fromMe ? 'outgoing' as const : 'incoming' as const,
           text,
-          time: ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          time: ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bahia' }),
           timestamp: ts.toISOString(),
           pushName: msg.pushName ?? phone,
           fromMe,
