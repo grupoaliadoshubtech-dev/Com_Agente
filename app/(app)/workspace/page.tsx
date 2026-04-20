@@ -267,8 +267,7 @@ export default function WorkspacePage() {
     } catch {} finally { setLoading(false) }
   }, [])
 
-  const i = setInterval(() => { if (selectedRef.current) fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid) }, MSG_POLL)
-  // ── Fetch messages ─────────────────────────────────────────
+   // ── Fetch messages ─────────────────────────────────────────
 
  const fetchMessages = useCallback(async (phone: string, lidJid?: string | null) => {
   try {
@@ -281,8 +280,7 @@ export default function WorkspacePage() {
 
   useEffect(() => {
     if (!selected) return
-    const i = setInterval(() => { if (selectedRef.current) fetchMessages(selectedRef.current.telefone) }, MSG_POLL)
-    return () => clearInterval(i)
+    const i = setInterval(() => { if (selectedRef.current) fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid) }, MSG_POLL)
   }, [selected, fetchMessages])
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
