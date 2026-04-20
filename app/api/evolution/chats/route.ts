@@ -69,8 +69,8 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     const lidToPhone = await getLidMapping(instanceName)
     const phoneToLid = new Map<string, string>()
     lidToPhone.forEach((phone, lid) => {
-  phoneToLid.set(phone, lid)
-})
+      phoneToLid.set(phone, lid)
+    })
 
     // Agrupa chats unificando @lid + @s.whatsapp.net
     const unified = new Map<string, {
