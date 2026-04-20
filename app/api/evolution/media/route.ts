@@ -26,17 +26,24 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'messageId e remoteJid obrigatórios' }, { status: 400 })
   }
 
-  try {
+ try {
     const tenant = await tenantsRepo.findById(session.user.tenantId)
     const instanceName = tenant?.evolutionInstance
     if (!instanceName) {
       return NextResponse.json({ error: 'Instância não configurada' }, { status: 400 })
     }
 
-    const client = EvolutionClient.fromEnv(instanceName)
-    const media = await client.getMediaBase64(messageId, remoteJid)
+    // Converte @lid para @s.whatsapp.net se necessário
+    const resolvedJid = remoteJid.endsWith('@lid')
+      ? remoteJid.replace('@lid', '@s.whatsapp.net').replace(/^\d+/, m => {
+          // Tenta buscar o número real — fallback: usa o número do lid diretamente
+          return m
+        })
+      : remoteJid
 
-    // Retorna como JSON com base64 (o frontend renderiza)
+    const client = EvolutionClient.fromEnv(instanceName)
+    const media = await client.getMediaBase64(messageId, resolvedJid)
+
     return NextResponse.json({
       success: true,
       data: {
@@ -45,11 +52,4 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         fileName: media.fileName ?? null,
       }
     })
-  } catch (err) {
-    console.error('[/api/evolution/media]', err)
-    return NextResponse.json({
-      success: false,
-      error: `Erro ao baixar mídia: ${String(err)}`,
-    }, { status: 500 })
   }
-}

@@ -521,7 +521,7 @@ export default function WorkspacePage() {
                         : { background: 'rgba(255,255,255,0.08)', borderBottomLeftRadius: 4 }}>
 
                       {/* Renderiza mídia */}
-                      {msg.mediaType && <MediaBubble msg={msg} />}
+                      {msg.mediaType && <MediaBubble msg={{...msg, remoteJid: msg.remoteJid.endsWith('@lid') ? (selected?.telefone + '@s.whatsapp.net') : msg.remoteJid}} />}
 
                       {/* Texto (se não tem mídia, ou se mídia é location/contact que já mostra texto no componente) */}
                       {hasText && !msg.mediaType && <span>{msg.text}</span>}
