@@ -28,7 +28,10 @@ export const metadata: Metadata = {
     title: 'ComAgente',
   },
   icons: {
-    icon: '/icons/icon-192.png',
+    icon: [
+      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192.png',   sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/icons/icon-192.png',
   },
 }
