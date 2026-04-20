@@ -1,7 +1,4 @@
 // app/api/evolution/chats/route.ts
-// GET /api/evolution/chats
-// Proxy para Evolution API — lista conversas com último preview.
-// Filtra grupos e status broadcasts, retorna apenas chats individuais.
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -38,28 +35,23 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
   }
 
   try {
-    // Tenant com cache de 60s
     const cacheKey = session.user.tenantId
     const cachedTenant = tenantCache.get(cacheKey)
-    const tenant = cachedTenant && Date.now() - cachedTenant.ts < 60000
+    const tenant = (cachedTenant && Date.now() - cachedTenant.ts < 60000
       ? cachedTenant.data
       : await tenantsRepo.findById(cacheKey).then(t => {
           tenantCache.set(cacheKey, { data: t, ts: Date.now() })
           return t
-        }) as { evolutionInstance?: string } | null
+        })) as { evolutionInstance?: string } | null
 
-    const instanceName = (tenant as { evolutionInstance?: string } | null)?.evolutionInstance
+    const instanceName = tenant?.evolutionInstance
     if (!instanceName) {
-      return NextResponse.json({
-        success: false,
-        error: 'Instância WhatsApp não configurada',
-      }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Instância WhatsApp não configurada' }, { status: 400 })
     }
 
     const client = EvolutionClient.fromEnv(instanceName)
     const chats = await client.findChats()
 
-    // Handoff com cache de 30s
     const cachedHandoff = handoffCache.get(cacheKey)
     let handoffRecords: Array<{ telefone: string; status: string; timestamp: string; atendente: string }> = []
     if (cachedHandoff && Date.now() - cachedHandoff.ts < 30000) {
@@ -72,48 +64,91 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       } catch {}
     }
 
-    const formatted = chats
-      .filter(chat => {
-        if (!chat.remoteJid) return false
-        if (chat.remoteJid.endsWith('@g.us')) return false
-        if (chat.remoteJid === 'status@broadcast') return false
-        if (!chat.remoteJid.endsWith('@s.whatsapp.net')) return false
-        return true
-      })
-      .map(chat => {
-        const phone = jidToNumber(chat.remoteJid)
-        const lastMsg = chat.lastMessage
-        const handoffEntry = handoffRecords
-          .filter(h => h.telefone === phone || h.telefone === 'ALL')
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
-        const iaStatus = handoffEntry?.status === 'pausado' ? 'pausado' : 'ativo'
-        const preview = lastMsg?.message
-          ? extractText(lastMsg.message as Record<string, unknown>)
-          : ''
-        const timestamp = lastMsg?.messageTimestamp
-          ? new Date(Number(lastMsg.messageTimestamp) * 1000).toISOString()
-          : chat.updatedAt ?? new Date().toISOString()
-        const fromMe = lastMsg?.key?.fromMe ?? false
-        return {
+    // Monta mapa de @lid → @s.whatsapp.net usando remoteJidAlt
+    const lidToPhone = new Map<string, string>()
+    const phoneToLid = new Map<string, string>()
+
+    for (const chat of chats) {
+      const jid = chat.remoteJid
+      const alt = (chat as unknown as Record<string, unknown>).remoteJidAlt as string | undefined
+      if (jid?.endsWith('@lid') && alt?.endsWith('@s.whatsapp.net')) {
+        lidToPhone.set(jid, alt)
+        phoneToLid.set(alt, jid)
+      }
+    }
+
+    // Agrupa chats: usa @s.whatsapp.net como chave principal
+    const unified = new Map<string, {
+      telefone: string
+      lidJid?: string
+      nome: string
+      preview: string
+      timestamp: string
+      iaStatus: string
+      unreadCount: number
+      profilePicUrl: string | null
+    }>()
+
+    for (const chat of chats) {
+      const jid = chat.remoteJid
+      if (!jid) continue
+      if (jid === 'status@broadcast') continue
+      if (jid.endsWith('@g.us')) continue
+
+      let phoneJid: string
+      let lidJid: string | undefined
+
+      if (jid.endsWith('@lid')) {
+        const mapped = lidToPhone.get(jid)
+        if (!mapped) continue // ignora @lid sem mapeamento
+        phoneJid = mapped
+        lidJid = jid
+      } else if (jid.endsWith('@s.whatsapp.net')) {
+        phoneJid = jid
+        lidJid = phoneToLid.get(jid)
+      } else {
+        continue
+      }
+
+      const phone = jidToNumber(phoneJid)
+      const lastMsg = chat.lastMessage
+      const handoffEntry = handoffRecords
+        .filter(h => h.telefone === phone || h.telefone === 'ALL')
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
+      const iaStatus = handoffEntry?.status === 'pausado' ? 'pausado' : 'ativo'
+      const preview = lastMsg?.message
+        ? extractText(lastMsg.message as Record<string, unknown>)
+        : ''
+      const timestamp = lastMsg?.messageTimestamp
+        ? new Date(Number(lastMsg.messageTimestamp) * 1000).toISOString()
+        : chat.updatedAt ?? new Date().toISOString()
+      const fromMe = lastMsg?.key?.fromMe ?? false
+
+      const existing = unified.get(phoneJid)
+      if (!existing || new Date(timestamp) > new Date(existing.timestamp)) {
+        unified.set(phoneJid, {
           telefone: phone,
-          remoteJid: chat.remoteJid,
+          lidJid,
           nome: chat.pushName ?? lastMsg?.pushName ?? phone,
           preview: fromMe ? `Você: ${preview}` : preview,
           timestamp,
           iaStatus,
-          unreadCount: chat.unreadCount ?? 0,
-          profilePicUrl: chat.profilePicUrl ?? null,
-        }
-      })
+          unreadCount: (existing?.unreadCount ?? 0) + (chat.unreadCount ?? 0),
+          profilePicUrl: chat.profilePicUrl ?? existing?.profilePicUrl ?? null,
+        })
+      } else if (lidJid && !existing.lidJid) {
+        existing.lidJid = lidJid
+        existing.unreadCount += chat.unreadCount ?? 0
+      }
+    }
+
+    const formatted = Array.from(unified.values())
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 100)
 
     return NextResponse.json({ success: true, data: formatted })
   } catch (err) {
     console.error('[/api/evolution/chats]', err)
-    return NextResponse.json({
-      success: false,
-      error: `Erro ao buscar chats: ${String(err)}`,
-    }, { status: 500 })
+    return NextResponse.json({ success: false, error: `Erro ao buscar chats: ${String(err)}` }, { status: 500 })
   }
 }
