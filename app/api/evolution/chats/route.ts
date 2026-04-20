@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { EvolutionClient, jidToNumber } from '@/lib/evolution/client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import { HandoffRepository } from '@/lib/repositories/handoff.repository'
+import { getLidMapping } from '@/lib/evolution/db-client'
 import type { ApiResponse } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -64,17 +65,11 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       } catch {}
     }
 
-    // Mapa @lid → @s.whatsapp.net usando remoteJidAlt
-    const lidToPhone = new Map<string, string>()
+    // Busca mapeamento @lid → @s.whatsapp.net do PostgreSQL
+    const lidToPhone = await getLidMapping(instanceName)
     const phoneToLid = new Map<string, string>()
-
-    for (const chat of chats) {
-      const jid = chat.remoteJid
-      const alt = (chat as unknown as Record<string, unknown>).remoteJidAlt as string | undefined
-      if (jid?.endsWith('@lid') && alt?.endsWith('@s.whatsapp.net')) {
-        lidToPhone.set(jid, alt)
-        phoneToLid.set(alt, jid)
-      }
+    for (const [lid, phone] of lidToPhone.entries()) {
+      phoneToLid.set(phone, lid)
     }
 
     // Agrupa chats unificando @lid + @s.whatsapp.net

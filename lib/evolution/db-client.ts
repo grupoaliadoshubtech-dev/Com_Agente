@@ -18,6 +18,7 @@ export interface DBMessage {
   status?: string
 }
 
+// Cache de instanceId por nome de instância
 const instanceIdCache = new Map<string, { id: string; ts: number }>()
 
 export async function getInstanceId(instanceName: string): Promise<string | null> {
@@ -31,6 +32,36 @@ export async function getInstanceId(instanceName: string): Promise<string | null
   if (!result.rows[0]) return null
   instanceIdCache.set(instanceName, { id: result.rows[0].id, ts: Date.now() })
   return result.rows[0].id
+}
+
+// Cache do mapeamento lid → phone
+const lidMappingCache = new Map<string, { map: Map<string, string>; ts: number }>()
+
+export async function getLidMapping(instanceName: string): Promise<Map<string, string>> {
+  const cached = lidMappingCache.get(instanceName)
+  if (cached && Date.now() - cached.ts < 300000) return cached.map
+
+  const instanceId = await getInstanceId(instanceName)
+  if (!instanceId) return new Map()
+
+  const result = await pool.query<{ lid: string; phone: string }>(
+    `SELECT DISTINCT 
+       "key"->>'remoteJid' as lid,
+       "key"->>'remoteJidAlt' as phone
+     FROM "Message"
+     WHERE "key"->>'remoteJid' LIKE '%@lid'
+       AND "key"->>'remoteJidAlt' LIKE '%@s.whatsapp.net'
+       AND "instanceId" = $1`,
+    [instanceId]
+  )
+
+  const map = new Map<string, string>()
+  for (const row of result.rows) {
+    if (row.lid && row.phone) map.set(row.lid, row.phone)
+  }
+
+  lidMappingCache.set(instanceName, { map, ts: Date.now() })
+  return map
 }
 
 export async function findAllMessages(
