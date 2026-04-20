@@ -68,9 +68,9 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     // Busca mapeamento @lid → @s.whatsapp.net do PostgreSQL
     const lidToPhone = await getLidMapping(instanceName)
     const phoneToLid = new Map<string, string>()
-    for (const [lid, phone] of lidToPhone.entries()) {
-      phoneToLid.set(phone, lid)
-    }
+    lidToPhone.forEach((phone, lid) => {
+  phoneToLid.set(phone, lid)
+})
 
     // Agrupa chats unificando @lid + @s.whatsapp.net
     const unified = new Map<string, {
