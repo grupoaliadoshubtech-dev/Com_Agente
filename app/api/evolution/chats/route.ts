@@ -64,7 +64,7 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       } catch {}
     }
 
-    // Monta mapa de @lid → @s.whatsapp.net usando remoteJidAlt
+    // Mapa @lid → @s.whatsapp.net usando remoteJidAlt
     const lidToPhone = new Map<string, string>()
     const phoneToLid = new Map<string, string>()
 
@@ -77,10 +77,10 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       }
     }
 
-    // Agrupa chats: usa @s.whatsapp.net como chave principal
+    // Agrupa chats unificando @lid + @s.whatsapp.net
     const unified = new Map<string, {
       telefone: string
-      lidJid?: string
+      lidJid: string | null
       nome: string
       preview: string
       timestamp: string
@@ -96,16 +96,16 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       if (jid.endsWith('@g.us')) continue
 
       let phoneJid: string
-      let lidJid: string | undefined
+      let lidJid: string | null = null
 
       if (jid.endsWith('@lid')) {
         const mapped = lidToPhone.get(jid)
-        if (!mapped) continue // ignora @lid sem mapeamento
+        if (!mapped) continue
         phoneJid = mapped
         lidJid = jid
       } else if (jid.endsWith('@s.whatsapp.net')) {
         phoneJid = jid
-        lidJid = phoneToLid.get(jid)
+        lidJid = phoneToLid.get(jid) ?? null
       } else {
         continue
       }
@@ -128,7 +128,7 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       if (!existing || new Date(timestamp) > new Date(existing.timestamp)) {
         unified.set(phoneJid, {
           telefone: phone,
-          lidJid,
+          lidJid: lidJid ?? existing?.lidJid ?? null,
           nome: chat.pushName ?? lastMsg?.pushName ?? phone,
           preview: fromMe ? `Você: ${preview}` : preview,
           timestamp,
