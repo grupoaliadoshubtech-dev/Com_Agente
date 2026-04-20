@@ -68,18 +68,22 @@ export default function LoginClient() {
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420 }}>
 
-        {/* Brand */}
+      {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           {/* Logo mark */}
           <div style={{
             width: 52, height: 52, borderRadius: 14,
             background: 'var(--neon)', margin: '0 auto 16px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: "'Syne', sans-serif", fontWeight: 800,
-            fontSize: 18, color: '#0a0a0a',
             boxShadow: '0 8px 24px var(--neon-glow)',
+            overflow: 'hidden',
           }}>
-            CA
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="4" y="38" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="32" fill="#0a0a0a">C</text>
+              <line x1="24" y1="8" x2="19" y2="44" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
+              <line x1="30" y1="8" x2="25" y2="44" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
+              <text x="26" y="38" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="32" fill="#0a0a0a">A</text>
+            </svg>
           </div>
 
           <div style={{
