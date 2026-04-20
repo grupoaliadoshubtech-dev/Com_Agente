@@ -82,8 +82,8 @@ function MediaBubble({ msg }: { msg: ChatMessage }) {
 
   // Auto-load imagens e stickers
   useEffect(() => {
-    if (msg.mediaType === 'image' || msg.mediaType === 'sticker') loadMedia()
-  }, [msg.mediaType, loadMedia])
+  if ((msg.mediaType === 'image' || msg.mediaType === 'sticker') && !error) loadMedia()
+}, [msg.mediaType, loadMedia, error])
 
   const isOut = msg.type === 'outgoing'
 
