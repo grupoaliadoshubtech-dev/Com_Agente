@@ -13,7 +13,7 @@ import { TemplateMenu } from '@/components/template-menu'
 // ── Tipos ────────────────────────────────────────────────────
 
 interface ChatContact {
-  telefone: string; remoteJid: string; nome: string; preview: string
+  telefone: string; remoteJid: string; lidJid: string | null; nome: string; preview: string
   timestamp: string; iaStatus: string; unreadCount: number; profilePicUrl: string | null
 }
 
@@ -271,13 +271,14 @@ export default function WorkspacePage() {
 
   // ── Fetch messages ─────────────────────────────────────────
 
-  const fetchMessages = useCallback(async (phone: string) => {
-    try {
-      const r = await fetch(`/api/evolution/messages?phone=${phone}&count=80`, { cache: 'no-store' })
-      const d = await r.json()
-      if (d.success && d.data) setMessages(d.data)
-    } catch {} finally { setLoadingMsg(false) }
-  }, [])
+ const fetchMessages = useCallback(async (phone: string, lidJid?: string | null) => {
+  try {
+    const lid = lidJid ? `&lid=${encodeURIComponent(lidJid)}` : ''
+    const r = await fetch(`/api/evolution/messages?phone=${phone}&count=80${lid}`, { cache: 'no-store' })
+    const d = await r.json()
+    if (d.success && d.data) setMessages(d.data)
+  } catch {} finally { setLoadingMsg(false) }
+ }, [])
 
   useEffect(() => {
     if (!selected) return
@@ -287,8 +288,7 @@ export default function WorkspacePage() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  function openChat(c: ChatContact) { setSelected(c); setMessages([]); setLoadingMsg(true); fetchMessages(c.telefone) }
-
+  function openChat(c: ChatContact) { setSelected(c); setMessages([]); setLoadingMsg(true); fetchMessages(c.telefone, c.lidJid) }
   // ── Toggle IA ──────────────────────────────────────────────
 
   async function toggleIA(phone: string) {
