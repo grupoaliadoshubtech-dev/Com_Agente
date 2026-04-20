@@ -18,12 +18,11 @@ export interface DBMessage {
   status?: string
 }
 
-// Cache de instanceId por nome de instância
 const instanceIdCache = new Map<string, { id: string; ts: number }>()
 
 export async function getInstanceId(instanceName: string): Promise<string | null> {
   const cached = instanceIdCache.get(instanceName)
-  if (cached && Date.now() - cached.ts < 300000) return cached.id // cache 5 min
+  if (cached && Date.now() - cached.ts < 300000) return cached.id
 
   const result = await pool.query<{ id: string }>(
     `SELECT id FROM "Instance" WHERE name = $1 LIMIT 1`,
@@ -35,12 +34,14 @@ export async function getInstanceId(instanceName: string): Promise<string | null
 }
 
 export async function findAllMessages(
-  remoteJid: string,
+  remoteJids: string[],
   instanceName: string,
   limit = 50
 ): Promise<DBMessage[]> {
   const instanceId = await getInstanceId(instanceName)
   if (!instanceId) return []
+
+  const placeholders = remoteJids.map((_, i) => `$${i + 1}`).join(', ')
 
   const result = await pool.query<{
     key: DBMessage['key']
@@ -51,11 +52,11 @@ export async function findAllMessages(
   }>(
     `SELECT key, "pushName", message, "messageTimestamp", "messageType"
      FROM "Message"
-     WHERE "key"->>'remoteJid' = $1
-       AND "instanceId" = $2
-     ORDER BY "messageTimestamp" DESC
-     LIMIT $3`,
-    [remoteJid, instanceId, limit]
+     WHERE "key"->>'remoteJid' IN (${placeholders})
+       AND "instanceId" = $${remoteJids.length + 1}
+     ORDER BY "messageTimestamp" ASC
+     LIMIT $${remoteJids.length + 2}`,
+    [...remoteJids, instanceId, limit]
   )
 
   return result.rows.map(row => ({
