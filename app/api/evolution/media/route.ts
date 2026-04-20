@@ -1,8 +1,4 @@
 // app/api/evolution/media/route.ts
-// GET /api/evolution/media?messageId=xxx&remoteJid=yyy
-// Proxy para Evolution API — baixa mídia de uma mensagem como base64.
-// Retorna a mídia como resposta binária com Content-Type correto.
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -26,7 +22,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'messageId e remoteJid obrigatórios' }, { status: 400 })
   }
 
- try {
+  try {
     const tenant = await tenantsRepo.findById(session.user.tenantId)
     const instanceName = tenant?.evolutionInstance
     if (!instanceName) {
@@ -35,10 +31,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     // Converte @lid para @s.whatsapp.net se necessário
     const resolvedJid = remoteJid.endsWith('@lid')
-      ? remoteJid.replace('@lid', '@s.whatsapp.net').replace(/^\d+/, m => {
-          // Tenta buscar o número real — fallback: usa o número do lid diretamente
-          return m
-        })
+      ? remoteJid.split('@')[0] + '@s.whatsapp.net'
       : remoteJid
 
     const client = EvolutionClient.fromEnv(instanceName)
@@ -47,9 +40,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       data: {
-        base64:   media.base64,
+        base64: media.base64,
         mimetype: media.mimetype,
         fileName: media.fileName ?? null,
       }
     })
+  } catch (err) {
+    console.error('[/api/evolution/media]', err)
+    return NextResponse.json({
+      success: false,
+      error: `Erro ao baixar mídia: ${String(err)}`,
+    }, { status: 500 })
   }
+}
