@@ -79,10 +79,10 @@ export default function LoginClient() {
             overflow: 'hidden',
           }}>
             <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="4" y="38" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="32" fill="#0a0a0a">C</text>
+              <text x="2" y="40" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="34" fill="#000000">C</text>
               <line x1="24" y1="8" x2="19" y2="44" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
               <line x1="30" y1="8" x2="25" y2="44" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
-              <text x="26" y="38" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="32" fill="#0a0a0a">A</text>
+              <text x="24" y="40" fontFamily="Arial Black, sans-serif" fontWeight="900" fontSize="34" fill="#000000">A</text>
             </svg>
           </div>
 
