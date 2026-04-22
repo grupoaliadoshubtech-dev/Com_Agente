@@ -48,7 +48,7 @@ export default function LoginClient() {
       padding: '24px',
       background: 'var(--bg)',
       position: 'relative',
-      overflow: 'hidden',
+      overflow: 'visible',
     }}>
       {/* Grid background */}
       <div style={{
@@ -67,7 +67,7 @@ export default function LoginClient() {
       }} />
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420 }}>
-        
+
 {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           {/* Logo mark */}
