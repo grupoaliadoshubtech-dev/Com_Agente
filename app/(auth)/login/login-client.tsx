@@ -78,11 +78,11 @@ export default function LoginClient() {
             boxShadow: '0 8px 24px var(--neon-glow)',
             overflow: 'hidden',
           }}>
-            <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="4" y="38" style={{fontFamily: 'Arial Black, sans-serif', fontWeight: 900, fontSize: 32}} fill="#0a0a0a">C</text>
-              <line x1="24" y1="8" x2="19" y2="44" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
-              <line x1="30" y1="8" x2="25" y2="44" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
-              <text x="24" y="40" style={{fontFamily: 'Arial Black, sans-serif', fontWeight: 900, fontSize: 34}} fill="#000000">A</text>
+            <svg width="52" height="52" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M205 210c-8-12-20-18-35-18-25 0-45 20-45 45v48c0 25 20 45 45 45 15 0 27-6 35-18l32 22c-15 25-42 41-72 41-48 0-87-39-87-87v-48c0-48 39-87 87-87 30 0 57 16 72 41l-32 22z" fill="#0a0a0a"/>
+              <path d="M215 355l45-198h20l-45 198h-20z" fill="white"/>
+              <path d="M255 355l45-198h20l-45 198h-20z" fill="white"/>
+              <path d="M375 157l65 198h-35l-12-40h-55l-12 40h-35l65-198h19zm-10 125h35l-17-55-18 55z" fill="#0a0a0a"/>
             </svg>
           </div>
 
