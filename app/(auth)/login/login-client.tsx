@@ -67,8 +67,8 @@ export default function LoginClient() {
       }} />
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420 }}>
-
-    {/* Brand */}
+        
+{/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           {/* Logo mark */}
           <div style={{
@@ -78,15 +78,24 @@ export default function LoginClient() {
             boxShadow: '0 8px 24px var(--neon-glow)',
             overflow: 'hidden',
           }}>
-            <svg width="52" height="52" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-               <defs>
-               <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@900&display=swap');`}</style>
-               </defs>
-               <text x="48" y="370" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="240" fill="#000000">C</text>
-                <path d="M 217,370 L 249,370 L 287,197 L 255,197 Z" fill="#FFFFFF"/>
-                <path d="M 265,370 L 297,370 L 335,197 L 303,197 Z" fill="#FFFFFF"/>
-               <text x="311" y="370" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="240" fill="#000000">A</text>
-             </svg>
+            <svg
+              width="52"
+              height="52"
+              viewBox="0 0 512 512"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ display: 'block' }}
+            >
+              <defs>
+                <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@900&display=swap');`}</style>
+              </defs>
+              <g transform="translate(33, 0)">
+                <text x="0" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">C</text>
+                <path d="M 182,346 L 214,346 L 254,167 L 222,167 Z" fill="#FFFFFF"/>
+                <path d="M 230,346 L 262,346 L 302,167 L 270,167 Z" fill="#FFFFFF"/>
+                <text x="277" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">A</text>
+              </g>
+            </svg>
           </div>
 
           <div style={{
