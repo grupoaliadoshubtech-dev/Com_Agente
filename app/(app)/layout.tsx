@@ -145,7 +145,19 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       </button>
 
       <div style={{height:58,display:'flex',alignItems:'center',padding:'0 16px',gap:10,borderBottom:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
-        <div style={{width:32,height:32,borderRadius:9,background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:14,color:'#0a0a0a'}}>CA</div>
+        <div style={{width:32,height:32,borderRadius:9,background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+          <svg width="32" height="32" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:'block'}}>
+            <defs>
+              <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@900&display=swap');`}</style>
+            </defs>
+            <g transform="translate(33, 0)">
+              <text x="0" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">C</text>
+              <path d="M 182,346 L 214,346 L 254,167 L 222,167 Z" fill="#FFFFFF"/>
+              <path d="M 230,346 L 262,346 L 302,167 L 270,167 Z" fill="#FFFFFF"/>
+              <text x="277" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">A</text>
+            </g>
+          </svg>
+        </div>
         <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'#fff',opacity:col?0:1,width:col?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,width .2s'}}>
           Com<span style={{color:'var(--neon)'}}>Agente</span>
         </div>
