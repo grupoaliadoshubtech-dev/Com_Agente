@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório Executivo — Projeto ComAgente</title>
+  <style>
+    :root {
+      --neon: #A3E635;
+      --dark: #0a0a0a;
+      --gray: #f4f4f4;
+      --border: #e0e0e0;
+      --text: #1a1a1a;
+      --text2: #555;
+      --ok: #16a34a;
+      --warn: #b91c1c;
+      --pending: #b45309;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: var(--text);
+      background: #fff;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 32px 80px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── CAPA ── */
+    .cover {
+      text-align: center;
+      padding: 48px 0 40px;
+      border-bottom: 3px solid var(--neon);
+      margin-bottom: 40px;
+    }
+    .cover h1 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -.5px;
+      color: var(--dark);
+      margin-bottom: 6px;
+    }
+    .cover .subtitle {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 24px;
+    }
+    .version-table {
+      display: inline-block;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+
+    /* ── SEÇÕES ── */
+    h2 {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--dark);
+      border-left: 5px solid var(--neon);
+      padding-left: 12px;
+      margin: 40px 0 18px;
+    }
+    h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 24px 0 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+    }
+    p { margin-bottom: 10px; color: var(--text2); }
+
+    /* ── TABELAS ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    thead tr { background: var(--neon); }
+    thead th {
+      text-align: left;
+      padding: 9px 12px;
+      font-weight: 700;
+      color: var(--dark);
+      font-size: 12px;
+    }
+    tbody tr:nth-child(even) { background: var(--gray); }
+    tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+
+    /* ── STATUS BADGES ── */
+    .ok    { color: var(--ok);      font-weight: 700; }
+    .fail  { color: var(--warn);    font-weight: 700; }
+    .pend  { color: var(--pending); font-weight: 700; }
+
+    /* ── CODE ── */
+    pre, code {
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    pre {
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin-bottom: 14px;
+      line-height: 1.7;
+    }
+    code {
+      padding: 2px 6px;
+      font-size: 12px;
+      background: #f0f0f0;
+      color: #c7254e;
+      border-radius: 4px;
+    }
+
+    /* ── LISTAS ── */
+    ul { padding-left: 20px; margin-bottom: 12px; color: var(--text2); }
+    ul li { margin-bottom: 4px; }
+
+    /* ── PENDÊNCIA CARDS ── */
+    .pend-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .pend-card.resolved { border-left: 4px solid var(--ok); }
+    .pend-card.open     { border-left: 4px solid var(--pending); }
+    .pend-card.done     { border-left: 4px solid var(--neon); }
+    .pend-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .pend-card.resolved h4::before { content: '✓ '; color: var(--ok); }
+    .pend-card.open     h4::before { content: '■ '; color: var(--pending); }
+    .pend-card.done     h4::before { content: '✓ '; color: var(--neon); }
+
+    /* ── RODAPÉ ── */
+    footer {
+      text-align: center;
+      font-size: 11px;
+      color: #aaa;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      margin-top: 60px;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body { padding: 20px; }
+      h2 { break-before: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     CAPA
+══════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
+  <div class="subtitle">
+    Documento consolidado e atualizado — <strong>24 de maio de 2026</strong> (v1.4)<br>
+    Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
+    Destinatário: Assistente de IA para continuidade do suporte
+  </div>
+
+  <table class="version-table">
+    <thead><tr><th>Data</th><th>Versão</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>10/04/2026</td><td>1.0</td><td>Relatório original — 8 fases implementadas</td></tr>
+      <tr><td>20/04/2026</td><td>1.1</td><td>Correções do chat, mensagens do cliente, container</td></tr>
+      <tr><td>23/04/2026</td><td>1.2</td><td>Identidade visual C//A, favicons, sidebar, git</td></tr>
+      <tr><td>28/04/2026</td><td>1.3</td><td>SVG logo PWA banner, verificação EVOLUTION_API_KEY, troubleshooting Docker Swarm</td></tr>
+      <tr><td>24/05/2026</td><td>1.4</td><td>Mobile: remoção da barra de navegação inferior — tela 60px maior no mobile</td></tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     1. VISÃO GERAL
+══════════════════════════════════════════════════════════ -->
+<h2>1. Visão Geral do Projeto</h2>
+
+<h3>1.1 O que é o ComAgente</h3>
+<p>SaaS multi-tenant B2B2C para orquestrar handoff IA↔Humano no WhatsApp. Agência de Atendimento Digital desenvolvida pelo Grupo Aliados Hub Tech.</p>
+
+<h3>1.2 Stack Tecnológica</h3>
+<table>
+  <thead><tr><th>Componente</th><th>Tecnologia</th></tr></thead>
+  <tbody>
+    <tr><td>Frontend/Backend</td><td>Next.js 14.2.5 (App Router)</td></tr>
+    <tr><td>Autenticação</td><td>NextAuth.js v4 com JWT</td></tr>
+    <tr><td>Banco de dados</td><td>Google Sheets API (via service account)</td></tr>
+    <tr><td>WhatsApp</td><td>Evolution API v2 (auto-hospedada)</td></tr>
+    <tr><td>IA</td><td>n8n + Gemini (Google)</td></tr>
+    <tr><td>E-mail</td><td>Nodemailer (SMTP)</td></tr>
+    <tr><td>Deploy</td><td>EasyPanel em VPS Linux</td></tr>
+    <tr><td>Infra</td><td>VPS 129.121.39.85, domínio trackermap.app.br</td></tr>
+    <tr><td>DNS</td><td>Cloudflare (DNS Only, sem proxy)</td></tr>
+    <tr><td>DB PostgreSQL</td><td>Driver pg — acesso direto ao banco da Evolution API</td></tr>
+  </tbody>
+</table>
+
+<h3>1.3 Domínios Ativos</h3>
+<table>
+  <thead><tr><th>Ambiente</th><th>URL</th></tr></thead>
+  <tbody>
+    <tr><td>Produção principal</td><td>https://comagente.trackermap.app.br</td></tr>
+    <tr><td>EasyPanel</td><td>https://comagente-comagente-app.nxwkfd.easypanel.host</td></tr>
+    <tr><td>Evolution API</td><td>https://agenciadia-evolution-api.nxwkfd.easypanel.host</td></tr>
+    <tr><td>n8n</td><td>https://agenciadia-n8n.nxwkfd.easypanel.host</td></tr>
+  </tbody>
+</table>
+
+<h3>1.4 Repositório</h3>
+<p>GitHub: <strong>https://github.com/ROGERIO31/comagente</strong> | Branch principal: <code>main</code></p>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     2. ARQUITETURA
+══════════════════════════════════════════════════════════ -->
+<h2>2. Arquitetura do Sistema</h2>
+
+<h3>2.1 Fluxo de Mensagens</h3>
+<pre>WhatsApp → Evolution API → n8n (webhook: MESSAGES_UPSERT)</pre>
+<p>O ComAgente <strong>NÃO</strong> intercepta o webhook. Lê mensagens diretamente do PostgreSQL da Evolution API via polling. O n8n continua recebendo tudo normalmente.</p>
+
+<h3>2.2 Modelo Multi-tenant</h3>
+<p>Cada cliente (tenant) tem sua própria planilha Google Sheets como banco de dados isolado. O <code>tenantId</code> de cada usuário é o próprio ID da planilha.</p>
+<table>
+  <thead><tr><th>Planilha</th><th>ID</th><th>Abas</th></tr></thead>
+  <tbody>
+    <tr><td>Master</td><td><code>1YwEjf8So9vQ-MEPqzc1zERiwF8hvUW9w8U3JuyhfjEc</code></td><td>Usuarios, Empresas, Planos, Leads, ResetTokens, Blacklist, Log_Erros</td></tr>
+    <tr><td>Lucena Decorações</td><td><code>1fvrlD2raZxlVyzhLGPxoY7cRJiq1iUwwdwO3d-vMBOA</code></td><td>Atendimentos, Fila_Humana, Clientes, Satisfacao, Templates, Distribuicao</td></tr>
+  </tbody>
+</table>
+
+<h3>2.3 Instâncias Evolution API</h3>
+<table>
+  <thead><tr><th>Instância</th><th>Número</th><th>instanceId</th></tr></thead>
+  <tbody>
+    <tr><td>lucenadecoracoes</td><td>5516989105704</td><td>8d9a15b5-e063-4e2d-9900-3f5929c6129a</td></tr>
+    <tr><td>agenciadia</td><td>557182608738</td><td>c140e3b2-a32a-4aeb-88c6-0d27ac40a664</td></tr>
+    <tr><td>canecassa</td><td>5516994985975</td><td>d27a6fb3-c5ca-44b6-bd0b-dde1bdfe76b3</td></tr>
+  </tbody>
+</table>
+
+<h3>2.4 Controle RBAC</h3>
+<ul>
+  <li><strong>master</strong> — acesso total (multi-tenant admin)</li>
+  <li><strong>supervisor</strong> — gerencia seu próprio tenant</li>
+  <li><strong>atendente</strong> — workspace + toggles liberados pelo supervisor</li>
+</ul>
+
+<h3>2.5 PostgreSQL da Evolution API</h3>
+<pre>postgres://postgres:04ce48cc2b28b2ce0eaf@agenciadia_evolution-api-db:5432/agenciadia</pre>
+<p>Variável de ambiente: <code>EVOLUTION_DB_URL</code> | Banco: <code>agenciadia</code></p>
+<p>O ComAgente acessa diretamente o PostgreSQL para buscar mensagens recebidas (@lid), contornando bug da Evolution API que retorna apenas <code>fromMe: true</code> via HTTP.</p>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     3. 8 FASES
+══════════════════════════════════════════════════════════ -->
+<h2>3. 8 Fases de Melhoria Consolidadas</h2>
+<p>Todas as 8 fases foram implementadas e estão em produção.</p>
+
+<table>
+  <thead><tr><th>Fase</th><th>Nome</th><th>Descrição</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Chat em tempo real via Evolution API</td><td>Polling 5s chats / 3s mensagens. Endpoints: <code>/api/evolution/chats</code> e <code>/api/evolution/messages</code></td></tr>
+    <tr><td>2</td><td>Mídia no chat</td><td>Renderização inline de imagens, áudio, vídeo e documentos. Upload de arquivos pelo atendente.</td></tr>
+    <tr><td>3</td><td>PWA / Mobile</td><td>App instalável no celular. Service Worker, ícones PWA, layout responsivo, notificações push.</td></tr>
+    <tr><td>4</td><td>CRM inteligente com follow-up</td><td>Funil visual com 7 etapas, tags personalizadas, follow-up, disparo em lote.</td></tr>
+    <tr><td>5</td><td>Respostas rápidas e templates</td><td>Atalhos <code>/nome</code> no chat, menu suspenso, CRUD de templates por supervisor.</td></tr>
+    <tr><td>6</td><td>Distribuição automática</td><td>Round-robin no handoff, filtro por especialidade, capacidade máxima por atendente.</td></tr>
+    <tr><td>7</td><td>Dashboard em tempo real</td><td>KPIs ao vivo, gráficos, exportação CSV. Polling duplo: 10s realtime, 60s completo.</td></tr>
+    <tr><td>8</td><td>Bot com memória e contexto</td><td>ConversationContextService, detecção de intenção, classificação automática no CRM, instruções dinâmicas para o Gemini.</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     4. IDENTIDADE VISUAL
+══════════════════════════════════════════════════════════ -->
+<h2>4. Identidade Visual — Logo C//A</h2>
+<p>Atualização realizada em 22–28 de abril de 2026.</p>
+
+<h3>4.1 Especificações do SVG</h3>
+<table>
+  <thead><tr><th>Elemento</th><th>Especificação</th></tr></thead>
+  <tbody>
+    <tr><td>ViewBox</td><td>0 0 512 512</td></tr>
+    <tr><td>Fundo</td><td>Via div container — <code>var(--neon)</code> / #A3E635</td></tr>
+    <tr><td>Fonte letras C e A</td><td>Raleway 900 (Google Fonts), fontSize 248</td></tr>
+    <tr><td>Cor letras</td><td>#000000 (preto puro)</td></tr>
+    <tr><td>Barras //</td><td>Polígonos fechados brancos (#FFFFFF), inclinação ~12.5°</td></tr>
+    <tr><td>Centralização vertical</td><td>Baseline Y=346 (cap height Raleway ~72% do font-size)</td></tr>
+  </tbody>
+</table>
+
+<h3>4.2 Código SVG</h3>
+<pre>&lt;svg width="52" height="52" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg"&gt;
+  &lt;defs&gt;
+    &lt;style&gt;@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@900&amp;display=swap');&lt;/style&gt;
+  &lt;/defs&gt;
+  &lt;g transform="translate(33, 0)"&gt;
+    &lt;text x="0" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000"&gt;C&lt;/text&gt;
+    &lt;path d="M 182,346 L 214,346 L 254,167 L 222,167 Z" fill="#FFFFFF"/&gt;
+    &lt;path d="M 230,346 L 262,346 L 302,167 L 270,167 Z" fill="#FFFFFF"/&gt;
+    &lt;text x="277" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000"&gt;A&lt;/text&gt;
+  &lt;/g&gt;
+&lt;/svg&gt;</pre>
+
+<h3>4.3 Locais onde a logo aparece</h3>
+<table>
+  <thead><tr><th>Local</th><th>Arquivo</th><th>Tamanho</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Página de login</td><td><code>app/(auth)/login/login-client.tsx</code></td><td>52×52px</td><td><span class="ok">✓ SVG</span></td></tr>
+    <tr><td>Sidebar desktop</td><td><code>app/(app)/layout.tsx</code></td><td>32×32px</td><td><span class="ok">✓ SVG</span></td></tr>
+    <tr><td>Sidebar mobile</td><td><code>app/(app)/layout.tsx</code></td><td>32×32px</td><td><span class="ok">✓ SVG</span></td></tr>
+    <tr><td>Banner instalação PWA</td><td><code>components/pwa-register.tsx</code></td><td>36×36px</td><td><span class="ok">✓ SVG — atualizado em 28/04/2026</span></td></tr>
+    <tr><td>Ícone PWA 192px</td><td><code>public/icons/icon-192.png</code></td><td>192×192px</td><td><span class="ok">✓ Atualizado</span></td></tr>
+    <tr><td>Splash screen PWA 512px</td><td><code>public/icons/icon-512.png</code></td><td>512×512px</td><td><span class="ok">✓ Atualizado</span></td></tr>
+    <tr><td>Favicon aba do browser</td><td><code>public/favicon-32x32.png</code></td><td>32×32px</td><td><span class="ok">✓ Atualizado</span></td></tr>
+  </tbody>
+</table>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     5. DEPLOY
+══════════════════════════════════════════════════════════ -->
+<h2>5. Estado Atual do Deploy</h2>
+
+<h3>5.1 Status Geral</h3>
+<table>
+  <thead><tr><th>Item</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Build no EasyPanel</td><td><span class="ok">✓ SUCESSO</span></td></tr>
+    <tr><td>Container rodando</td><td><span class="ok">✓ comagente_comagente-app (porta 3001)</span></td></tr>
+    <tr><td>Endpoint acessível</td><td><span class="ok">✓ https://comagente.trackermap.app.br</span></td></tr>
+    <tr><td>Webhook Evolution API → n8n</td><td><span class="ok">✓ Ativo (MESSAGES_UPSERT)</span></td></tr>
+    <tr><td>Chat do Workspace</td><td><span class="ok">✓ Mensagens enviadas e recebidas</span></td></tr>
+    <tr><td>Logo C//A em todos os locais</td><td><span class="ok">✓ SVG em todos os locais</span></td></tr>
+    <tr><td>Mobile — barra de navegação inferior</td><td><span class="ok">✓ Removida em 24/05/2026 — +60px de tela</span></td></tr>
+  </tbody>
+</table>
+
+<h3>5.2 Variáveis de Ambiente (EasyPanel)</h3>
+<table>
+  <thead><tr><th>Variável</th><th>Status</th><th>Observação</th></tr></thead>
+  <tbody>
+    <tr><td>NEXTAUTH_SECRET</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
+    <tr><td>NEXTAUTH_URL</td><td><span class="ok">✓ Configurada</span></td><td>https://comagente.trackermap.app.br</td></tr>
+    <tr><td>GOOGLE_SERVICE_ACCOUNT_EMAIL</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
+    <tr><td>GOOGLE_PRIVATE_KEY</td><td><span class="ok">✓ Configurada</span></td><td>1704 chars</td></tr>
+    <tr><td>GOOGLE_MASTER_SHEET_ID</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
+    <tr><td>TENANT_LUCENA_SHEET_ID</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
+    <tr><td>EVOLUTION_API_URL</td><td><span class="ok">✓ Configurada</span></td><td>https://agenciadia-evolution-api.nxwkfd.easypanel.host</td></tr>
+    <tr><td>EVOLUTION_API_KEY</td><td><span class="ok">✓ Verificada em 28/04/2026</span></td><td>Igual ao n8n — 766D7B97-FB4A-4B07-A993-9B8E92C94366</td></tr>
+    <tr><td>EVOLUTION_WEBHOOK_SECRET</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
+    <tr><td>EVOLUTION_DB_URL</td><td><span class="ok">✓ Configurada</span></td><td>Adicionada em 20/04/2026</td></tr>
+    <tr><td>N8N_WEBHOOK_URL</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
+    <tr><td>PORT</td><td><span class="ok">✓</span></td><td>3001</td></tr>
+    <tr><td>NODE_ENV</td><td><span class="ok">✓</span></td><td>production</td></tr>
+    <tr><td>SMTP_*</td><td><span class="fail">✗ NÃO configurado</span></td><td>Pendente</td></tr>
+  </tbody>
+</table>
+
+<h3>5.3 Variáveis de Ambiente do n8n (verificadas em 28/04/2026)</h3>
+<table>
+  <thead><tr><th>Variável</th><th>Valor</th></tr></thead>
+  <tbody>
+    <tr><td>EVOLUTION_API_KEY</td><td><code>766D7B97-FB4A-4B07-A993-9B8E92C94366</code></td></tr>
+    <tr><td>EVOLUTION_URL</td><td>https://agenciadia-evolution-api.nxwkfd.easypanel.host</td></tr>
+    <tr><td>WEBHOOK_URL</td><td>https://agenciadia-n8n.nxwkfd.easypanel.host</td></tr>
+    <tr><td>N8N_BLOCK_ENV_ACCESS_IN_NODE</td><td><code>false</code></td></tr>
+  </tbody>
+</table>
+
+<h3>5.4 Infraestrutura VPS</h3>
+<p>Swap: 2GB configurado em <code>/swapfile</code> (evita travamento durante builds)</p>
+<p><strong>ATENÇÃO:</strong> O swap não persiste após reboot. Para tornar permanente:</p>
+<pre>echo '/swapfile swap swap defaults 0 0' >> /etc/fstab</pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     6. PENDÊNCIAS
+══════════════════════════════════════════════════════════ -->
+<h2>6. Pendências Ativas</h2>
+
+<div class="pend-card resolved">
+  <h4>6.1 Mensagens não chegavam no n8n</h4>
+  <p>O webhook da Evolution API estava apontando para o ComAgente em vez do n8n. Corrigido em 14/04/2026.</p>
+  <p>URL correta: <code>https://agenciadia-n8n.nxwkfd.easypanel.host/webhook/whatsapp-webhook</code> | Evento: <code>MESSAGES_UPSERT</code></p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.2 Logo C//A — banner instalação PWA</h4>
+  <p>O <code>components/pwa-register.tsx</code> ainda exibia "CA" em texto simples. Substituído pelo SVG C//A em 28/04/2026. Todos os locais agora usam SVG.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.3 EVOLUTION_API_KEY — verificação e sincronização</h4>
+  <p>Verificado em 28/04/2026 via terminal VPS que a chave é idêntica no ComAgente e no n8n: <code>766D7B97-FB4A-4B07-A993-9B8E92C94366</code>. Container foi reiniciado via <code>scale 0→1</code> para aplicar variável atualizada.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.4 Mobile — remoção da barra de navegação inferior</h4>
+  <p>A barra bottom nav duplicava os links já presentes na sidebar drawer. Removida em 24/05/2026 de <code>app/(app)/layout.tsx</code> e <code>app/globals.css</code>. A tela mobile ganhou 60px de espaço útil. Navegação continua disponível pelo menu hambúrguer. Deploy efetuado.</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.5 Planilhas Lucena — abas novas necessárias</h4>
+  <p>Fases 4, 5 e 6 exigem abas novas na planilha do Lucena (ainda não criadas):</p>
+  <table>
+    <thead><tr><th>Aba</th><th>Colunas necessárias</th></tr></thead>
+    <tbody>
+      <tr><td>Clientes (expandir)</td><td>telefone, nome, status, historico, etapa, tags, ultimoContato, proximoFollowUp, valorEstimado, atendente, notas, origem</td></tr>
+      <tr><td>Templates (nova)</td><td>id, atalho, titulo, mensagem, categoria, criadoPor, createdAt, isActive</td></tr>
+      <tr><td>Distribuicao (nova)</td><td>atendenteId, atendenteNome, atendentePhone, online, especialidade, maxConversas, conversasAtivas, ultimaAtribuicao</td></tr>
+      <tr><td>Log_Distribuicao (nova)</td><td>id, telefoneCliente, atendenteId, atendenteNome, timestamp, motivo</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="pend-card open">
+  <h4>6.6 n8n — reconfigurar para Fase 8</h4>
+  <p>Atualizar o System Prompt do nó Gemini no n8n para consumir os campos novos:</p>
+  <ul>
+    <li><code>systemInstructions</code></li>
+    <li><code>conversationHistory</code></li>
+    <li><code>compactHistory</code></li>
+    <li><code>detectedIntent</code></li>
+    <li><code>clientEtapa</code></li>
+    <li><code>clientTags</code></li>
+  </ul>
+  <p>Ver arquivo <code>INSTRUCOES-N8N.txt</code> na raiz do projeto para exemplos completos.</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.7 SMTP não configurado</h4>
+  <p>Recuperação de senha por e-mail não funciona. Configurar no EasyPanel:</p>
+  <ul>
+    <li><code>SMTP_HOST</code></li>
+    <li><code>SMTP_PORT</code></li>
+    <li><code>SMTP_USER</code></li>
+    <li><code>SMTP_PASS</code></li>
+    <li><code>SMTP_FROM</code></li>
+  </ul>
+</div>
+
+<div class="pend-card open">
+  <h4>6.8 Swap permanente</h4>
+  <p>Adicionar ao <code>/etc/fstab</code> para persistir após reboot:</p>
+  <pre>/swapfile swap swap defaults 0 0</pre>
+</div>
+
+<div class="pend-card open">
+  <h4>6.9 Warning SSR em /transcricoes</h4>
+  <p>Página usa <code>useSearchParams()</code> sem Suspense boundary. Não afeta funcionamento mas prejudica SEO.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     7. PROCEDIMENTOS OPERACIONAIS
+══════════════════════════════════════════════════════════ -->
+<h2>7. Procedimentos Operacionais</h2>
+
+<h3>Atualizar container após mudança de variável de ambiente</h3>
+<pre>docker service scale comagente_comagente-app=0 && sleep 5 && docker service scale comagente_comagente-app=1</pre>
+
+<h3>Verificar variáveis de ambiente do container</h3>
+<pre>docker exec $(docker ps -q --filter "name=comagente_comagente-app") printenv | grep EVOLUTION</pre>
+
+<h3>Verificar variáveis do n8n</h3>
+<pre>docker exec $(docker ps -q --filter "name=agenciadia_n8n") printenv | grep -E "EVOLUTION|WEBHOOK|N8N_BLOCK"</pre>
+
+<h3>Ver logs do container</h3>
+<pre>docker logs $(docker ps -q --filter name=comagente) 2>&1 | tail -20</pre>
+
+<h3>Ver mensagens recentes no banco</h3>
+<pre>docker exec $(docker ps -q --filter name=postgres) psql -U postgres -d agenciadia -c \
+"SELECT \"key\"->>'fromMe', \"key\"->>'remoteJid', \"pushName\", \"messageTimestamp\" \
+FROM \"Message\" WHERE \"instanceId\" = '8d9a15b5-e063-4e2d-9900-3f5929c6129a' \
+ORDER BY \"messageTimestamp\" DESC LIMIT 5;"</pre>
+
+<h3>Ativar swap após reboot</h3>
+<pre>swapon /swapfile</pre>
+
+<h3>Limpar cache do browser (console F12)</h3>
+<pre>caches.keys().then(keys => keys.forEach(key => caches.delete(key)))</pre>
+
+<h3>Resolver rebase corrompido (PowerShell)</h3>
+<pre>powershell -Command "Remove-Item -Recurse -Force '.git\rebase-merge'"</pre>
+
+<h3>Troubleshooting Docker Swarm — porta em uso</h3>
+<p>Quando <code>docker service update</code> falha com "host-mode port already in use":</p>
+<pre># 1. Matar container antigo que está travando a porta
+docker rm -f $(docker ps -q --filter "name=comagente_comagente-app")
+
+# 2. Forçar scale 0 → 1
+docker service scale comagente_comagente-app=0 && sleep 5 && docker service scale comagente_comagente-app=1
+
+# 3. Verificar se subiu
+curl -I http://localhost:3001</pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     8. INFORMAÇÕES DE ACESSO
+══════════════════════════════════════════════════════════ -->
+<h2>8. Informações de Acesso</h2>
+
+<h3>8.1 Credenciais</h3>
+<table>
+  <thead><tr><th>Serviço</th><th>Acesso</th></tr></thead>
+  <tbody>
+    <tr><td>ComAgente (admin)</td><td>admin@lucenadecoracoes.com / Admin@1234 (role: supervisor)</td></tr>
+    <tr><td>VPS SSH</td><td>root@129.121.39.85</td></tr>
+    <tr><td>EasyPanel</td><td>https://comagente-comagente-app.nxwkfd.easypanel.host</td></tr>
+    <tr><td>GitHub</td><td>https://github.com/ROGERIO31/comagente (branch: main)</td></tr>
+  </tbody>
+</table>
+
+<h3>8.2 Google Service Account</h3>
+<p>Email: <code>n8n-sheets-tracker@meta-strata-458018-a2.iam.gserviceaccount.com</code></p>
+<p>Projeto GCP: <code>meta-strata-458018</code> | Permissões: Editor nas planilhas Master e dos tenants</p>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     RODAPÉ
+══════════════════════════════════════════════════════════ -->
+<footer>
+  Relatório Executivo — Projeto ComAgente | Versão 1.4 | 24 de maio de 2026<br>
+  Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
+</footer>
+
+</body>
+</html>
