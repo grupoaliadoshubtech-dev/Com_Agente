@@ -184,29 +184,38 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   }
 }
 
-/* ── Mobile: Workspace responsivo ─────────────────────────────
-   Sidebar vira drawer, chat ocupa tela cheia */
+/* ── Mobile: Workspace estilo WhatsApp ────────────────────────
+   Lista de conversas e chat alternam em tela cheia */
 @media (max-width: 768px) {
   /* Esconde show-mobile por padrão e mostra */
   .show-mobile { display: flex !important; }
 
-  /* Workspace: sidebar e chat empilhados */
-  .workspace-container {
-    flex-direction: column !important;
-  }
-
-  /* Sidebar de chats: largura total no mobile */
-  .workspace-container > aside {
+  /* Lista de conversas: tela cheia quando ativa */
+  .workspace-list-panel {
     width: 100% !important;
-    max-height: 45vh;
+    max-width: 100% !important;
     border-right: none !important;
-    border-bottom: 1px solid var(--border) !important;
   }
 
-  /* Chat area: ocupa o restante */
-  .workspace-container > div:last-child {
-    flex: 1;
-    min-height: 0;
+  /* Chat: tela cheia quando ativo */
+  .workspace-chat-panel {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    z-index: 10;
+  }
+
+  /* Modo lista: esconde painel de chat */
+  [data-mobile-view="list"] .workspace-chat-panel {
+    display: none !important;
+  }
+
+  /* Modo chat: esconde lista e mostra botão voltar */
+  [data-mobile-view="chat"] .workspace-list-panel {
+    display: none !important;
+  }
+  [data-mobile-view="chat"] .mobile-back-btn {
+    display: flex !important;
   }
 
   /* Topbar: compacta */

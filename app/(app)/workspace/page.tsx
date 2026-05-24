@@ -247,6 +247,7 @@ export default function WorkspacePage() {
   const [toast, setToast]         = useState('')
   const [blModal, setBlModal]     = useState<ChatContact | null>(null)
   const [showAttach, setShowAttach] = useState(false)
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const tpl = useTemplates()
 
   const endRef      = useRef<HTMLDivElement>(null)
@@ -293,7 +294,8 @@ export default function WorkspacePage() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  function openChat(c: ChatContact) { setSelected(c); setMessages([]); setLoadingMsg(true); fetchMessages(c.telefone, c.lidJid) }
+  function openChat(c: ChatContact) { setSelected(c); setMessages([]); setLoadingMsg(true); fetchMessages(c.telefone, c.lidJid); setMobileView('chat') }
+  function backToList() { setMobileView('list') }
   // ── Toggle IA ──────────────────────────────────────────────
 
   async function toggleIA(phone: string) {
@@ -407,7 +409,7 @@ export default function WorkspacePage() {
   // ── Render ─────────────────────────────────────────────────
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full" data-mobile-view={mobileView}>
       {/* Input de arquivo oculto */}
       <input
         ref={fileInputRef}
@@ -418,7 +420,7 @@ export default function WorkspacePage() {
       />
 
       {/* ── Sidebar de Chats ─────────────────────────────────── */}
-      <aside className="w-[310px] border-r flex flex-col flex-shrink-0 overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+      <aside className="workspace-list-panel w-[310px] border-r flex flex-col flex-shrink-0 overflow-hidden" style={{ borderColor: 'var(--border)' }}>
         <div className="px-3 py-2.5 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[13px] font-semibold">Conversas</span>
@@ -469,11 +471,15 @@ export default function WorkspacePage() {
       </aside>
 
       {/* ── Área de Chat ──────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="workspace-chat-panel flex-1 flex flex-col overflow-hidden">
         {selected ? (<>
           {/* Header */}
           <div className="px-4 py-2.5 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-3">
+              <button className="mobile-back-btn" onClick={backToList}
+                style={{ display: 'none', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--neon)', padding: '4px 8px 4px 0', fontSize: 20, lineHeight: 1 }}>
+                ‹
+              </button>
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
                 style={{ background: 'rgba(163,230,53,0.12)', color: 'var(--neon)', border: '1px solid rgba(163,230,53,0.25)' }}>
                 {ini(selected.nome)}
