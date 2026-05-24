@@ -255,19 +255,9 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
     display: none !important;
   }
 
-  /* Mostra bottom nav */
-  nav.show-mobile {
-    display: flex !important;
-  }
-
   /* Mostra hamburger */
   button.show-mobile {
     display: flex !important;
-  }
-
-  /* Content padding para não ficar atrás do bottom nav */
-  main {
-    padding-bottom: 60px;
   }
 }
 
@@ -300,13 +290,8 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 
 /* ── Notch / Safe areas ──────────────────────────────────────── */
 @supports (padding: env(safe-area-inset-bottom)) {
-  nav.show-mobile {
-    padding-bottom: calc(4px + env(safe-area-inset-bottom)) !important;
-    height: calc(60px + env(safe-area-inset-bottom)) !important;
-  }
-
   main {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 

@@ -252,13 +252,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
       {toast && <div className="toast-base">{toast}</div>}
 
-      <nav className="show-mobile" style={{position:'fixed',bottom:0,left:0,right:0,height:60,background:'var(--bg-sidebar)',borderTop:'1px solid rgba(255,255,255,.08)',zIndex:20,justifyContent:'space-around',alignItems:'center',padding:'0 4px',display:'none'}}>
-        {[{ic:IC.workspace,lb:'Chat',hr:'/workspace'},{ic:IC.dashboard,lb:'Analytics',hr:'/dashboard'},{ic:IC.crm,lb:'Clientes',hr:'/crm'},{ic:IC.satisfacao,lb:'Avaliações',hr:'/satisfacao'},{ic:IC.conexao,lb:'Config',hr:'/supervisor/conexao'}].map(item=>(
-          <button key={item.hr} onClick={()=>nav(item.hr)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'6px 10px',borderRadius:10,cursor:'pointer',color:pathname.startsWith(item.hr)?'var(--neon)':'#A0A0A0',background:'transparent',border:'none',flex:1,fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:10,fontWeight:500}}>
-            {item.ic}<span>{item.lb}</span>
-          </button>
-        ))}
-      </nav>
     </div>
   )
 }
