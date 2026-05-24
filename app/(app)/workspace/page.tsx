@@ -256,6 +256,15 @@ export default function WorkspacePage() {
 
   useEffect(() => { selectedRef.current = selected }, [selected])
 
+  useEffect(() => {
+    if (mobileView === 'chat') {
+      document.body.classList.add('mobile-chat-open')
+    } else {
+      document.body.classList.remove('mobile-chat-open')
+    }
+    return () => { document.body.classList.remove('mobile-chat-open') }
+  }, [mobileView])
+
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
 
  // ── Fetch chats ────────────────────────────────────────────
