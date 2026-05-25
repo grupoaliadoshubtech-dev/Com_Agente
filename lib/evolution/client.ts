@@ -141,7 +141,15 @@ export class EvolutionClient {
   }
 
   async getQRCode(): Promise<QRCodeResponse> {
-    return this.request<QRCodeResponse>('GET', `/instance/connect/${this.instanceName}`)
+    const raw = await this.request<Record<string, unknown>>('GET', `/instance/connect/${this.instanceName}`)
+    // Evolution API v2 pode retornar { base64, code } direto ou { qrcode: { base64, code } }
+    const nested = raw.qrcode as Record<string, unknown> | undefined
+    const base64 = (nested?.base64 ?? raw.base64 ?? '') as string
+    const code   = (nested?.code   ?? raw.code   ?? '') as string
+    return {
+      qrcode:   { base64, code },
+      instance: (raw.instance as QRCodeResponse['instance']) ?? { instanceName: this.instanceName, status: '' },
+    }
   }
 
   async logout(): Promise<{ status: string }> {

@@ -71,7 +71,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
       data:    {
         connected: false,
         state:     status.instance.state,
-        qrcode:    qr.qrcode.base64,  // já vem em base64 pelo Evolution
+        qrcode:    qr.qrcode.base64.replace(/^data:image\/[^;]+;base64,/, ''), // remove prefixo se vier
         code:      qr.qrcode.code,
       },
     })
