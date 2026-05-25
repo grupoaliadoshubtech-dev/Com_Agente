@@ -21,11 +21,11 @@ export async function GET(req: Request) {
     const tenant = await tenantsRepo.findById(session.user.tenantId)
     if (!tenant) return NextResponse.json({ url: null }, { status: 404 })
 
-    const client = new EvolutionClient(
-      process.env.EVOLUTION_API_URL ?? '',
-      process.env.EVOLUTION_API_KEY ?? '',
-      tenant.evolutionInstance
-    )
+    const client = new EvolutionClient({
+      baseUrl:      process.env.EVOLUTION_API_URL ?? '',
+      apiKey:       process.env.EVOLUTION_API_KEY ?? '',
+      instanceName: tenant.evolutionInstance,
+    })
 
     const info = await client.getContactInfo(number)
     return NextResponse.json({ url: info.profilePictureUrl ?? null })
