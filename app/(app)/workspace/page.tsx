@@ -245,8 +245,9 @@ export default function WorkspacePage() {
   const [loadingMsg, setLoadingMsg] = useState(false)
   const [sending, setSending]     = useState(false)
   const [toast, setToast]         = useState('')
-  const [blModal, setBlModal]     = useState<ChatContact | null>(null)
-  const [iaModal, setIaModal]     = useState<ChatContact | null>(null)
+  const [blModal, setBlModal]         = useState<ChatContact | null>(null)
+  const [iaModal, setIaModal]         = useState<ChatContact | null>(null)
+  const [profileModal, setProfileModal] = useState<ChatContact | null>(null)
   const [showAttach, setShowAttach] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const tpl = useTemplates()
@@ -491,7 +492,8 @@ export default function WorkspacePage() {
                 ‹
               </button>
               <div className="chat-header-avatar w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
-                style={{ background: 'rgba(163,230,53,0.12)', color: 'var(--neon)', border: '1px solid rgba(163,230,53,0.25)' }}>
+                onClick={() => setProfileModal(selected)}
+                style={{ background: 'rgba(163,230,53,0.12)', color: 'var(--neon)', border: '1px solid rgba(163,230,53,0.25)', cursor: 'pointer' }}>
                 {ini(selected.nome)}
               </div>
               <div style={{ minWidth: 0 }}>
@@ -629,6 +631,70 @@ export default function WorkspacePage() {
           </div>
         )}
       </div>
+
+      {/* ── Modal Perfil do Cliente ───────────────────────────── */}
+      {profileModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setProfileModal(null) }}>
+          <div className="rounded-2xl w-full max-w-[320px] overflow-hidden"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+
+            {/* Topo com avatar grande */}
+            <div style={{ background: 'rgba(163,230,53,0.06)', padding: '28px 24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(163,230,53,0.15)', border: '2px solid rgba(163,230,53,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: 'var(--neon)' }}>
+                {ini(profileModal.nome)}
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)', marginBottom: 4 }}>
+                  {profileModal.nome || fmtPhone(profileModal.telefone)}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: iaOn(profileModal) ? 'var(--neon)' : '#EF4444', display: 'inline-block' }} />
+                  <span style={{ fontSize: 12, color: iaOn(profileModal) ? 'var(--neon)' : '#EF4444', fontWeight: 600 }}>
+                    {iaOn(profileModal) ? 'IA Ativa' : 'Humano'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Informações */}
+            <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Telefone</p>
+                <p style={{ fontSize: 13, color: 'var(--txt)', fontFamily: 'monospace' }}>{fmtPhone(profileModal.telefone)}</p>
+              </div>
+              {profileModal.preview && (
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Última mensagem</p>
+                  <p style={{ fontSize: 13, color: 'var(--txt)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profileModal.preview}</p>
+                </div>
+              )}
+              {profileModal.timestamp && (
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Último contato</p>
+                  <p style={{ fontSize: 13, color: 'var(--txt)' }}>{timeAgo(profileModal.timestamp)}</p>
+                </div>
+              )}
+              {profileModal.unreadCount > 0 && (
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Não lidas</p>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'var(--neon)', color: '#0a0a0a' }}>{profileModal.unreadCount}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Rodapé */}
+            <div style={{ padding: '12px 24px 20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setProfileModal(null)}
+                className="px-4 py-2 rounded-lg text-[13px] border"
+                style={{ borderColor: 'var(--border)', color: 'var(--txt-2)', background: 'transparent', cursor: 'pointer' }}>
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal IA Toggle ───────────────────────────────────── */}
       {iaModal && (
