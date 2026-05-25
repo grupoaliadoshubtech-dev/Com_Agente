@@ -3,11 +3,22 @@
 // Tela de Conexão WhatsApp — exibe QR Code e status da instância.
 // Apenas Supervisor e Master Admin têm acesso.
 
+import { useState } from 'react'
 import { useQRCode } from '@/lib/hooks/use-evolution'
-import Image from 'next/image'
 
 export default function ConexaoPage() {
   const qr = useQRCode(4000)  // polling a cada 4s
+  const [connecting, setConnecting] = useState(false)
+
+  async function handleConnect() {
+    setConnecting(true)
+    try {
+      await fetch('/api/evolution/qrcode/connect', { method: 'POST' })
+      await qr.refresh()
+    } finally {
+      setConnecting(false)
+    }
+  }
 
   return (
     <div className="p-6 max-w-[520px] mx-auto">
@@ -121,15 +132,29 @@ export default function ConexaoPage() {
           </div>
 
         ) : (
-          <div className="flex flex-col items-center gap-3 py-12 px-6 text-center">
+          <div className="flex flex-col items-center gap-4 py-12 px-6 text-center">
             <div className="text-4xl">📱</div>
-            <p className="text-[14px] font-medium">Instância não iniciada</p>
-            <p className="text-[12px] text-muted">
-              A instância WhatsApp ainda não foi iniciada. Contate o administrador.
-            </p>
+            <div>
+              <p className="text-[14px] font-medium mb-1">WhatsApp desconectado</p>
+              <p className="text-[12px] text-muted">
+                Clique no botão abaixo para gerar o QR Code e conectar.
+              </p>
+            </div>
+            <button
+              onClick={handleConnect}
+              disabled={connecting}
+              className="mt-1 px-5 py-2.5 rounded-lg text-[13px] font-semibold border border-neon text-neon bg-neon-dim transition-all disabled:opacity-50"
+              style={{ minWidth: 180 }}
+            >
+              {connecting ? (
+                <span className="flex items-center gap-2 justify-center">
+                  <span className="spinner w-3 h-3" /> Gerando QR Code...
+                </span>
+              ) : 'Gerar QR Code'}
+            </button>
             <button
               onClick={qr.refresh}
-              className="mt-2 px-4 py-2 rounded-lg text-[13px] border border-neon text-neon bg-neon-dim transition-all"
+              className="text-[12px] text-muted hover:text-neon transition-colors"
             >
               Verificar status
             </button>
