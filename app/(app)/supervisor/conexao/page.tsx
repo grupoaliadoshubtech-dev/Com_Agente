@@ -124,10 +124,16 @@ export default function ConexaoPage() {
               Aguardando conexão... (atualiza automaticamente)
             </div>
             <button
-              onClick={qr.refresh}
-              className="text-[12px] text-neon hover:underline"
+              onClick={handleConnect}
+              disabled={connecting}
+              className="px-5 py-2.5 rounded-lg text-[13px] font-semibold border border-neon text-neon bg-neon-dim transition-all disabled:opacity-50"
+              style={{ minWidth: 180 }}
             >
-              Gerar novo QR Code
+              {connecting ? (
+                <span className="flex items-center gap-2 justify-content-center">
+                  <span className="spinner w-3 h-3" /> Gerando QR Code...
+                </span>
+              ) : '🔄 Gerar novo QR Code'}
             </button>
           </div>
 
