@@ -87,7 +87,7 @@ export default function PlanosPage() {
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-3)', marginBottom: 10 }}>Recursos inclusos</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {plan.features.map((f, i) => (
+                  {(plan?.features ?? []).map((f, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--txt-2)' }}>
                       <span style={{ color: 'var(--neon)', fontSize: 14 }}>✓</span> {f}
                     </div>
