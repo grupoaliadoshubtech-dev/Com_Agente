@@ -5,10 +5,12 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { EvolutionClient } from '@/lib/evolution/client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
+import { UsersRepository } from '@/lib/repositories/users.repository'
 
 export const dynamic = 'force-dynamic'
 
 const tenantsRepo = new TenantsRepository()
+const usersRepo   = new UsersRepository()
 
 export async function POST() {
   const session = await getServerSession(authOptions)
@@ -17,10 +19,16 @@ export async function POST() {
   }
 
   try {
-    const tenant = await tenantsRepo.findById(session.user.tenantId).catch(() => null)
-    const instanceName = tenant?.evolutionInstance || process.env.EVOLUTION_INSTANCE || session.user.tenantId || ''
+    let tenantId = session.user.tenantId
+    if (!tenantId && session.user.email) {
+      const user = await usersRepo.findByEmail(session.user.email).catch(() => null)
+      tenantId = user?.tenantId ?? ''
+    }
+
+    const tenant = await tenantsRepo.findById(tenantId).catch(() => null)
+    const instanceName = tenant?.evolutionInstance || process.env.EVOLUTION_INSTANCE || tenantId || ''
     if (!instanceName) {
-      return NextResponse.json({ success: false, error: `Instância não configurada. tenantId=${session.user.tenantId}` }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Instância não configurada. Faça logout e login novamente.' }, { status: 400 })
     }
 
     const client = EvolutionClient.fromEnv(instanceName)
