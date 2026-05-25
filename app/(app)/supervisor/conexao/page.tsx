@@ -2,13 +2,17 @@
 // app/(app)/supervisor/conexao/page.tsx
 
 import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { useQRCode } from '@/lib/hooks/use-evolution'
 
 export default function ConexaoPage() {
   const qr = useQRCode(4000)
+  const { data: session } = useSession()
   const [connecting,    setConnecting]    = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const [confirmDisc,   setConfirmDisc]   = useState(false)
+
+  const instanceName = process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE || session?.user?.tenantId || '—'
 
   async function handleConnect() {
     setConnecting(true)
@@ -125,6 +129,10 @@ export default function ConexaoPage() {
               Aguardando conexão... (atualiza automaticamente)
             </div>
             <BtnConnect label="🔄 Gerar novo QR Code" />
+            <button onClick={() => setConfirmDisc(true)}
+              className="text-[12px] text-red-400 hover:underline mt-1">
+              Desconectar instância
+            </button>
           </div>
 
         ) : (
@@ -147,7 +155,7 @@ export default function ConexaoPage() {
         <div className="bg-card-aad border border-aad rounded-xl p-4">
           <p className="text-[11px] text-muted mb-1">Instância</p>
           <p className="text-[13px] font-semibold font-display truncate">
-            {process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE ?? '—'}
+            {instanceName}
           </p>
         </div>
         <div className="bg-card-aad border border-aad rounded-xl p-4">
