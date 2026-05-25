@@ -510,11 +510,14 @@ export default function WorkspacePage() {
             <div className="flex items-center gap-2 flex-shrink-0">
               <button onClick={() => setIaModal(selected)} disabled={handoff.loading}
                 className="chat-header-ia-btn px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all flex items-center gap-1"
-                style={{ borderColor: iaOn(selected) ? '#EF4444' : 'var(--neon)', color: iaOn(selected) ? '#EF4444' : 'var(--neon)', background: iaOn(selected) ? 'rgba(239,68,68,0.08)' : 'rgba(163,230,53,0.08)' }}>
+                style={{ borderColor: iaOn(selected) ? 'var(--neon)' : '#EF4444', color: iaOn(selected) ? 'var(--neon)' : '#EF4444', background: iaOn(selected) ? 'rgba(163,230,53,0.08)' : 'rgba(239,68,68,0.08)' }}>
                 <span>{iaOn(selected) ? '⏸' : '▶'}</span>
-                <span className="chat-header-ia-txt">{iaOn(selected) ? 'Pausar IA' : 'Retomar IA'}</span>
+                <span className="chat-header-ia-txt">{iaOn(selected) ? 'IA Ativa' : 'Humano'}</span>
               </button>
-              <button onClick={() => setBlModal(selected)} className="px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-red-500 text-muted hover:text-red-400 transition-all" title="Blacklist">🚫</button>
+              <button onClick={() => setBlModal(selected)}
+                className="px-2 py-1.5 rounded-lg text-[12px] font-medium border transition-all"
+                style={{ borderColor: 'rgba(239,68,68,0.4)', color: '#EF4444', background: 'rgba(239,68,68,0.08)' }}
+                title="Blacklist">🚫</button>
               <button onClick={() => fetchMessages(selected.telefone, selected.lidJid)} className="chat-header-refresh px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
             </div>
           </div>
