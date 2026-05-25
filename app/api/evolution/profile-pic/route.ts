@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     const client = new EvolutionClient({
       baseUrl:      process.env.EVOLUTION_API_URL ?? '',
       apiKey:       process.env.EVOLUTION_API_KEY ?? '',
-      instanceName: tenant.evolutionInstance,
+      instanceName: tenant.evolutionInstance ?? '',
     })
 
     const info = await client.getContactInfo(number)
