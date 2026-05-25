@@ -12,19 +12,19 @@ const tenantsRepo = new TenantsRepository()
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) return NextResponse.json({ url: null }, { status: 401 })
+    if (!session?.user?.tenantId) return NextResponse.json({ url: null }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
     const number = searchParams.get('number')
     if (!number) return NextResponse.json({ url: null }, { status: 400 })
 
-    const tenant = await tenantsRepo.findByEmail(session.user.email)
+    const tenant = await tenantsRepo.findById(session.user.tenantId)
     if (!tenant) return NextResponse.json({ url: null }, { status: 404 })
 
     const client = new EvolutionClient(
-      tenant.evolutionApiUrl ?? process.env.EVOLUTION_API_URL ?? '',
-      tenant.evolutionApiKey ?? process.env.EVOLUTION_API_KEY ?? '',
-      tenant.evolutionInstance ?? process.env.EVOLUTION_INSTANCE ?? ''
+      process.env.EVOLUTION_API_URL ?? '',
+      process.env.EVOLUTION_API_KEY ?? '',
+      tenant.evolutionInstance
     )
 
     const info = await client.getContactInfo(number)
