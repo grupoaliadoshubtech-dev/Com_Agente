@@ -246,6 +246,7 @@ export default function WorkspacePage() {
   const [sending, setSending]     = useState(false)
   const [toast, setToast]         = useState('')
   const [blModal, setBlModal]     = useState<ChatContact | null>(null)
+  const [iaModal, setIaModal]     = useState<ChatContact | null>(null)
   const [showAttach, setShowAttach] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const tpl = useTemplates()
@@ -499,13 +500,13 @@ export default function WorkspacePage() {
                   <span className="chat-header-phone text-[10px] text-muted font-mono">{fmtPhone(selected.telefone)}</span>
                   <div className="flex items-center gap-1 text-[11px]" style={{ color: iaOn(selected) ? 'var(--neon)' : '#EF4444' }}>
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: iaOn(selected) ? 'var(--neon)' : '#EF4444' }} />
-                    {iaOn(selected) ? 'IA Ativa' : 'Atendimento Humano'}
+                    {iaOn(selected) ? 'IA Ativa' : 'Humano'}
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => toggleIA(selected.telefone)} disabled={handoff.loading}
+              <button onClick={() => setIaModal(selected)} disabled={handoff.loading}
                 className="chat-header-ia-btn px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all flex items-center gap-1"
                 style={{ borderColor: iaOn(selected) ? '#EF4444' : 'var(--neon)', color: iaOn(selected) ? '#EF4444' : 'var(--neon)', background: iaOn(selected) ? 'rgba(239,68,68,0.08)' : 'rgba(163,230,53,0.08)' }}>
                 <span>{iaOn(selected) ? '⏸' : '▶'}</span>
@@ -623,11 +624,36 @@ export default function WorkspacePage() {
             <p className="text-[12px] text-center max-w-[280px]">Selecione uma conversa para começar. As conversas atualizam automaticamente.</p>
             <div className="flex items-center gap-1.5 mt-2">
               <span className="w-2 h-2 rounded-full" style={{ background: 'var(--neon)' }} /><span className="text-[11px]">IA Ativa</span>
-              <span className="w-2 h-2 rounded-full ml-3" style={{ background: '#EF4444' }} /><span className="text-[11px]">Atendimento Humano</span>
+              <span className="w-2 h-2 rounded-full ml-3" style={{ background: '#EF4444' }} /><span className="text-[11px]">Humano</span>
             </div>
           </div>
         )}
       </div>
+
+      {/* ── Modal IA Toggle ───────────────────────────────────── */}
+      {iaModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }} onClick={e => { if (e.target === e.currentTarget) setIaModal(null) }}>
+          <div className="rounded-xl p-6 max-w-[380px] w-full" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <h3 className="text-[16px] font-semibold mb-2" style={{ color: 'var(--txt)' }}>
+              {iaOn(iaModal) ? '⏸ Pausar IA' : '▶ Retomar IA'}
+            </h3>
+            <p className="text-[13px] mb-5" style={{ color: 'var(--text-secondary)' }}>
+              {iaOn(iaModal)
+                ? <>Pausar a IA para <strong style={{ color: 'var(--txt)' }}>{iaModal.nome || fmtPhone(iaModal.telefone)}</strong>? O atendimento passará para humano.</>
+                : <>Retomar a IA para <strong style={{ color: 'var(--txt)' }}>{iaModal.nome || fmtPhone(iaModal.telefone)}</strong>? A IA voltará a responder automaticamente.</>
+              }
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setIaModal(null)} className="px-4 py-2 rounded-lg text-[13px] border" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>Cancelar</button>
+              <button onClick={() => { toggleIA(iaModal.telefone); setIaModal(null) }}
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold"
+                style={{ background: iaOn(iaModal) ? '#EF4444' : 'var(--neon)', color: iaOn(iaModal) ? '#fff' : '#0a0a0a' }}>
+                {iaOn(iaModal) ? 'Pausar' : 'Retomar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal Blacklist ────────────────────────────────────── */}
       {blModal && (
