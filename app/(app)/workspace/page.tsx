@@ -248,6 +248,7 @@ export default function WorkspacePage() {
   const [blModal, setBlModal]         = useState<ChatContact | null>(null)
   const [iaModal, setIaModal]         = useState<ChatContact | null>(null)
   const [profileModal, setProfileModal] = useState<ChatContact | null>(null)
+  const [profilePic, setProfilePic]     = useState<string | null>(null)
   const [showAttach, setShowAttach] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const tpl = useTemplates()
@@ -334,6 +335,18 @@ export default function WorkspacePage() {
 
   function openChat(c: ChatContact) { setSelected(c); setMessages([]); setLoadingMsg(true); fetchMessages(c.telefone, c.lidJid); setMobileView('chat') }
   function backToList() { setMobileView('list') }
+
+  async function openProfile(c: ChatContact) {
+    setProfileModal(c)
+    setProfilePic(c.profilePicUrl ?? null)
+    if (!c.profilePicUrl) {
+      try {
+        const r = await fetch(`/api/evolution/profile-pic?number=${encodeURIComponent(c.telefone)}`)
+        const d = await r.json()
+        if (d.url) setProfilePic(d.url)
+      } catch {}
+    }
+  }
   // ── Toggle IA ──────────────────────────────────────────────
 
   async function toggleIA(phone: string) {
@@ -519,7 +532,7 @@ export default function WorkspacePage() {
                 ‹
               </button>
               <div className="chat-header-avatar w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
-                onClick={() => setProfileModal(selected)}
+                onClick={() => openProfile(selected)}
                 style={{ background: 'rgba(163,230,53,0.12)', color: 'var(--neon)', border: '1px solid rgba(163,230,53,0.25)', cursor: 'pointer' }}>
                 {ini(selected.nome)}
               </div>
@@ -670,9 +683,15 @@ export default function WorkspacePage() {
           <div className="rounded-2xl w-full max-w-[320px] overflow-hidden"
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
 
-            {/* Topo — avatar ocupa todo o quadrado */}
-            <div style={{ background: 'rgba(163,230,53,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180, fontSize: 72, fontWeight: 700, color: 'var(--neon)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-              {ini(profileModal.nome)}
+            {/* Topo — foto real ou iniciais ocupando todo o quadrado */}
+            <div style={{ position: 'relative', height: 180, borderBottom: '1px solid var(--border)', flexShrink: 0, overflow: 'hidden', background: 'rgba(163,230,53,0.15)' }}>
+              {profilePic
+                ? <img src={profilePic} alt={profileModal.nome} onError={() => setProfilePic(null)}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72, fontWeight: 700, color: 'var(--neon)' }}>
+                    {ini(profileModal.nome)}
+                  </div>
+              }
             </div>
 
             {/* Informações */}
