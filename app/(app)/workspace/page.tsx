@@ -255,6 +255,7 @@ export default function WorkspacePage() {
   const endRef      = useRef<HTMLDivElement>(null)
   const selectedRef = useRef<ChatContact | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const lastBackMs  = useRef(0)
 
   useEffect(() => { selectedRef.current = selected }, [selected])
 
@@ -265,6 +266,32 @@ export default function WorkspacePage() {
       document.body.classList.remove('mobile-chat-open')
     }
     return () => { document.body.classList.remove('mobile-chat-open') }
+  }, [mobileView])
+
+  // Botão nativo voltar (Android/PWA): 1 clique → lista, 2 cliques rápidos → comportamento padrão
+  useEffect(() => {
+    if (mobileView !== 'chat') return
+
+    window.history.pushState({ mobileChat: true }, '')
+
+    const onPopState = (e: PopStateEvent) => {
+      const now = Date.now()
+      const gap = now - lastBackMs.current
+      lastBackMs.current = now
+
+      if (gap > 0 && gap < 400) {
+        // Duplo clique rápido — deixa o browser agir normalmente
+        return
+      }
+
+      // Clique único — intercepta e volta para a lista
+      e.preventDefault?.()
+      window.history.pushState({ mobileChat: true }, '')
+      setMobileView('list')
+    }
+
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
   }, [mobileView])
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
