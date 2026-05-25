@@ -486,32 +486,33 @@ export default function WorkspacePage() {
           <div className="px-4 py-2.5 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-3">
               <button className="mobile-back-btn" onClick={backToList}
-                style={{ display: 'none', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--neon)', padding: '4px 8px 4px 0', fontSize: 20, lineHeight: 1 }}>
+                style={{ display: 'none', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--neon)', padding: '2px 4px 2px 0', fontSize: 22, lineHeight: 1 }}>
                 ‹
               </button>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
+              <div className="chat-header-avatar w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
                 style={{ background: 'rgba(163,230,53,0.12)', color: 'var(--neon)', border: '1px solid rgba(163,230,53,0.25)' }}>
                 {ini(selected.nome)}
               </div>
-              <div>
-                <p className="text-[14px] font-semibold" style={{ color: 'var(--txt)' }}>{selected.nome}</p>
+              <div style={{ minWidth: 0 }}>
+                <p className="text-[14px] font-semibold truncate" style={{ color: 'var(--txt)' }}>{selected.nome}</p>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1 text-[11px]" style={{ color: iaOn(selected) ? 'var(--neon)' : '#EF4444' }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: iaOn(selected) ? 'var(--neon)' : '#EF4444' }} />
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: iaOn(selected) ? 'var(--neon)' : '#EF4444' }} />
                     {iaOn(selected) ? 'IA Ativa' : 'Atendimento Humano'}
                   </div>
-                  <span className="text-[10px] text-muted font-mono">{fmtPhone(selected.telefone)}</span>
+                  <span className="chat-header-phone text-[10px] text-muted font-mono">{fmtPhone(selected.telefone)}</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button onClick={() => toggleIA(selected.telefone)} disabled={handoff.loading}
-                className="px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all"
+                className="chat-header-ia-btn px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all flex items-center gap-1"
                 style={{ borderColor: iaOn(selected) ? '#EF4444' : 'var(--neon)', color: iaOn(selected) ? '#EF4444' : 'var(--neon)', background: iaOn(selected) ? 'rgba(239,68,68,0.08)' : 'rgba(163,230,53,0.08)' }}>
-                {iaOn(selected) ? '⏸ Pausar IA' : '▶ Retomar IA'}
+                <span>{iaOn(selected) ? '⏸' : '▶'}</span>
+                <span className="chat-header-ia-txt">{iaOn(selected) ? 'Pausar IA' : 'Retomar IA'}</span>
               </button>
               <button onClick={() => setBlModal(selected)} className="px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-red-500 text-muted hover:text-red-400 transition-all" title="Blacklist">🚫</button>
-              <button onClick={() => fetchMessages(selected.telefone, selected.lidJid)} className="px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
+              <button onClick={() => fetchMessages(selected.telefone, selected.lidJid)} className="chat-header-refresh px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
             </div>
           </div>
 

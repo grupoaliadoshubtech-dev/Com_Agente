@@ -281,6 +281,22 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   body.mobile-chat-open aside.show-mobile {
     display: none !important;
   }
+
+  /* Header do chat — reorganização mobile */
+  body.mobile-chat-open .chat-header-phone   { display: none !important; }
+  body.mobile-chat-open .chat-header-refresh { display: none !important; }
+  body.mobile-chat-open .chat-header-ia-txt  { display: none !important; }
+  body.mobile-chat-open .chat-header-ia-btn  {
+    padding: 6px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    justify-content: center !important;
+  }
+  body.mobile-chat-open .chat-header-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 12px !important;
+  }
 }
 
 /* ── Tablet: Ajustes intermediários ──────────────────────────── */
