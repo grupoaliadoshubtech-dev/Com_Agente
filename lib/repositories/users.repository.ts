@@ -120,6 +120,24 @@ export class UsersRepository {
     )
   }
 
+  /** Redefine o passwordHash de um usuário pelo e-mail. */
+  async resetPassword(email: string, newHash: string): Promise<boolean> {
+    const rows = await readRange(this.spreadsheetId, RANGE)
+    if (rows.length < 2) return false
+
+    const headers  = rows[0]
+    const emailCol = headers.indexOf('email')
+    const hashCol  = headers.indexOf('passwordHash')
+
+    const rowIndex = rows.findIndex((r, i) => i > 0 && r[emailCol]?.toLowerCase().trim() === email.toLowerCase().trim())
+    if (rowIndex === -1) return false
+
+    const sheetRow = rowIndex + 1
+    const colLetter = String.fromCharCode(65 + hashCol) // D
+    await updateRange(this.spreadsheetId, `${SHEET}!${colLetter}${sheetRow}`, [[newHash]])
+    return true
+  }
+
   /** Desativa usuário (soft delete — coluna M = FALSE). */
   async deactivate(userId: string): Promise<void> {
     const rows = await readRange(this.spreadsheetId, RANGE)

@@ -36,6 +36,9 @@ export default function EmpresasPage(){
   const [search, setSearch] =useState('')
   const [showNew,setShowNew]=useState(false)
   const [statusOf,setStatusOf]=useState<Tenant|null>(null)
+  const [resetModal,setResetModal]=useState(false)
+  const [resetEmail,setResetEmail]=useState('')
+  const [resetting,setResetting]=useState(false)
   const [toast,  setToast]  =useState('')
   const [form,   setForm]   =useState({name:'',email:'',phone:'',planId:'',supervisorName:'',supervisorEmail:'',supervisorPassword:'',spreadsheetId:'',evolutionInstance:''})
   const [saving, setSaving] =useState(false)
@@ -61,6 +64,16 @@ export default function EmpresasPage(){
     else showToast(`Erro: ${d.error}`)
   }
 
+  async function doReset(){
+    if(!resetEmail.trim())return
+    setResetting(true)
+    const r=await fetch('/api/admin/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:resetEmail.trim()})})
+    const d=await r.json()
+    setResetting(false)
+    if(d.success){setResetModal(false);setResetEmail('');showToast(`✓ Senha redefinida para ${resetEmail}`)}
+    else showToast(`Erro: ${d.error}`)
+  }
+
   async function saveStatus(){
     if(!statusOf)return
     await fetch(`/api/tenants/${statusOf.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:newStatus})})
@@ -82,6 +95,7 @@ export default function EmpresasPage(){
           <div style={{fontSize:11,color:'var(--txt-2)',marginTop:2}}>{tenants.length} empresas · {tenants.filter(t=>t.status==='active').length} ativas</div>
         </div>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar empresa..." style={{padding:'8px 12px',borderRadius:8,fontSize:13,width:200}}/>
+        <button onClick={()=>setResetModal(true)} style={{padding:'9px 14px',borderRadius:8,fontSize:13,cursor:'pointer',background:'var(--danger-dim)',border:'1px solid rgba(239,68,68,.3)',color:'#FCA5A5',fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:600}}>🔑 Reset Senha</button>
         <button onClick={()=>setShowNew(true)} className="btn-neon" style={{padding:'9px 16px',fontSize:13}}>+ Provisionar</button>
         <button onClick={load} style={{padding:'8px 12px',borderRadius:8,fontSize:12,cursor:'pointer',background:'var(--bg-input)',border:'1px solid var(--border)',color:'var(--txt-2)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>↻</button>
       </div>
@@ -189,6 +203,22 @@ export default function EmpresasPage(){
           <div style={{display:'flex',gap:10}}>
             <button onClick={()=>setStatusOf(null)} className="btn-outline" style={{flex:1,padding:'10px',fontSize:13}}>Cancelar</button>
             <button onClick={saveStatus} className="btn-neon" style={{flex:1,padding:'10px',fontSize:13}}>Salvar</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal reset senha */}
+      {resetModal&&(
+        <Modal title="🔑 Redefinir Senha" onClose={()=>{setResetModal(false);setResetEmail('')}}>
+          <p style={{fontSize:13,color:'var(--txt-2)',marginBottom:16,lineHeight:1.6}}>
+            A senha será redefinida para <code style={{background:'var(--bg-input)',padding:'2px 7px',borderRadius:5,fontSize:13,color:'var(--neon)'}}>098765</code>. O usuário deverá alterá-la no primeiro acesso.
+          </p>
+          <Field label="E-mail do usuário" value={resetEmail} onChange={setResetEmail} type="email" placeholder="usuario@empresa.com"/>
+          <div style={{display:'flex',gap:10,marginTop:4}}>
+            <button onClick={()=>{setResetModal(false);setResetEmail('')}} className="btn-outline" style={{flex:1,padding:'10px',fontSize:13}}>Cancelar</button>
+            <button onClick={doReset} disabled={resetting||!resetEmail.trim()} className="btn-danger" style={{flex:1,padding:'10px',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+              {resetting?<><span className="spinner" style={{width:14,height:14}}/>Redefinindo...</>:'Redefinir Senha'}
+            </button>
           </div>
         </Modal>
       )}
