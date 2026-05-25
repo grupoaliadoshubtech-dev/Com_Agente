@@ -495,12 +495,12 @@ export default function WorkspacePage() {
               </div>
               <div style={{ minWidth: 0 }}>
                 <p className="text-[14px] font-semibold truncate" style={{ color: 'var(--txt)' }}>{selected.nome}</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="chat-header-phone text-[10px] text-muted font-mono">{fmtPhone(selected.telefone)}</span>
                   <div className="flex items-center gap-1 text-[11px]" style={{ color: iaOn(selected) ? 'var(--neon)' : '#EF4444' }}>
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: iaOn(selected) ? 'var(--neon)' : '#EF4444' }} />
                     {iaOn(selected) ? 'IA Ativa' : 'Atendimento Humano'}
                   </div>
-                  <span className="chat-header-phone text-[10px] text-muted font-mono">{fmtPhone(selected.telefone)}</span>
                 </div>
               </div>
             </div>

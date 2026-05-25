@@ -283,7 +283,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   }
 
   /* Header do chat — reorganização mobile */
-  body.mobile-chat-open .chat-header-phone   { display: none !important; }
+  body.mobile-chat-open .chat-header-phone   { display: inline !important; }
   body.mobile-chat-open .chat-header-refresh { display: none !important; }
   body.mobile-chat-open .chat-header-ia-txt  { display: none !important; }
   body.mobile-chat-open .chat-header-ia-btn  {
