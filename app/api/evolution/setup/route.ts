@@ -17,8 +17,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions }      from '@/lib/auth'
 import { EvolutionClient, normalizeNumber } from '@/lib/evolution/client'
 import { invalidateTenantCache }            from '@/lib/evolution/tenant-resolver'
+import { UsersRepository } from '@/lib/repositories/users.repository'
 import { z } from 'zod'
 import type { ApiResponse } from '@/types'
+
+const usersRepo = new UsersRepository()
 
 // ── POST /api/evolution/setup ─────────────────────────────────
 
@@ -77,6 +80,35 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
       success: false,
       error:   String(err),
     }, { status: 500 })
+  }
+}
+
+// ── DELETE /api/evolution/setup — desconecta instância (logout) ──
+
+export async function DELETE(): Promise<NextResponse<ApiResponse>> {
+  const session = await getServerSession(authOptions)
+  if (!session?.user || !['supervisor', 'master'].includes(session.user.role)) {
+    return NextResponse.json({ success: false, error: 'Acesso negado' }, { status: 403 })
+  }
+
+  try {
+    let tenantId = session.user.tenantId
+    if (!tenantId && session.user.email) {
+      const user = await usersRepo.findByEmail(session.user.email).catch(() => null)
+      tenantId = user?.tenantId ?? ''
+    }
+
+    const instanceName = process.env.EVOLUTION_INSTANCE || tenantId
+    if (!instanceName) {
+      return NextResponse.json({ success: false, error: 'Instância não identificada' }, { status: 400 })
+    }
+
+    const client = EvolutionClient.fromEnv(instanceName)
+    await client.logout()
+    return NextResponse.json({ success: true, message: 'WhatsApp desconectado' })
+  } catch (err) {
+    console.error('[DELETE /api/evolution/setup]', err)
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }
 
