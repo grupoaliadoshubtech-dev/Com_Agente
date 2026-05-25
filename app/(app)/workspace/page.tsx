@@ -487,7 +487,7 @@ export default function WorkspacePage() {
           <div className="px-4 py-2.5 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-3">
               <button className="mobile-back-btn" onClick={backToList}
-                style={{ display: 'none', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--neon)', padding: '2px 4px 2px 0', fontSize: 22, lineHeight: 1 }}>
+                style={{ display: 'none', background: 'rgba(163,230,53,0.12)', border: '1px solid rgba(163,230,53,0.3)', cursor: 'pointer', color: 'var(--neon)', padding: '0', width: 34, height: 34, borderRadius: '50%', alignItems: 'center', justifyContent: 'center', fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
                 ‹
               </button>
               <div className="chat-header-avatar w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
