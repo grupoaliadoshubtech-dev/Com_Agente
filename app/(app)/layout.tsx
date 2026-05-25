@@ -111,100 +111,104 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     return !!(user as Record<string, unknown>)?.[toggle]
   }
 
-  function NavBtn({ label, href, icon, badge, toggle }: typeof MAIN_NAV[0]) {
-    if (!isVisible(toggle)) return null
-    const active = pathname.startsWith(href)
-    const Icon   = (IC as Record<string, React.ReactNode>)[icon]
-    return (
-      <button onClick={()=>nav(href)} title={col ? label : undefined} style={{
-        display:'flex', alignItems:'center', gap:10, width:'100%',
-        padding:'9px 10px', borderRadius:10, border:'1px solid transparent',
-        cursor:'pointer', marginBottom:2, textAlign:'left',
-        background: active ? 'var(--nav-active-bg)' : 'transparent',
-        color:       active ? 'var(--nav-active-txt)' : '#A0A0A0',
-        borderColor: active ? 'var(--nav-active-border)' : 'transparent',
-        fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13, fontWeight:500,
-        position:'relative', whiteSpace:'nowrap',
-      }}>
-        {active && <span style={{position:'absolute',left:-8,top:'50%',transform:'translateY(-50%)',width:3,height:20,background:'var(--neon)',borderRadius:'0 3px 3px 0'}}/>}
-        <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:active?'rgba(163,230,53,.12)':'transparent'}}>{Icon}</span>
-        <span style={{opacity:col?0:1,width:col?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s',flex:1}}>{label}</span>
-        {badge && !col && <span className="badge-neon">{badge}</span>}
-      </button>
-    )
-  }
-
-  function SecLabel({ label }: { label: string }) {
-    return <div style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#5A5D63',padding:'12px 10px 5px',opacity:col?0:1,height:col?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,height .2s'}}>{label}</div>
-  }
-
-  const sidebarContent = (
-    <>
-      <button onClick={()=>setCol(c=>!c)} style={{position:'absolute',right:-12,top:22,width:24,height:24,borderRadius:'50%',background:'var(--bg-card)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:10,color:'var(--txt-2)',boxShadow:'var(--shadow-sm)',transform:col?'rotate(180deg)':'rotate(0deg)',transition:'transform .22s'}}>
-        {IC.chevron}
-      </button>
-
-      <div style={{height:58,display:'flex',alignItems:'center',padding:'0 16px',gap:10,borderBottom:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
-        <div style={{width:32,height:32,borderRadius:9,background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
-          <svg width="32" height="32" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:'block'}}>
-            <defs>
-              <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@900&display=swap');`}</style>
-            </defs>
-            <g transform="translate(33, 0)">
-              <text x="0" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">C</text>
-              <path d="M 182,346 L 214,346 L 254,167 L 222,167 Z" fill="#FFFFFF"/>
-              <path d="M 230,346 L 262,346 L 302,167 L 270,167 Z" fill="#FFFFFF"/>
-              <text x="277" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">A</text>
-            </g>
-          </svg>
-        </div>
-        <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'#fff',opacity:col?0:1,width:col?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,width .2s'}}>
-          Com<span style={{color:'var(--neon)'}}>Agente</span>
-        </div>
-      </div>
-
-      <div style={{flex:1,padding:'10px 8px',overflowY:'auto',overflowX:'hidden'}}>
-        <SecLabel label="Principal" />
-        {MAIN_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
-
-        {(role==='supervisor'||role==='master') && <>
-          <SecLabel label="Configurações" />
-          {CONFIG_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
-        </>}
-
-        {role==='master' && <>
-          <SecLabel label="Master Admin" />
-          {MASTER_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
-        </>}
-
-        <button onClick={()=>signOut({callbackUrl:'/login'})} title={col?'Sair':undefined} style={{display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 10px',borderRadius:10,border:'1px solid transparent',cursor:'pointer',marginTop:8,background:'transparent',color:'#A0A0A0',fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:13,fontWeight:500,whiteSpace:'nowrap'}}>
-          <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>{IC.logout}</span>
-          <span style={{opacity:col?0:1,transition:'opacity .2s'}}>Sair</span>
+  function SidebarContent({ collapsed, showToggle }: { collapsed: boolean; showToggle?: boolean }) {
+    function NavBtn({ label, href, icon, badge, toggle }: typeof MAIN_NAV[0]) {
+      if (!isVisible(toggle)) return null
+      const active = pathname.startsWith(href)
+      const Icon   = (IC as Record<string, React.ReactNode>)[icon]
+      return (
+        <button onClick={()=>nav(href)} title={collapsed ? label : undefined} style={{
+          display:'flex', alignItems:'center', gap:10, width:'100%',
+          padding:'9px 10px', borderRadius:10, border:'1px solid transparent',
+          cursor:'pointer', marginBottom:2, textAlign:'left',
+          background: active ? 'var(--nav-active-bg)' : 'transparent',
+          color:       active ? 'var(--nav-active-txt)' : '#A0A0A0',
+          borderColor: active ? 'var(--nav-active-border)' : 'transparent',
+          fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13, fontWeight:500,
+          position:'relative', whiteSpace:'nowrap',
+        }}>
+          {active && <span style={{position:'absolute',left:-8,top:'50%',transform:'translateY(-50%)',width:3,height:20,background:'var(--neon)',borderRadius:'0 3px 3px 0'}}/>}
+          <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:active?'rgba(163,230,53,.12)':'transparent'}}>{Icon}</span>
+          <span style={{opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s',flex:1}}>{label}</span>
+          {badge && !collapsed && <span className="badge-neon">{badge}</span>}
         </button>
-      </div>
+      )
+    }
 
-      <div style={{padding:8,borderTop:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:10,background:'rgba(255,255,255,.04)'}}>
-          <div style={{width:32,height:32,borderRadius:'50%',background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#0a0a0a'}}>{initials}</div>
-          <div style={{flex:1,minWidth:0,opacity:col?0:1,width:col?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s'}}>
-            <div style={{fontSize:12,fontWeight:600,color:'#fff',whiteSpace:'nowrap'}}>{user?.name??'Usuário'}</div>
-            <div style={{fontSize:10,color:'#5A5D63',textTransform:'capitalize'}}>{role}</div>
+    function SecLabel({ label }: { label: string }) {
+      return <div style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#5A5D63',padding:'12px 10px 5px',opacity:collapsed?0:1,height:collapsed?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,height .2s'}}>{label}</div>
+    }
+
+    return (
+      <>
+        {showToggle && (
+          <button onClick={()=>setCol(c=>!c)} style={{position:'absolute',right:-12,top:22,width:24,height:24,borderRadius:'50%',background:'var(--bg-card)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:10,color:'var(--txt-2)',boxShadow:'var(--shadow-sm)',transform:collapsed?'rotate(180deg)':'rotate(0deg)',transition:'transform .22s'}}>
+            {IC.chevron}
+          </button>
+        )}
+
+        <div style={{height:58,display:'flex',alignItems:'center',padding:'0 16px',gap:10,borderBottom:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
+          <div style={{width:32,height:32,borderRadius:9,background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+            <svg width="32" height="32" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:'block'}}>
+              <defs>
+                <style>{`@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@900&display=swap');`}</style>
+              </defs>
+              <g transform="translate(33, 0)">
+                <text x="0" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">C</text>
+                <path d="M 182,346 L 214,346 L 254,167 L 222,167 Z" fill="#FFFFFF"/>
+                <path d="M 230,346 L 262,346 L 302,167 L 270,167 Z" fill="#FFFFFF"/>
+                <text x="277" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">A</text>
+              </g>
+            </svg>
+          </div>
+          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'#fff',opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,width .2s'}}>
+            Com<span style={{color:'var(--neon)'}}>Agente</span>
           </div>
         </div>
-      </div>
-    </>
-  )
+
+        <div style={{flex:1,padding:'10px 8px',overflowY:'auto',overflowX:'hidden'}}>
+          <SecLabel label="Principal" />
+          {MAIN_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
+
+          {(role==='supervisor'||role==='master') && <>
+            <SecLabel label="Configurações" />
+            {CONFIG_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
+          </>}
+
+          {role==='master' && <>
+            <SecLabel label="Master Admin" />
+            {MASTER_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
+          </>}
+
+          <button onClick={()=>signOut({callbackUrl:'/login'})} title={collapsed?'Sair':undefined} style={{display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 10px',borderRadius:10,border:'1px solid transparent',cursor:'pointer',marginTop:8,background:'transparent',color:'#A0A0A0',fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:13,fontWeight:500,whiteSpace:'nowrap'}}>
+            <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>{IC.logout}</span>
+            <span style={{opacity:collapsed?0:1,transition:'opacity .2s'}}>Sair</span>
+          </button>
+        </div>
+
+        <div style={{padding:8,borderTop:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:10,background:'rgba(255,255,255,.04)'}}>
+            <div style={{width:32,height:32,borderRadius:'50%',background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#0a0a0a'}}>{initials}</div>
+            <div style={{flex:1,minWidth:0,opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s'}}>
+              <div style={{fontSize:12,fontWeight:600,color:'#fff',whiteSpace:'nowrap'}}>{user?.name??'Usuário'}</div>
+              <div style={{fontSize:10,color:'#5A5D63',textTransform:'capitalize'}}>{role}</div>
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
       {mobOpen && <div onClick={()=>setMobOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:25}}/>}
 
       <aside className="hide-mobile" style={{width:col?64:230,background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,.06)',display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden',position:'relative',zIndex:30,transition:'width .22s ease'}}>
-        {sidebarContent}
+        <SidebarContent collapsed={col} showToggle />
       </aside>
 
       <aside className="show-mobile" style={{position:'fixed',top:0,left:0,bottom:0,width:240,background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,.06)',display:'flex',flexDirection:'column',overflow:'hidden',zIndex:40,transform:mobOpen?'translateX(0)':'translateX(-100%)',transition:'transform .22s ease'}}>
-        {sidebarContent}
+        <SidebarContent collapsed={false} />
       </aside>
 
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
