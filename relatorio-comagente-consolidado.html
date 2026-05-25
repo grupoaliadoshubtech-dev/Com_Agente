@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>24 de maio de 2026</strong> (v1.4)<br>
+    Documento consolidado e atualizado — <strong>25 de maio de 2026</strong> (v1.5)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -176,6 +176,7 @@
       <tr><td>23/04/2026</td><td>1.2</td><td>Identidade visual C//A, favicons, sidebar, git</td></tr>
       <tr><td>28/04/2026</td><td>1.3</td><td>SVG logo PWA banner, verificação EVOLUTION_API_KEY, troubleshooting Docker Swarm</td></tr>
       <tr><td>24/05/2026</td><td>1.4</td><td>Mobile: remoção da barra de navegação inferior — tela 60px maior no mobile</td></tr>
+      <tr><td>25/05/2026</td><td>1.5</td><td>Mobile avançado: workspace WhatsApp-style, foto de perfil, conexão WhatsApp, reset de senha, sidebar independente mobile/desktop</td></tr>
     </tbody>
   </table>
 </div>
@@ -347,6 +348,14 @@
     <tr><td>Chat do Workspace</td><td><span class="ok">✓ Mensagens enviadas e recebidas</span></td></tr>
     <tr><td>Logo C//A em todos os locais</td><td><span class="ok">✓ SVG em todos os locais</span></td></tr>
     <tr><td>Mobile — barra de navegação inferior</td><td><span class="ok">✓ Removida em 24/05/2026 — +60px de tela</span></td></tr>
+    <tr><td>Workspace mobile — navegação WhatsApp-style</td><td><span class="ok">✓ Lista → Chat tela cheia, botão voltar nativo Android</span></td></tr>
+    <tr><td>Header chat mobile — compactado</td><td><span class="ok">✓ Ícones apenas, telefone na 2ª linha, sem refresh redundante</span></td></tr>
+    <tr><td>Modal de perfil do cliente</td><td><span class="ok">✓ Foto real (Opção B) + iniciais como fallback, avatar preenche topo</span></td></tr>
+    <tr><td>Modal IA toggle com confirmação</td><td><span class="ok">✓ Mesmo padrão do modal blacklist</span></td></tr>
+    <tr><td>Sidebar — colapso independente mobile/desktop</td><td><span class="ok">✓ Mobile sempre expandido, botão ← para fechar drawer</span></td></tr>
+    <tr><td>Página Conexão WhatsApp — QR Code</td><td><span class="ok">✓ Botão Gerar QR Code funcional, modal Desconectar sem window.confirm()</span></td></tr>
+    <tr><td>Reset de senha admin</td><td><span class="ok">✓ POST /api/admin/reset-password → senha padrão 098765</span></td></tr>
+    <tr><td>tenantId vazio no JWT</td><td><span class="ok">✓ Fallback por e-mail na planilha quando JWT desatualizado</span></td></tr>
   </tbody>
 </table>
 
@@ -460,8 +469,49 @@
   <pre>/swapfile swap swap defaults 0 0</pre>
 </div>
 
+<div class="pend-card done">
+  <h4>6.9 Mobile workspace WhatsApp-style — 25/05/2026</h4>
+  <p>Implementado em <code>app/(app)/workspace/page.tsx</code> e <code>app/globals.css</code>:</p>
+  <ul>
+    <li>Estado <code>mobileView: 'list' | 'chat'</code> — lista e chat alternam em tela cheia</li>
+    <li>Botão voltar nativo Android: 1 clique → lista; 2 cliques rápidos (&lt;400ms) → comportamento padrão do browser (History API + popstate)</li>
+    <li>Header do chat compactado: avatar clicável 36px, nome, telefone + dot de status, ícone IA, ícone blacklist. Botão refresh removido (redundante com polling 3s)</li>
+    <li>Modal de perfil: foto real via <code>/api/evolution/profile-pic</code> (Evolution API fetchProfile), fallback para iniciais. Avatar preenche todo o topo do card sem bordas</li>
+    <li>Modal de confirmação para toggle IA (mesmo padrão do modal blacklist)</li>
+    <li>"Atendimento Humano" → "Humano" em todos os lugares</li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.10 Sidebar — estados independentes mobile/desktop — 25/05/2026</h4>
+  <p><code>SidebarContent</code> refatorado como função que recebe <code>collapsed</code> e <code>onClose</code>. Desktop: seta colapsa ícones (230px → 64px). Mobile: drawer sempre expandido com botão ← para fechar. Estado <code>col</code> não afeta mais o drawer mobile.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.11 Página Conexão WhatsApp — QR Code funcional — 25/05/2026</h4>
+  <p>Melhorias em <code>app/(app)/supervisor/conexao/page.tsx</code> e rotas:</p>
+  <ul>
+    <li>Botão <strong>"Gerar QR Code"</strong> chama <code>POST /api/evolution/qrcode/connect</code> → força <code>/instance/connect</code> na Evolution API</li>
+    <li>Botão <strong>"Desconectar"</strong> agora usa modal de confirmação (sem <code>window.confirm()</code> que é bloqueado no PWA)</li>
+    <li><code>DELETE /api/evolution/setup</code> implementado — chamava 405 antes</li>
+    <li>Normalização da resposta do QR Code: suporta estrutura flat e nested da Evolution API v2</li>
+    <li>Resolução de instância: tenantId → email → env var (para JWTs antigos com tenantId vazio)</li>
+    <li><strong>Limitação conhecida:</strong> logout só funciona quando o WhatsApp já desconectou da instância. Quando conectado, o Evolution exige que o aparelho desconecte primeiro</li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.12 Reset de senha padrão — admin — 25/05/2026</h4>
+  <p>Novo botão <strong>🔑 Reset Senha</strong> na página Admin → Empresas. Chama <code>POST /api/admin/reset-password</code> com <code>{ email }</code>. Gera hash bcrypt de <code>098765</code> e atualiza coluna D (passwordHash) na planilha master. Apenas role <code>master</code>.</p>
+</div>
+
 <div class="pend-card open">
-  <h4>6.9 Warning SSR em /transcricoes</h4>
+  <h4>6.13 Foto de perfil na lista de contatos (Opção A — pendente)</h4>
+  <p>Implementada a Opção B: foto buscada apenas ao abrir o modal de perfil. A Opção A (foto em background para todos os contatos da lista) está pendente. Risco: rate limit na Evolution API com N chamadas simultâneas por polling de 5s.</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.14 Warning SSR em /transcricoes</h4>
   <p>Página usa <code>useSearchParams()</code> sem Suspense boundary. Não afeta funcionamento mas prejudica SEO.</p>
 </div>
 
