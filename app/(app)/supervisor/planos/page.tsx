@@ -83,7 +83,7 @@ export default function PlanosPage() {
               )}
             </div>
 
-            {plan?.features?.length > 0 && (
+            {(plan?.features?.length ?? 0) > 0 && (
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-3)', marginBottom: 10 }}>Recursos inclusos</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
