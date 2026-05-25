@@ -111,7 +111,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     return !!(user as Record<string, unknown>)?.[toggle]
   }
 
-  function SidebarContent({ collapsed, showToggle }: { collapsed: boolean; showToggle?: boolean }) {
+  function SidebarContent({ collapsed, showToggle, onClose }: { collapsed: boolean; showToggle?: boolean; onClose?: () => void }) {
     function NavBtn({ label, href, icon, badge, toggle }: typeof MAIN_NAV[0]) {
       if (!isVisible(toggle)) return null
       const active = pathname.startsWith(href)
@@ -161,9 +161,14 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               </g>
             </svg>
           </div>
-          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'#fff',opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,width .2s'}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:15,color:'#fff',opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,width .2s',flex:1}}>
             Com<span style={{color:'var(--neon)'}}>Agente</span>
           </div>
+          {onClose && (
+            <button onClick={onClose} style={{width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.06)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#A0A0A0',flexShrink:0}}>
+              {IC.chevron}
+            </button>
+          )}
         </div>
 
         <div style={{flex:1,padding:'10px 8px',overflowY:'auto',overflowX:'hidden'}}>
@@ -208,7 +213,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       <aside className="show-mobile" style={{position:'fixed',top:0,left:0,bottom:0,width:240,background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,.06)',display:'flex',flexDirection:'column',overflow:'hidden',zIndex:40,transform:mobOpen?'translateX(0)':'translateX(-100%)',transition:'transform .22s ease'}}>
-        <SidebarContent collapsed={false} />
+        <SidebarContent collapsed={false} onClose={()=>setMobOpen(false)} />
       </aside>
 
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
