@@ -670,11 +670,9 @@ export default function WorkspacePage() {
           <div className="rounded-2xl w-full max-w-[320px] overflow-hidden"
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
 
-            {/* Topo — somente avatar */}
-            <div style={{ background: 'rgba(163,230,53,0.06)', padding: '32px 24px 24px', display: 'flex', justifyContent: 'center', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ width: 96, height: 96, borderRadius: '50%', background: 'rgba(163,230,53,0.15)', border: '2px solid rgba(163,230,53,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 700, color: 'var(--neon)' }}>
-                {ini(profileModal.nome)}
-              </div>
+            {/* Topo — avatar ocupa todo o quadrado */}
+            <div style={{ background: 'rgba(163,230,53,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 180, fontSize: 72, fontWeight: 700, color: 'var(--neon)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              {ini(profileModal.nome)}
             </div>
 
             {/* Informações */}
