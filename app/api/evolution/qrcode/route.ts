@@ -25,14 +25,14 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
   let instanceName = req.nextUrl.searchParams.get('instance')
 
   if (!instanceName) {
-    const tenant     = await tenantsRepo.findById(session.user.tenantId)
-    instanceName     = tenant?.evolutionInstance ?? null
+    const tenant = await tenantsRepo.findById(session.user.tenantId)
+    instanceName  = tenant?.evolutionInstance || process.env.EVOLUTION_INSTANCE || null
   }
 
   if (!instanceName) {
     return NextResponse.json({
       success: false,
-      error:   'Instância não configurada. Contate o administrador.',
+      error:   `Instância não configurada. tenantId=${session.user.tenantId}`,
     }, { status: 400 })
   }
 

@@ -18,9 +18,9 @@ export async function POST() {
 
   try {
     const tenant = await tenantsRepo.findById(session.user.tenantId)
-    const instanceName = tenant?.evolutionInstance ?? ''
+    const instanceName = tenant?.evolutionInstance || process.env.EVOLUTION_INSTANCE || ''
     if (!instanceName) {
-      return NextResponse.json({ success: false, error: 'Instância não configurada' }, { status: 400 })
+      return NextResponse.json({ success: false, error: `Instância não configurada. tenantId=${session.user.tenantId}` }, { status: 400 })
     }
 
     const client = EvolutionClient.fromEnv(instanceName)
