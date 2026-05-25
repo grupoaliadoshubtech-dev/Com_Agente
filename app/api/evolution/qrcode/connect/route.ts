@@ -17,8 +17,8 @@ export async function POST() {
   }
 
   try {
-    const tenant = await tenantsRepo.findById(session.user.tenantId)
-    const instanceName = tenant?.evolutionInstance || process.env.EVOLUTION_INSTANCE || ''
+    const tenant = await tenantsRepo.findById(session.user.tenantId).catch(() => null)
+    const instanceName = tenant?.evolutionInstance || process.env.EVOLUTION_INSTANCE || session.user.tenantId || ''
     if (!instanceName) {
       return NextResponse.json({ success: false, error: `Instância não configurada. tenantId=${session.user.tenantId}` }, { status: 400 })
     }

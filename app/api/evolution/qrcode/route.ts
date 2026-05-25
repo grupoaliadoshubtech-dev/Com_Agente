@@ -25,8 +25,8 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
   let instanceName = req.nextUrl.searchParams.get('instance')
 
   if (!instanceName) {
-    const tenant = await tenantsRepo.findById(session.user.tenantId)
-    instanceName  = tenant?.evolutionInstance || process.env.EVOLUTION_INSTANCE || null
+    const tenant = await tenantsRepo.findById(session.user.tenantId).catch(() => null)
+    instanceName  = tenant?.evolutionInstance || process.env.EVOLUTION_INSTANCE || session.user.tenantId || null
   }
 
   if (!instanceName) {
