@@ -664,24 +664,19 @@ export default function WorkspacePage() {
                 <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Telefone</p>
                 <p style={{ fontSize: 13, color: 'var(--txt)', fontFamily: 'monospace' }}>{fmtPhone(profileModal.telefone)}</p>
               </div>
-              {profileModal.preview && (
-                <div>
-                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Última mensagem</p>
-                  <p style={{ fontSize: 13, color: 'var(--txt)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profileModal.preview}</p>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Última mensagem</p>
+                <p style={{ fontSize: 13, color: 'var(--txt)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profileModal.preview || '—'}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Tipo de atendimento</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: iaOn(profileModal) ? 'var(--neon)' : '#EF4444', display: 'inline-block', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: iaOn(profileModal) ? 'var(--neon)' : '#EF4444' }}>
+                    {iaOn(profileModal) ? 'IA' : 'Humano'}
+                  </span>
                 </div>
-              )}
-              {profileModal.timestamp && (
-                <div>
-                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Último contato</p>
-                  <p style={{ fontSize: 13, color: 'var(--txt)' }}>{timeAgo(profileModal.timestamp)}</p>
-                </div>
-              )}
-              {profileModal.unreadCount > 0 && (
-                <div>
-                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-2)', marginBottom: 3 }}>Não lidas</p>
-                  <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'var(--neon)', color: '#0a0a0a' }}>{profileModal.unreadCount}</span>
-                </div>
-              )}
+              </div>
             </div>
 
             {/* Rodapé */}
