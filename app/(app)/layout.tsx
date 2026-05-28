@@ -217,7 +217,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
-        <header className="topbar-base" style={{height:58,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',flexShrink:0,gap:12,position:'sticky',top:0,zIndex:20}}>
+        <header className="topbar-base" style={{height:58,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',flexShrink:0,gap:12,zIndex:20}}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <button className="show-mobile btn-icon" onClick={()=>setMobOpen(o=>!o)} style={{display:'none'}}>{IC.menu}</button>
             <div>

@@ -39,24 +39,18 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html, body {
-  height: 100%;
-  overflow: hidden; /* impede o body de rolar — cada página controla seu próprio scroll */
-}
-html { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
-body { background: var(--bg); color: var(--txt); }
+html { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; height: 100%; }
+body { background: var(--bg); color: var(--txt); height: 100%; }
 
 /* Theme transition */
 body, .topbar-base, .sidebar-base, .card, input, textarea, select, button {
   transition: background-color .22s ease, border-color .22s ease, color .22s ease;
 }
 
-/* Header sempre fixo no topo — nunca rola com o conteúdo */
+/* Header nunca encolhe — fica fixo pelo flex layout */
 header.topbar-base {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   flex-shrink: 0;
+  z-index: 20;
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
