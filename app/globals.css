@@ -39,8 +39,12 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+html, body {
+  height: 100%;
+  overflow: hidden; /* impede o body de rolar — cada página controla seu próprio scroll */
+}
 html { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
-body { background: var(--bg); color: var(--txt); height: 100%; }
+body { background: var(--bg); color: var(--txt); }
 
 /* Theme transition */
 body, .topbar-base, .sidebar-base, .card, input, textarea, select, button {
