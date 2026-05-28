@@ -102,6 +102,7 @@ export default function PlanosPage() {
   }
 
   return (
+    <div style={{ height: '100%', overflowY: 'auto' }}>
     <div style={{ padding: '24px', maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
         <div className="font-display" style={{ fontSize: 18, fontWeight: 700, color: 'var(--txt)', marginBottom: 4 }}>Planos</div>
@@ -142,6 +143,7 @@ export default function PlanosPage() {
       )}
 
       {toast && <div className="toast-base">{toast}</div>}
+    </div>
     </div>
   )
 }

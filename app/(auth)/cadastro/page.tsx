@@ -1,13 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { Plan } from '@/types'
 import { IcoCheckCircle, IcoClipboard } from '@/components/icons'
 
 type Step = 'form' | 'loading' | 'success'
 
 export default function CadastroPage(){
-  const router = useRouter()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
   const [step,    setStep]    =useState<Step>('form')
   const [plans,   setPlans]   =useState<Plan[]>([])
   const [planLoad,setPlanLoad]=useState(true)
@@ -21,7 +22,14 @@ export default function CadastroPage(){
   useEffect(()=>{
     const saved=localStorage.getItem('aad-theme')?? 'dark'
     document.documentElement.setAttribute('data-theme',saved)
-    fetch('/api/plans').then(r=>r.json()).then(d=>{if(d.success)setPlans(d.data)}).finally(()=>setPlanLoad(false))
+    fetch('/api/plans').then(r=>r.json()).then(d=>{
+      if(d.success){
+        const list=d.data as Plan[]
+        setPlans(list)
+        const preId=searchParams.get('planId')
+        if(preId){const pre=list.find(p=>p.id===preId);if(pre)setSelPlan(pre)}
+      }
+    }).finally(()=>setPlanLoad(false))
   },[])
 
   async function submit(e:React.FormEvent){
