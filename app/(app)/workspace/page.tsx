@@ -249,6 +249,7 @@ export default function WorkspacePage() {
   const [blModal, setBlModal]         = useState<ChatContact | null>(null)
   const [iaModal, setIaModal]         = useState<ChatContact | null>(null)
   const [profileModal, setProfileModal] = useState<ChatContact | null>(null)
+  const [chatFilter, setChatFilter]   = useState<'todos'|'ia'|'humano'|'aberto'|'finalizado'>('todos')
   const [profilePic, setProfilePic]     = useState<string | null>(null)
   const [showAttach, setShowAttach] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
@@ -452,9 +453,16 @@ export default function WorkspacePage() {
 
   // ── Filtro ─────────────────────────────────────────────────
 
-  const filteredChats = search
-    ? chats.filter(c => c.nome.toLowerCase().includes(search.toLowerCase()) || c.telefone.includes(search))
-    : chats
+  const filteredChats = chats.filter(c => {
+    const matchSearch = !search || c.nome.toLowerCase().includes(search.toLowerCase()) || c.telefone.includes(search)
+    const matchFilter =
+      chatFilter === 'todos'      ? true :
+      chatFilter === 'ia'         ? c.iaStatus === 'ativo' :
+      chatFilter === 'humano'     ? c.iaStatus === 'pausado' :
+      chatFilter === 'aberto'     ? true :
+      chatFilter === 'finalizado' ? false : true
+    return matchSearch && matchFilter
+  })
 
   const iaOn = (c: ChatContact) => c.iaStatus === 'ativo'
 
@@ -483,13 +491,36 @@ export default function WorkspacePage() {
           </div>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome ou número..."
             className="w-full px-3 py-1.5 text-[12px] rounded-lg" style={{ background: 'var(--bg-input)', border: '1px solid var(--border)' }} />
+
+          {/* Filtros estilo WhatsApp */}
+          <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+            {([
+              { key: 'todos',      label: 'Todos' },
+              { key: 'ia',         label: 'IA' },
+              { key: 'humano',     label: 'Humano' },
+              { key: 'aberto',     label: 'Em Aberto' },
+              { key: 'finalizado', label: 'Finalizado' },
+            ] as const).map(f => (
+              <button key={f.key} onClick={() => setChatFilter(f.key)}
+                className="flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-medium transition-all"
+                style={{
+                  background: chatFilter === f.key ? 'var(--neon)' : 'var(--bg-input)',
+                  color:      chatFilter === f.key ? '#0a0a0a'     : 'var(--txt-2)',
+                  border:     chatFilter === f.key ? 'none'        : '1px solid var(--border)',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {loading ? <div className="flex items-center justify-center py-12 text-[13px] text-muted">Carregando...</div>
           : filteredChats.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-[13px] text-muted gap-2">
-              <span className="text-2xl">📭</span><span>{search ? 'Nenhum resultado' : 'Nenhuma conversa'}</span>
+              <span className="text-2xl">📭</span>
+              <span>{search ? 'Nenhum resultado' : chatFilter === 'finalizado' ? 'Nenhuma conversa finalizada' : chatFilter === 'ia' ? 'Nenhuma conversa com IA ativa' : chatFilter === 'humano' ? 'Nenhuma conversa em atendimento humano' : 'Nenhuma conversa'}</span>
             </div>
           ) : filteredChats.map(c => {
             const isSel = selected?.telefone === c.telefone
