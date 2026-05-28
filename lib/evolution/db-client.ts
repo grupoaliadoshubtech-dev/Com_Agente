@@ -93,6 +93,48 @@ export async function getLidMapping(instanceName: string): Promise<Map<string, s
   return map
 }
 
+// Persiste mensagem recebida (fromMe=false) no PostgreSQL da Evolution API.
+// Necessário porque o Evolution API pode não salvar mensagens recebidas por padrão.
+export async function saveReceivedMessage(
+  msg: {
+    key: { id: string; fromMe: boolean; remoteJid: string }
+    pushName?: string
+    message?: Record<string, unknown>
+    messageTimestamp?: number | string
+    messageType?: string
+  },
+  instanceName: string
+): Promise<void> {
+  try {
+    const instanceId = await getInstanceId(instanceName)
+    if (!instanceId) return
+
+    const ts = msg.messageTimestamp
+      ? (typeof msg.messageTimestamp === 'string'
+          ? parseInt(msg.messageTimestamp, 10)
+          : msg.messageTimestamp)
+      : Math.floor(Date.now() / 1000)
+
+    await pool.query(
+      `INSERT INTO "Message"
+         ("key", "pushName", "message", "messageTimestamp", "messageType", "instanceId")
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT DO NOTHING`,
+      [
+        JSON.stringify(msg.key),
+        msg.pushName ?? null,
+        JSON.stringify(msg.message ?? {}),
+        ts,
+        msg.messageType ?? 'conversation',
+        instanceId,
+      ]
+    )
+  } catch (err) {
+    // Silencia erros de conflito ou constraint — a mensagem pode já existir
+    console.warn('[db-client] saveReceivedMessage:', String(err).slice(0, 120))
+  }
+}
+
 export async function findAllMessages(
   remoteJids: string[],
   instanceName: string,

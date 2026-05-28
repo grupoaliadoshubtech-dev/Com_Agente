@@ -17,6 +17,7 @@ import {
   type ConnectionUpdateData,
 } from '@/lib/evolution/webhook-types'
 import { appendRows } from '@/lib/sheets/client'
+import { saveReceivedMessage } from '@/lib/evolution/db-client'
 
 const WEBHOOK_SECRET = process.env.EVOLUTION_WEBHOOK_SECRET ?? ''
 const MASTER_ID      = process.env.GOOGLE_MASTER_SHEET_ID!
@@ -84,6 +85,14 @@ async function processWebhookEvent(
         instanceName:        tenant.instanceName,
         attendantNumber:     tenant.attendantNumber,
       })
+
+      // Persiste mensagens recebidas no PostgreSQL antes de processar
+      // (Evolution API pode não salvar fromMe=false por padrão)
+      for (const msg of messages) {
+        if (!msg.key.fromMe) {
+          await saveReceivedMessage(msg, tenant.instanceName).catch(() => {})
+        }
+      }
 
       // Processa cada mensagem (normalmente só 1 por evento notify)
       for (const msg of messages) {
