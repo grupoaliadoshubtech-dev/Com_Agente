@@ -49,7 +49,10 @@ const CONFIG_NAV  = [
   { label:'Distribuição',      href:'/supervisor/distribuicao', icon:'distribuicao', badge:'', toggle:'' },
 ]
 const MASTER_NAV  = [
-  { label:'Master Admin', href:'/admin/empresas', icon:'master', badge:'', toggle:'' },
+  { label:'Empresas',        href:'/admin/empresas',  icon:'empresas',  badge:'', toggle:'' },
+  { label:'Planos Master',   href:'/admin/planos',    icon:'master',    badge:'', toggle:'' },
+  { label:'Blacklist Global',href:'/admin/blacklist', icon:'blacklist', badge:'', toggle:'' },
+  { label:'Log de Erros',    href:'/admin/logs',      icon:'logs',      badge:'', toggle:'' },
 ]
 
 const PAGE_META: Record<string, [string, string]> = {
@@ -63,7 +66,10 @@ const PAGE_META: Record<string, [string, string]> = {
   '/supervisor/planos':       ['Planos',             'Assinatura atual'],
   '/supervisor/templates':    ['Respostas Rápidas',  'Templates de mensagem para atendentes'],
   '/supervisor/distribuicao': ['Distribuição',       'Atribuição automática de atendimentos'],
-  '/admin':                   ['Master Admin',        'Painel administrativo'],
+  '/admin/empresas':          ['Empresas',           'Gestão de tenants'],
+  '/admin/planos':            ['Planos Master',      'CRUD de assinaturas'],
+  '/admin/blacklist':         ['Blacklist Global',   'Números bloqueados'],
+  '/admin/logs':              ['Log de Erros',       'Erros do sistema'],
 }
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
