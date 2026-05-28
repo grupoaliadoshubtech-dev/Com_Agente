@@ -5,15 +5,7 @@ import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import type { Plan } from '@/types'
-
 type Tab = 'login' | 'demo'
-
-const PERIOD: Record<string, string> = { monthly: 'mês', yearly: 'ano', custom: 'sob consulta' }
-
-function fmtPrice(cents: number) {
-  return (cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-}
 
 export default function LoginClient() {
   const router       = useRouter()
@@ -25,14 +17,6 @@ export default function LoginClient() {
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
-  const [plans,    setPlans]    = useState<Plan[]>([])
-
-  useEffect(() => {
-    fetch('/api/plans')
-      .then(r => r.json())
-      .then(d => { if (d.success) setPlans((d.data as Plan[]).filter(p => p.isActive !== false)) })
-      .catch(() => {})
-  }, [])
 
   // Aplica dark theme por padrão na página de login
   useEffect(() => {
@@ -59,12 +43,11 @@ export default function LoginClient() {
   return (
     <main style={{
       minHeight: '100vh',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
-      paddingTop: '10vh',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '24px',
       background: 'var(--bg)',
       position: 'relative',
-      overflowY: 'auto',
+      overflow: 'visible',
     }}>
       {/* Grid background */}
       <div style={{
@@ -281,67 +264,6 @@ export default function LoginClient() {
           Desenvolvido por <span style={{ color: 'var(--txt-2)', fontWeight: 600 }}>Grupo Aliados Hub Tech</span>
         </p>
       </div>
-
-      {/* Seção de Planos */}
-      {plans.length > 0 && (
-        <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 960, marginTop: 48, paddingBottom: 48 }}>
-          <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--neon)', marginBottom: 8 }}>Planos disponíveis</p>
-            <h2 className="font-display" style={{ fontSize: 24, fontWeight: 800, color: 'var(--txt)', marginBottom: 6 }}>Escolha o plano ideal para sua operação</h2>
-            <p style={{ fontSize: 14, color: 'var(--txt-2)' }}>Sem fidelidade. Cancele quando quiser.</p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-            {plans.map(p => (
-              <div key={p.id} className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-3)', marginBottom: 4 }}>
-                    {PERIOD[p.period ?? 'monthly'] === 'sob consulta' ? 'Enterprise' : p.maxAttendants > 5 ? 'Popular' : p.maxInstances === 1 ? 'Básico' : 'Pro'}
-                  </p>
-                  <p className="font-display" style={{ fontSize: 18, fontWeight: 700, color: 'var(--txt)' }}>{p.name}</p>
-                </div>
-
-                <div>
-                  {p.price === 0
-                    ? <p className="font-display" style={{ fontSize: 26, fontWeight: 800, color: 'var(--neon)' }}>Sob consulta</p>
-                    : <p className="font-display" style={{ fontSize: 26, fontWeight: 800, color: 'var(--neon)' }}>
-                        R$ {fmtPrice(p.price)}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--txt-3)' }}>/{PERIOD[p.period ?? 'monthly']}</span>
-                      </p>
-                  }
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <div style={{ padding: '8px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border)', textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--txt)' }}>{p.maxInstances ?? 1}</div>
-                    <div style={{ fontSize: 10, color: 'var(--txt-3)' }}>Instância{(p.maxInstances ?? 1) > 1 ? 's' : ''}</div>
-                  </div>
-                  <div style={{ padding: '8px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border)', textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--txt)' }}>{p.maxAttendants === 999 ? '∞' : p.maxAttendants ?? 2}</div>
-                    <div style={{ fontSize: 10, color: 'var(--txt-3)' }}>Atendentes</div>
-                  </div>
-                </div>
-
-                {(p.features?.length ?? 0) > 0 && (
-                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {p.features.slice(0, 4).map((f, i) => (
-                      <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--txt-2)' }}>
-                        <span style={{ color: 'var(--neon)', flexShrink: 0 }}>✓</span>{f}
-                      </li>
-                    ))}
-                    {p.features.length > 4 && <li style={{ fontSize: 11, color: 'var(--txt-3)' }}>+{p.features.length - 4} mais...</li>}
-                  </ul>
-                )}
-
-                <Link href={`/cadastro?planId=${p.id}`}
-                  className="btn-neon"
-                  style={{ marginTop: 'auto', padding: '10px', fontSize: 13, textAlign: 'center', textDecoration: 'none', borderRadius: 8, display: 'block' }}>
-                  Contratar →
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </main>
   )
 }
