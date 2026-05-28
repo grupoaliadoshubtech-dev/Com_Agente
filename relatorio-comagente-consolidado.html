@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>25 de maio de 2026</strong> (v1.5)<br>
+    Documento consolidado e atualizado — <strong>28 de maio de 2026</strong> (v1.6)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -177,6 +177,7 @@
       <tr><td>28/04/2026</td><td>1.3</td><td>SVG logo PWA banner, verificação EVOLUTION_API_KEY, troubleshooting Docker Swarm</td></tr>
       <tr><td>24/05/2026</td><td>1.4</td><td>Mobile: remoção da barra de navegação inferior — tela 60px maior no mobile</td></tr>
       <tr><td>25/05/2026</td><td>1.5</td><td>Mobile avançado: workspace WhatsApp-style, foto de perfil, conexão WhatsApp, reset de senha, sidebar independente mobile/desktop</td></tr>
+      <tr><td>28/05/2026</td><td>1.6</td><td>Padronização SVG icons, sidebar master reordenada, filtros workspace, planos no login, header fixo, páginas equipe e planos do cliente</td></tr>
     </tbody>
   </table>
 </div>
@@ -356,6 +357,15 @@
     <tr><td>Página Conexão WhatsApp — QR Code</td><td><span class="ok">✓ Botão Gerar QR Code funcional, modal Desconectar sem window.confirm()</span></td></tr>
     <tr><td>Reset de senha admin</td><td><span class="ok">✓ POST /api/admin/reset-password → senha padrão 098765</span></td></tr>
     <tr><td>tenantId vazio no JWT</td><td><span class="ok">✓ Fallback por e-mail na planilha quando JWT desatualizado</span></td></tr>
+    <tr><td>Ícones/emojis padronizados (SVG)</td><td><span class="ok">✓ 28/05/2026 — 50+ emojis substituídos em 17 arquivos por SVG inline (components/icons.tsx)</span></td></tr>
+    <tr><td>Sidebar master — Master Admin no topo</td><td><span class="ok">✓ 28/05/2026 — Para role=master: Master Admin, Principal, Configurações, Sair</span></td></tr>
+    <tr><td>Sidebar master — itens expandidos</td><td><span class="ok">✓ 28/05/2026 — Empresas, Planos Master, Blacklist Global, Log de Erros visíveis no sidebar principal</span></td></tr>
+    <tr><td>Sub-nav admin duplicada removida</td><td><span class="ok">✓ 28/05/2026 — admin/layout.tsx simplificado: apenas guard de role, sem nav lateral repetida</span></td></tr>
+    <tr><td>Páginas /supervisor/equipe e /supervisor/planos</td><td><span class="ok">✓ 28/05/2026 — Criadas (eram 404). Equipe: CRUD atendentes + permissões. Planos: plano atual + upgrade</span></td></tr>
+    <tr><td>Planos no login para contratação</td><td><span class="ok">✓ 28/05/2026 — Todos os planos ativos do master aparecem em /login com botão "Contratar →" que pré-seleciona plano no cadastro</span></td></tr>
+    <tr><td>"Sob consulta" para planos Enterprise</td><td><span class="ok">✓ 28/05/2026 — price=0 exibe "Sob consulta" em /supervisor/planos e /login</span></td></tr>
+    <tr><td>Filtros de conversa no workspace</td><td><span class="ok">✓ 28/05/2026 — Pills estilo WhatsApp: Todos / IA / Humano / Em Aberto / Finalizado</span></td></tr>
+    <tr><td>Header topbar fixo em todas as telas</td><td><span class="ok">✓ 28/05/2026 — Coluna com overflow:hidden + main com overflow:auto. Header nunca rola.</span></td></tr>
   </tbody>
 </table>
 
@@ -513,6 +523,70 @@
 <div class="pend-card open">
   <h4>6.14 Warning SSR em /transcricoes</h4>
   <p>Página usa <code>useSearchParams()</code> sem Suspense boundary. Não afeta funcionamento mas prejudica SEO.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.15 Padronização de ícones — substituição de emojis por SVG inline — 28/05/2026</h4>
+  <p>Criado <code>components/icons.tsx</code> com 27 componentes SVG reutilizáveis (mesmo estilo do sidebar: stroke, fill none, strokeWidth 2). Todos os emojis usados como ícones de UI foram substituídos em 17 arquivos:</p>
+  <ul>
+    <li><strong>admin/layout.tsx</strong> — 🏢💎🚫⚠️ → IcoBuilding, IcoGem, IcoBan, IcoAlertTriangle</li>
+    <li><strong>admin/blacklist, logs, empresas, planos</strong> — 🚫✅🌐📍🔴🟡ℹ️🔑🏢👤⚙️💎 → SVGs equivalentes</li>
+    <li><strong>crm/page.tsx</strong> — 7 stages do funil (🆕💬📋⏳🤝✅❌) + empty state 👥 → SVGs</li>
+    <li><strong>satisfacao, transcricoes, dashboard</strong> — 🤖👤⭐📝🔒 → IcoBot, IcoUser, IcoStar, IcoFileText, IcoLock</li>
+    <li><strong>supervisor (conexao, distribuicao, equipe, templates)</strong> — ⚠️✅📱🔄🟢⚫💬📊👥 → SVGs</li>
+    <li><strong>workspace/page.tsx</strong> — 📍👤🚫💬 → IcoMapPin, IcoUser, IcoBan, IcoMessageCircle</li>
+    <li><strong>auth (cadastro, redefinir-senha)</strong> — ✅⭐📋⏱ → IcoCheckCircle, IcoClipboard, IcoClock</li>
+  </ul>
+  <p>Emojis mantidos intencionalmente: faces de satisfação (😡😕😐🙂😀) — são conteúdo semântico, não ícones de UI.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.16 Sidebar master — reordenação e expansão — 28/05/2026</h4>
+  <p>Para <code>role=master</code>, a sidebar agora exibe na ordem: <strong>Master Admin → Principal → Configurações → Sair</strong>. Os 4 itens admin (Empresas, Planos Master, Blacklist Global, Log de Erros) aparecem diretamente no sidebar principal, eliminando a sub-nav lateral duplicada que existia em <code>admin/layout.tsx</code>. <code>admin/layout.tsx</code> agora contém apenas o guard de role.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.17 Páginas /supervisor/equipe e /supervisor/planos criadas — 28/05/2026</h4>
+  <p>Ambas eram 404. Implementadas:</p>
+  <ul>
+    <li><strong>/supervisor/equipe</strong> — Tabela de atendentes, criar novo atendente, editar permissões (Dashboard, CRM, Transcrições, Satisfação), desativar. API: <code>GET/POST/PATCH/DELETE /api/team</code></li>
+    <li><strong>/supervisor/planos</strong> — Plano atual com badge "PLANO ATUAL", outros planos como upgrade com botão "Solicitar upgrade →" + toast. Scroll ativo para ver todos os planos.</li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.18 Planos visíveis na página de login para contratação — 28/05/2026</h4>
+  <p>Abaixo do card de login, todos os planos ativos cadastrados pelo master aparecem automaticamente em cards responsivos. Cada plano mostra nome, preço, período, instâncias, atendentes e features. Botão <strong>"Contratar →"</strong> leva para <code>/cadastro?planId=ID</code> com o plano pré-selecionado. Planos com <code>price=0</code> exibem "Sob consulta" (corrigido também em <code>/supervisor/planos</code>). A seção só aparece se houver planos cadastrados.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.19 Filtros de conversa no workspace (estilo WhatsApp) — 28/05/2026</h4>
+  <p>Pills horizontais com scroll abaixo da barra de busca em <code>app/(app)/workspace/page.tsx</code>:</p>
+  <ul>
+    <li><strong>Todos</strong> — todas as conversas</li>
+    <li><strong>IA</strong> — <code>iaStatus === 'ativo'</code></li>
+    <li><strong>Humano</strong> — <code>iaStatus === 'pausado'</code></li>
+    <li><strong>Em Aberto</strong> — todas as ativas (equivalente a Todos por ora)</li>
+    <li><strong>Finalizado</strong> — 0 resultados (pronto para quando a API tiver status 'finalizado')</li>
+  </ul>
+  <p>Filtros se combinam com a busca por texto. Empty states específicos por filtro.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.20 Header topbar fixo em todas as telas — 28/05/2026</h4>
+  <p>Correção definitiva em <code>app/(app)/layout.tsx</code> e <code>app/globals.css</code>. Estrutura final:</p>
+  <ul>
+    <li>Container externo: <code>height: 100vh; overflow: hidden</code> — ancora tudo na viewport</li>
+    <li>Coluna interna: <code>display: flex; flex-direction: column; overflow: hidden</code></li>
+    <li>Header: <code>flex-shrink: 0; height: 58px</code> — nunca encolhe, nunca rola</li>
+    <li>Main: <code>flex: 1; overflow: auto; min-height: 0</code> — único container de scroll</li>
+  </ul>
+  <p>O scroll acontece exclusivamente dentro do <code>main</code>. O header é irmão do <code>main</code> no flex e não participa do scroll. Rodapés de páginas continuam acessíveis via scroll do <code>main</code>.</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.21 Filtro "Finalizado" no workspace — pendente</h4>
+  <p>O HandoffRepository só tem status <code>ativo</code> e <code>pausado</code>. Para o filtro "Finalizado" funcionar, o comando <code>/finalizar</code> do n8n precisa gravar <code>status=finalizado</code> na Fila_Humana E a API <code>/api/evolution/chats</code> precisa expor esse campo no <code>ChatContact</code>. A infraestrutura de UI está pronta.</p>
 </div>
 
 
