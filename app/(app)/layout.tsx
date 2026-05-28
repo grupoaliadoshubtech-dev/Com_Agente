@@ -216,8 +216,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         <SidebarContent collapsed={false} onClose={()=>setMobOpen(false)} />
       </aside>
 
-      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
-        <header className="topbar-base" style={{height:58,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',flexShrink:0,gap:12,zIndex:20}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflowX:'hidden',overflowY:'auto'}}>
+        <header className="topbar-base" style={{height:58,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',flexShrink:0,gap:12,position:'sticky',top:0,zIndex:20}}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <button className="show-mobile btn-icon" onClick={()=>setMobOpen(o=>!o)} style={{display:'none'}}>{IC.menu}</button>
             <div>
@@ -240,7 +240,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main style={{flex:1,overflow:'auto',minHeight:0}}>{children}</main>
+        <main style={{flex:1,minHeight:0}}>{children}</main>
       </div>
 
       {killModal && (
