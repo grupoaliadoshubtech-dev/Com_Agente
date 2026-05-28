@@ -61,9 +61,9 @@ export default function PlanosPage() {
           </div>
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: 22, fontWeight: 800, color: isCurrent ? 'var(--neon)' : 'var(--txt)', fontFamily: "'Syne',sans-serif" }}>
-              R$ {fmtPrice(plan.price)}
+              {plan.price === 0 ? 'Sob consulta' : `R$ ${fmtPrice(plan.price)}`}
             </span>
-            <div style={{ fontSize: 10, color: 'var(--txt-3)' }}>/{PERIOD[plan.period ?? 'monthly'].toLowerCase()}</div>
+            {plan.price > 0 && <div style={{ fontSize: 10, color: 'var(--txt-3)' }}>/{PERIOD[plan.period ?? 'monthly'].toLowerCase()}</div>}
           </div>
         </div>
 
