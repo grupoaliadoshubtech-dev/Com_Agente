@@ -47,6 +47,14 @@ body, .topbar-base, .sidebar-base, .card, input, textarea, select, button {
   transition: background-color .22s ease, border-color .22s ease, color .22s ease;
 }
 
+/* Header sempre fixo no topo — nunca rola com o conteúdo */
+header.topbar-base {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 4px; }
