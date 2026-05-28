@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { Plan } from '@/types'
+import { IcoGem } from '@/components/icons'
 
 const PERIOD:Record<string,string>={monthly:'Mensal',yearly:'Anual',custom:'Customizado'}
 
@@ -111,7 +112,7 @@ export default function PlanosPage(){
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
             {plans.length===0&&(
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:200,gap:8,color:'var(--txt-3)',gridColumn:'1/-1'}}>
-                <span style={{fontSize:32}}>💎</span><p style={{fontSize:13}}>Nenhum plano cadastrado</p>
+                <IcoGem size={32}/><p style={{fontSize:13}}>Nenhum plano cadastrado</p>
                 <button onClick={()=>setShowNew(true)} style={{fontSize:13,color:'var(--neon)',background:'none',border:'none',cursor:'pointer'}}>Criar primeiro plano →</button>
               </div>
             )}

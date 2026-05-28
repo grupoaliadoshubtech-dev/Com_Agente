@@ -7,7 +7,8 @@ function fmtDT(iso:string){if(!iso)return'—';try{return new Date(iso).toLocale
 function level(msg:string):'critical'|'warning'|'info'{const l=msg.toLowerCase();if(l.includes('fatal')||l.includes('timeout')||l.includes('crash'))return'critical';if(l.includes('erro')||l.includes('error')||l.includes('falha'))return'warning';return'info'}
 const LV_CLR={critical:'#EF4444',warning:'#F59E0B',info:'#60A5FA'}
 const LV_BG ={critical:'rgba(239,68,68,.1)',warning:'rgba(245,158,11,.1)',info:'rgba(96,165,250,.1)'}
-const LV_ICN={critical:'🔴',warning:'🟡',info:'ℹ️'}
+const LV_DOT={critical:'#EF4444',warning:'#F59E0B',info:'#60A5FA'}
+function LvDot({lv}:{lv:'critical'|'warning'|'info'}){return <span style={{width:8,height:8,borderRadius:'50%',background:LV_DOT[lv],display:'inline-block',flexShrink:0}}/>}
 
 export default function LogsPage(){
   const [records,setRecords]=useState<LogErroRecord[]>([])
@@ -73,7 +74,7 @@ export default function LogsPage(){
           {loading?(
             <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:200,gap:10,color:'var(--txt-2)'}}><span className="spinner" style={{width:18,height:18}}/><span style={{fontSize:13}}>Carregando logs...</span></div>
           ):filtered.length===0?(
-            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:200,gap:8,color:'var(--txt-3)'}}><span style={{fontSize:32}}>✅</span><p style={{fontSize:13}}>Nenhum erro encontrado</p></div>
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:200,gap:8,color:'var(--txt-3)'}}><LvDot lv="info"/><p style={{fontSize:13}}>Nenhum erro encontrado</p></div>
           ):(
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead><tr>{['Timestamp','Nível','Tenant','Nó','Erro','Telefone'].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
@@ -88,7 +89,7 @@ export default function LogsPage(){
                       <td style={{...td,fontFamily:'monospace',fontSize:11,whiteSpace:'nowrap'}}>{fmtDT(r.timestamp)}</td>
                       <td style={td}>
                         <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:100,background:LV_BG[lv],color:LV_CLR[lv]}}>
-                          {LV_ICN[lv]} {lv}
+                          <LvDot lv={lv}/> {lv}
                         </span>
                       </td>
                       <td style={{...td,fontSize:12}}>{r.tenant}</td>
@@ -125,7 +126,7 @@ export default function LogsPage(){
             <div>
               <p style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:6}}>Nível</p>
               <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:100,background:LV_BG[level(sel.erro)],color:LV_CLR[level(sel.erro)]}}>
-                {LV_ICN[level(sel.erro)]} {level(sel.erro)}
+                <LvDot lv={level(sel.erro)}/> {level(sel.erro)}
               </span>
             </div>
           </div>

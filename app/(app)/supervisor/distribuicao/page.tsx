@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react'
+import { IcoUsers, IcoMessageCircle, IcoBarChart, Dot } from '@/components/icons'
 
 interface Attendant {
   atendenteId: string; atendenteNome: string; atendentePhone: string
@@ -104,13 +105,13 @@ export default function DistribuicaoPage() {
       {metrics && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
           {[
-            { label: 'Online', value: metrics.totalOnline, color: '#10B981', icon: '🟢' },
-            { label: 'Offline', value: metrics.totalOffline, color: '#6B7280', icon: '⚫' },
-            { label: 'Conversas Ativas', value: metrics.totalConversasAtivas, color: '#3B82F6', icon: '💬' },
-            { label: 'Capacidade', value: `${metrics.capacidadeUsada}%`, color: metrics.capacidadeUsada > 80 ? '#EF4444' : '#A3E635', icon: '📊' },
+            { label: 'Online',          value: metrics.totalOnline,          color: '#10B981', icon: <Dot color="#10B981" size={12}/> },
+            { label: 'Offline',         value: metrics.totalOffline,         color: '#6B7280', icon: <Dot color="#6B7280" size={12}/> },
+            { label: 'Conversas Ativas',value: metrics.totalConversasAtivas, color: '#3B82F6', icon: <IcoMessageCircle size={24}/> },
+            { label: 'Capacidade',      value: `${metrics.capacidadeUsada}%`,color: metrics.capacidadeUsada > 80 ? '#EF4444' : '#A3E635', icon: <IcoBarChart size={24}/> },
           ].map(m => (
             <div key={m.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, marginBottom: 4 }}>{m.icon}</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: m.color }}>{m.icon}</div>
               <div style={{ fontSize: 28, fontWeight: 700, color: m.color }}>{m.value}</div>
               <div style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 2 }}>{m.label}</div>
             </div>
@@ -121,7 +122,7 @@ export default function DistribuicaoPage() {
       {/* Lista de atendentes */}
       {!metrics || metrics.atendentes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--txt-3)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+          <div style={{ marginBottom: 12, color: 'var(--txt-3)' }}><IcoUsers size={40}/></div>
           <p style={{ fontSize: 14 }}>Nenhum atendente configurado</p>
           <p style={{ fontSize: 12, marginTop: 4 }}>Clique em "Sincronizar Equipe" para importar da aba Usuarios</p>
         </div>

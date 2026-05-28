@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { IcoCheckCircle, IcoClock } from '@/components/icons'
 
 type TokenState = 'checking' | 'valid' | 'invalid' | 'expired'
 type FormState  = 'idle' | 'loading' | 'success' | 'error'
@@ -150,9 +151,9 @@ export default function RedefinirSenhaPage() {
   if (formState === 'success') return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="text-center max-w-[380px] animate-slide-up">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"
-          style={{ background: 'var(--neon-dim)', border: '1px solid var(--border-neon)' }}>
-          ✅
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+          style={{ background: 'var(--neon-dim)', border: '1px solid var(--border-neon)', color: 'var(--neon)' }}>
+          <IcoCheckCircle size={32}/>
         </div>
         <h1 className="font-display text-[20px] font-bold mb-2">Senha redefinida!</h1>
         <p className="text-[13px] text-secondary-aad mb-2">
@@ -197,7 +198,7 @@ export default function RedefinirSenhaPage() {
           {timeLeft > 0 && (
             <div className="flex items-center gap-2 mb-5 px-3 py-2 rounded-lg text-[12px]"
               style={{ background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
-              <span style={{ color: timeLeft < 15 ? '#EF4444' : 'var(--neon)' }}>⏱</span>
+              <span style={{ color: timeLeft < 15 ? '#EF4444' : 'var(--neon)', display: 'flex' }}><IcoClock size={14}/></span>
               <span className="text-secondary-aad">
                 Link expira em{' '}
                 <strong style={{ color: timeLeft < 15 ? '#EF4444' : 'var(--neon)' }}>

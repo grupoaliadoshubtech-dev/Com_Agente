@@ -1,6 +1,7 @@
 'use client'
 // app/(app)/supervisor/equipe/page.tsx
 import { useEffect, useState } from 'react'
+import { IcoUsers } from '@/components/icons'
 
 interface Attendant {
   id: string; name: string; email: string; phone: string; role: string
@@ -90,7 +91,7 @@ export default function EquipePage() {
           </div>
         ) : team.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 8 }}>
-            <div style={{ fontSize: 32 }}>👥</div>
+            <IcoUsers size={32}/>
             <p style={{ fontSize: 13, color: 'var(--txt-2)' }}>Nenhum atendente cadastrado</p>
           </div>
         ) : (

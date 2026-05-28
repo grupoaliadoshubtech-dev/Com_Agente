@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { Tenant, Plan } from '@/types'
+import { IcoBuilding, IcoUser, IcoSettings, IcoKey } from '@/components/icons'
 
 const ST_CLR:Record<string,string>={active:'#10B981',trial:'#F59E0B',inactive:'#EF4444'}
 const ST_LBL:Record<string,string>={active:'Ativo',trial:'Trial',inactive:'Inativo'}
@@ -95,7 +96,7 @@ export default function EmpresasPage(){
           <div style={{fontSize:11,color:'var(--txt-2)',marginTop:2}}>{tenants.length} empresas · {tenants.filter(t=>t.status==='active').length} ativas</div>
         </div>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar empresa..." style={{padding:'8px 12px',borderRadius:8,fontSize:13,width:200}}/>
-        <button onClick={()=>setResetModal(true)} style={{padding:'9px 14px',borderRadius:8,fontSize:13,cursor:'pointer',background:'var(--danger-dim)',border:'1px solid rgba(239,68,68,.3)',color:'#FCA5A5',fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:600}}>🔑 Reset Senha</button>
+        <button onClick={()=>setResetModal(true)} style={{padding:'9px 14px',borderRadius:8,fontSize:13,cursor:'pointer',background:'var(--danger-dim)',border:'1px solid rgba(239,68,68,.3)',color:'#FCA5A5',fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:600,display:'flex',alignItems:'center',gap:6}}><IcoKey size={13}/> Reset Senha</button>
         <button onClick={()=>setShowNew(true)} className="btn-neon" style={{padding:'9px 16px',fontSize:13}}>+ Provisionar</button>
         <button onClick={load} style={{padding:'8px 12px',borderRadius:8,fontSize:12,cursor:'pointer',background:'var(--bg-input)',border:'1px solid var(--border)',color:'var(--txt-2)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>↻</button>
       </div>
@@ -154,7 +155,7 @@ export default function EmpresasPage(){
       {showNew&&(
         <Modal title="Provisionar nova empresa" onClose={()=>setShowNew(false)}>
           <form onSubmit={saveNew}>
-            <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:12}}>🏢 Dados da empresa</p>
+            <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:12,display:'flex',alignItems:'center',gap:6}}><IcoBuilding size={13}/> Dados da empresa</p>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               <Field label="Nome da empresa" value={form.name} onChange={v=>F('name',v)} placeholder="TrackerMap"/>
               <div style={{marginBottom:14}}>
@@ -167,13 +168,13 @@ export default function EmpresasPage(){
               <Field label="E-mail" value={form.email} onChange={v=>F('email',v)} type="email"/>
               <Field label="Telefone" value={form.phone} onChange={v=>F('phone',v)} placeholder="5571999999999"/>
             </div>
-            <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:12,marginTop:8}}>👤 Supervisor</p>
+            <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:12,marginTop:8,display:'flex',alignItems:'center',gap:6}}><IcoUser size={13}/> Supervisor</p>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               <Field label="Nome" value={form.supervisorName} onChange={v=>F('supervisorName',v)}/>
               <Field label="E-mail" value={form.supervisorEmail} onChange={v=>F('supervisorEmail',v)} type="email"/>
             </div>
             <Field label="Senha inicial" value={form.supervisorPassword} onChange={v=>F('supervisorPassword',v)} type="password"/>
-            <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:12,marginTop:8}}>⚙️ Infraestrutura</p>
+            <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:12,marginTop:8,display:'flex',alignItems:'center',gap:6}}><IcoSettings size={13}/> Infraestrutura</p>
             <Field label="ID da planilha do tenant" value={form.spreadsheetId} onChange={v=>F('spreadsheetId',v)} placeholder="1abc...xyz"/>
             <Field label="Instância Evolution API" value={form.evolutionInstance} onChange={v=>F('evolutionInstance',v)} placeholder="empresa-nome"/>
             <div style={{display:'flex',gap:10,marginTop:4}}>
@@ -209,7 +210,7 @@ export default function EmpresasPage(){
 
       {/* Modal reset senha */}
       {resetModal&&(
-        <Modal title="🔑 Redefinir Senha" onClose={()=>{setResetModal(false);setResetEmail('')}}>
+        <Modal title="Redefinir Senha" onClose={()=>{setResetModal(false);setResetEmail('')}}>
           <p style={{fontSize:13,color:'var(--txt-2)',marginBottom:16,lineHeight:1.6}}>
             A senha será redefinida para <code style={{background:'var(--bg-input)',padding:'2px 7px',borderRadius:5,fontSize:13,color:'var(--neon)'}}>098765</code>. O usuário deverá alterá-la no primeiro acesso.
           </p>

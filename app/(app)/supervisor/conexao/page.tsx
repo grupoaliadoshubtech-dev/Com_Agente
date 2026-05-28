@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useQRCode } from '@/lib/hooks/use-evolution'
+import { IcoAlertTriangle, IcoCheckCircle, IcoSmartphone, IcoRefreshCw } from '@/components/icons'
 
 export default function ConexaoPage() {
   const qr = useQRCode(4000)
@@ -35,7 +36,7 @@ export default function ConexaoPage() {
     }
   }
 
-  const BtnConnect = ({ label = 'Gerar QR Code' }: { label?: string }) => (
+  const BtnConnect = ({ label = 'Gerar QR Code' }: { label?: React.ReactNode }) => (
     <button
       onClick={handleConnect}
       disabled={connecting}
@@ -79,7 +80,7 @@ export default function ConexaoPage() {
 
         ) : qr.error ? (
           <div className="flex flex-col items-center gap-4 py-12 px-6 text-center">
-            <div className="text-4xl">⚠️</div>
+            <div className="flex items-center justify-center" style={{color:'#F59E0B'}}><IcoAlertTriangle size={40}/></div>
             <p className="text-[14px] font-medium">Erro ao conectar com Evolution API</p>
             <p className="text-[12px] text-muted">{qr.error}</p>
             <BtnConnect label="Tentar novamente" />
@@ -87,9 +88,9 @@ export default function ConexaoPage() {
 
         ) : qr.connected ? (
           <div className="flex flex-col items-center gap-4 py-12 px-6 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
-              style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)' }}>
-              ✅
+            <div className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ADE80' }}>
+              <IcoCheckCircle size={32}/>
             </div>
             <div>
               <p className="text-[16px] font-semibold text-green-400 mb-1">WhatsApp Conectado</p>
@@ -128,7 +129,7 @@ export default function ConexaoPage() {
               <span className="spinner w-3 h-3" />
               Aguardando conexão... (atualiza automaticamente)
             </div>
-            <BtnConnect label="🔄 Gerar novo QR Code" />
+            <BtnConnect label={<><IcoRefreshCw size={13}/> Gerar novo QR Code</>} />
             <button onClick={() => setConfirmDisc(true)}
               className="text-[12px] text-red-400 hover:underline mt-1">
               Desconectar instância
@@ -137,7 +138,7 @@ export default function ConexaoPage() {
 
         ) : (
           <div className="flex flex-col items-center gap-4 py-12 px-6 text-center">
-            <div className="text-4xl">📱</div>
+            <div style={{color:'var(--txt-3)'}}><IcoSmartphone size={40}/></div>
             <div>
               <p className="text-[14px] font-medium mb-1">WhatsApp desconectado</p>
               <p className="text-[12px] text-muted">Clique no botão abaixo para gerar o QR Code e conectar.</p>

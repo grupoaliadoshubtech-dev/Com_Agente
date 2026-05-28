@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react'
+import { IcoMessageCircle } from '@/components/icons'
 
 interface Template {
   id: string; atalho: string; titulo: string
@@ -110,7 +111,7 @@ export default function TemplatesPage() {
       {/* Lista de templates */}
       {templates.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--txt-3)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
+          <div style={{ marginBottom: 12, color: 'var(--txt-3)' }}><IcoMessageCircle size={40}/></div>
           <p style={{ fontSize: 14 }}>Nenhum template criado</p>
           <p style={{ fontSize: 12, marginTop: 4 }}>Crie respostas rápidas para agilizar o atendimento</p>
         </div>

@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useEffect, useState, useCallback } from 'react'
+import { IcoBot } from '@/components/icons'
 
 // ── Tipos ────────────────────────────────────────────────────
 
@@ -410,7 +411,7 @@ export default function DashboardPage() {
                     }}>{i + 1}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--txt)' }}>{isBot ? '🤖 Bot (IA)' : nome}</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--txt)', display: 'flex', alignItems: 'center', gap: 4 }}>{isBot ? <><IcoBot size={12}/>Bot (IA)</> : nome}</span>
                         <span style={{ fontSize: 11, color: 'var(--txt-2)' }}>{count} · {pct}%</span>
                       </div>
                       <div style={{ height: 4, borderRadius: 2, background: 'var(--bg-input)', overflow: 'hidden' }}>

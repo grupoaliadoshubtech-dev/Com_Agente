@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useHandoff } from '@/lib/hooks/use-handoff'
 import { useTemplates } from '@/lib/hooks/use-templates'
+import { IcoMapPin, IcoUser, IcoBan, IcoMessageCircle } from '@/components/icons'
 import { TemplateMenu } from '@/components/template-menu'
 
 // ── Tipos ────────────────────────────────────────────────────
@@ -211,7 +212,7 @@ function MediaBubble({ msg }: { msg: ChatMessage }) {
   if (msg.mediaType === 'location') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 22 }}>📍</span>
+        <IcoMapPin size={22}/>
         <span style={{ fontSize: 13 }}>{msg.text || 'Localização compartilhada'}</span>
       </div>
     )
@@ -221,7 +222,7 @@ function MediaBubble({ msg }: { msg: ChatMessage }) {
   if (msg.mediaType === 'contact') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 22 }}>👤</span>
+        <IcoUser size={22}/>
         <span style={{ fontSize: 13 }}>{msg.text || 'Contato compartilhado'}</span>
       </div>
     )
@@ -557,7 +558,7 @@ export default function WorkspacePage() {
               <button onClick={() => setBlModal(selected)}
                 className="px-2 py-1.5 rounded-lg text-[12px] font-medium border transition-all"
                 style={{ borderColor: 'rgba(239,68,68,0.4)', color: '#EF4444', background: 'rgba(239,68,68,0.08)' }}
-                title="Blacklist">🚫</button>
+                title="Blacklist"><IcoBan size={14}/></button>
               <button onClick={() => fetchMessages(selected.telefone, selected.lidJid)} className="chat-header-refresh px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
             </div>
           </div>
@@ -567,7 +568,7 @@ export default function WorkspacePage() {
             {loadingMsg ? <div className="flex-1 flex items-center justify-center text-[13px] text-muted">Carregando mensagens...</div>
             : messages.length === 0 ? (
               <div className="flex-1 flex items-center justify-center flex-col gap-2 text-muted">
-                <span className="text-2xl">💬</span><p className="text-[13px]">Nenhuma mensagem encontrada</p>
+                <IcoMessageCircle size={24}/><p className="text-[13px]">Nenhuma mensagem encontrada</p>
               </div>
             ) : messages.map(msg => {
               const isOut = msg.type === 'outgoing'
@@ -664,7 +665,7 @@ export default function WorkspacePage() {
           </div>
         </>) : (
           <div className="flex-1 flex items-center justify-center flex-col gap-3 text-muted">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style={{ background: 'rgba(163,230,53,0.08)', border: '1px solid rgba(163,230,53,0.15)' }}>💬</div>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(163,230,53,0.08)', border: '1px solid rgba(163,230,53,0.15)', color: 'var(--neon)' }}><IcoMessageCircle size={32}/></div>
             <p className="text-[14px] font-medium" style={{ color: 'var(--txt)' }}>ComAgente Workspace</p>
             <p className="text-[12px] text-center max-w-[280px]">Selecione uma conversa para começar. As conversas atualizam automaticamente.</p>
             <div className="flex items-center gap-1.5 mt-2">
@@ -760,7 +761,7 @@ export default function WorkspacePage() {
       {blModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }} onClick={e => { if (e.target === e.currentTarget) setBlModal(null) }}>
           <div className="rounded-xl p-6 max-w-[380px] w-full" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <h3 className="text-[16px] font-semibold mb-2" style={{ color: 'var(--txt)' }}>🚫 Blacklist</h3>
+            <h3 className="text-[16px] font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--txt)' }}><IcoBan size={16}/> Blacklist</h3>
             <p className="text-[13px] mb-5" style={{ color: 'var(--text-secondary)' }}>Bloquear <strong style={{ color: 'var(--txt)' }}>{blModal.nome}</strong> ({fmtPhone(blModal.telefone)})?</p>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setBlModal(null)} className="px-4 py-2 rounded-lg text-[13px] border" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>Cancelar</button>

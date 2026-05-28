@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
 import type { SatisfacaoRecord } from '@/types'
+import { IcoStar, IcoBot, IcoUser } from '@/components/icons'
 
 interface Metrics { media:number; total:number; distribuicao:Record<number,number>; tendencia:Array<{data:string;media:number}> }
 const EMOJI:Record<number,string>={1:'😡',2:'😕',3:'😐',4:'🙂',5:'😀'}
@@ -80,7 +81,7 @@ export default function SatisfacaoPage(){
               <ScoreRing v={metrics?.media??0}/>
               <div>
                 <p style={{fontSize:14,fontWeight:600,color:'var(--txt)',marginBottom:4}}>
-                  {(metrics?.media??0)>=4.5?'Excelente 🎉':(metrics?.media??0)>=3.5?'Bom 👍':(metrics?.media??0)>=2.5?'Regular ⚠️':tot===0?'Sem dados':'Atenção 🔴'}
+                  {(metrics?.media??0)>=4.5?'Excelente':(metrics?.media??0)>=3.5?'Bom':(metrics?.media??0)>=2.5?'Regular':tot===0?'Sem dados':'Atenção'}
                 </p>
                 <p style={{fontSize:12,color:'var(--txt-2)'}}>{tot} avaliações</p>
                 {tot>0&&<p style={{fontSize:11,color:'var(--txt-3)',marginTop:4}}>Notas 4-5: {((((dist[4]??0)+(dist[5]??0))/tot)*100).toFixed(0)}% dos clientes</p>}
@@ -143,7 +144,7 @@ export default function SatisfacaoPage(){
           <div style={{overflowX:'auto'}}>
             {filtered.length===0?(
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'48px 0',gap:8,color:'var(--txt-3)'}}>
-                <span style={{fontSize:32}}>⭐</span><p style={{fontSize:13}}>Nenhuma avaliação encontrada</p>
+                <IcoStar size={32}/><p style={{fontSize:13}}>Nenhuma avaliação encontrada</p>
               </div>
             ):(
               <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -165,7 +166,7 @@ export default function SatisfacaoPage(){
                           </div>
                         </td>
                         <td style={S.td}>
-                          <span style={{fontSize:11,fontWeight:600,color:isBot?'#A78BFA':'var(--neon)'}}>{isBot?'🤖 Bot':`👤 ${r.atendente.slice(0,12)}`}</span>
+                          <span style={{fontSize:11,fontWeight:600,color:isBot?'#A78BFA':'var(--neon)',display:'inline-flex',alignItems:'center',gap:4}}>{isBot?<><IcoBot size={11}/>Bot</>:<><IcoUser size={11}/>{r.atendente.slice(0,12)}</>}</span>
                         </td>
                         <td style={{...S.td,fontFamily:'monospace',fontSize:11,color:'var(--txt-3)',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.atendimentoId||'—'}</td>
                       </tr>

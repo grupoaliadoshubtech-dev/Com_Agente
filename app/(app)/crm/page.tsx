@@ -7,17 +7,18 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import type { ClientRecord, CRMStage } from '@/types'
+import { IcoPlusCircle, IcoMessageCircle, IcoClipboard, IcoClock, IcoLink, IcoCheckCircle, IcoXCircle, IcoUsers, IcoFileText } from '@/components/icons'
 
 // ── Configuração do Funil ────────────────────────────────────
 
-const STAGES: { key: CRMStage; label: string; color: string; icon: string }[] = [
-  { key: 'novo',                label: 'Novo',                color: '#60A5FA', icon: '🆕' },
-  { key: 'em_atendimento',      label: 'Em Atendimento',      color: '#A78BFA', icon: '💬' },
-  { key: 'proposta_enviada',    label: 'Proposta Enviada',    color: '#F59E0B', icon: '📋' },
-  { key: 'aguardando_resposta', label: 'Aguardando Resposta', color: '#FB923C', icon: '⏳' },
-  { key: 'negociacao',          label: 'Negociação',          color: '#38BDF8', icon: '🤝' },
-  { key: 'fechado',             label: 'Fechado',             color: '#10B981', icon: '✅' },
-  { key: 'perdido',             label: 'Perdido',             color: '#EF4444', icon: '❌' },
+const STAGES: { key: CRMStage; label: string; color: string; icon: React.ReactNode }[] = [
+  { key: 'novo',                label: 'Novo',                color: '#60A5FA', icon: <IcoPlusCircle size={13}/> },
+  { key: 'em_atendimento',      label: 'Em Atendimento',      color: '#A78BFA', icon: <IcoMessageCircle size={13}/> },
+  { key: 'proposta_enviada',    label: 'Proposta Enviada',    color: '#F59E0B', icon: <IcoClipboard size={13}/> },
+  { key: 'aguardando_resposta', label: 'Aguardando Resposta', color: '#FB923C', icon: <IcoClock size={13}/> },
+  { key: 'negociacao',          label: 'Negociação',          color: '#38BDF8', icon: <IcoLink size={13}/> },
+  { key: 'fechado',             label: 'Fechado',             color: '#10B981', icon: <IcoCheckCircle size={13}/> },
+  { key: 'perdido',             label: 'Perdido',             color: '#EF4444', icon: <IcoXCircle size={13}/> },
 ]
 
 function stageInfo(key: string) {
@@ -296,7 +297,7 @@ export default function CRMPage() {
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {filtered.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 8, color: 'var(--txt-3)' }}>
-              <span style={{ fontSize: 32 }}>👥</span><p style={{ fontSize: 13 }}>Nenhum cliente encontrado</p>
+              <IcoUsers size={32}/><p style={{ fontSize: 13 }}>Nenhum cliente encontrado</p>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -490,8 +491,8 @@ export default function CRMPage() {
                 {/* Ações */}
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <p style={labelStyle}>Ações rápidas</p>
-                  <a href={`/transcricoes?telefone=${selected.telefone}`} style={{ fontSize: 12, color: 'var(--neon)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>📝 Ver transcrições</a>
-                  <a href={`/workspace`} style={{ fontSize: 12, color: 'var(--neon)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>💬 Abrir no Workspace</a>
+                  <a href={`/transcricoes?telefone=${selected.telefone}`} style={{ fontSize: 12, color: 'var(--neon)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><IcoFileText size={12}/> Ver transcrições</a>
+                  <a href={`/workspace`} style={{ fontSize: 12, color: 'var(--neon)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><IcoMessageCircle size={12}/> Abrir no Workspace</a>
                 </div>
               </>
             )}

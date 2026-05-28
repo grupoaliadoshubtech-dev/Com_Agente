@@ -6,12 +6,13 @@
 import { useSession } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
+import { IcoBuilding, IcoGem, IcoBan, IcoAlertTriangle } from '@/components/icons'
 
 const ADMIN_NAV = [
-  { href: '/admin/empresas',  icon: '🏢', label: 'Empresas',       sub: 'Tenants e provisionamento' },
-  { href: '/admin/planos',    icon: '💎', label: 'Planos Master',   sub: 'CRUD de assinaturas' },
-  { href: '/admin/blacklist', icon: '🚫', label: 'Blacklist Global',sub: 'Números bloqueados' },
-  { href: '/admin/logs',      icon: '⚠️', label: 'Log de Erros',    sub: 'Erros do sistema' },
+  { href: '/admin/empresas',  icon: <IcoBuilding size={15} />, label: 'Empresas',       sub: 'Tenants e provisionamento' },
+  { href: '/admin/planos',    icon: <IcoGem size={15} />,      label: 'Planos Master',   sub: 'CRUD de assinaturas' },
+  { href: '/admin/blacklist', icon: <IcoBan size={15} />,      label: 'Blacklist Global',sub: 'Números bloqueados' },
+  { href: '/admin/logs',      icon: <IcoAlertTriangle size={15} />, label: 'Log de Erros', sub: 'Erros do sistema' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -69,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-[15px]">{item.icon}</span>
+                  <span className={`flex-shrink-0 ${active ? 'text-neon' : 'text-muted'}`}>{item.icon}</span>
                   <span className={`text-[13px] font-medium ${active ? 'text-neon' : 'text-secondary-aad'}`}>
                     {item.label}
                   </span>

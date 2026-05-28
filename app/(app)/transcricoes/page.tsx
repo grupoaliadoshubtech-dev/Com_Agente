@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { AtendimentoRecord } from '@/types'
+import { IcoBot, IcoUser, IcoFileText, IcoLock } from '@/components/icons'
 
 function fmtDT(iso?:string){if(!iso)return'—';try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return iso}}
 function fmtDur(ini:string,fim?:string){if(!ini||!fim)return'—';const m=Math.round((new Date(fim).getTime()-new Date(ini).getTime())/60000);if(isNaN(m)||m<0)return'—';return m<60?`${m}min`:`${Math.floor(m/60)}h ${m%60}min`}
@@ -71,7 +72,7 @@ export default function TranscricoesPage(){
         <div style={{flex:1,overflowY:'auto'}}>
           {filtered.length===0?(
             <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:200,gap:8,color:'var(--txt-3)'}}>
-              <span style={{fontSize:32}}>📝</span><p style={{fontSize:13}}>Nenhum atendimento encontrado</p>
+              <IcoFileText size={32}/><p style={{fontSize:13}}>Nenhum atendimento encontrado</p>
             </div>
           ):(
             <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -90,7 +91,7 @@ export default function TranscricoesPage(){
                       <td style={S.td}>{fmtDur(r.inicio,r.fim)}</td>
                       <td style={S.td}>
                         <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:100,background:isBot?'rgba(139,92,246,.12)':'var(--neon-dim)',border:`1px solid ${isBot?'rgba(139,92,246,.25)':'var(--neon-border)'}`,color:isBot?'#A78BFA':'var(--neon)'}}>
-                          {isBot?'🤖 Bot':`👤 ${r.atendente.slice(0,10)}`}
+                          {isBot?<><IcoBot size={11}/>Bot</>:<><IcoUser size={11}/>{r.atendente.slice(0,10)}</>}
                         </span>
                       </td>
                       <td style={S.td}><Stars n={r.satisfacao}/></td>
@@ -120,7 +121,7 @@ export default function TranscricoesPage(){
             <div style={{marginBottom:12}}>
               <p style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:6}}>Atendente</p>
               <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:100,background:(sel.atendente==='Bot'||!sel.atendente)?'rgba(139,92,246,.12)':'var(--neon-dim)',border:`1px solid ${(sel.atendente==='Bot'||!sel.atendente)?'rgba(139,92,246,.25)':'var(--neon-border)'}`,color:(sel.atendente==='Bot'||!sel.atendente)?'#A78BFA':'var(--neon)'}}>
-                {(sel.atendente==='Bot'||!sel.atendente)?'🤖 Bot':`👤 ${sel.atendente}`}
+                {(sel.atendente==='Bot'||!sel.atendente)?<><IcoBot size={11}/>Bot</>:<><IcoUser size={11}/>{sel.atendente}</>}
               </span>
             </div>
             <div style={{marginBottom:16}}>
@@ -131,7 +132,7 @@ export default function TranscricoesPage(){
               <p style={{fontWeight:600,color:'var(--txt)',marginBottom:4}}>Autoria</p>
               <p>{(sel.atendente==='Bot'||!sel.atendente)?'Encerrado pela IA — atendente = "Bot"':`Encerrado por ${sel.atendente}`}</p>
             </div>
-            <p style={{textAlign:'center',fontSize:10,color:'var(--txt-3)',marginTop:20}}>🔒 Somente leitura</p>
+            <p style={{textAlign:'center',fontSize:10,color:'var(--txt-3)',marginTop:20,display:'flex',alignItems:'center',justifyContent:'center',gap:4}}><IcoLock size={10}/> Somente leitura</p>
           </div>
         </div>
       )}

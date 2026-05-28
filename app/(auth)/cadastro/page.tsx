@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Plan } from '@/types'
+import { IcoCheckCircle, IcoClipboard } from '@/components/icons'
 
 type Step = 'form' | 'loading' | 'success'
 
@@ -43,10 +44,10 @@ export default function CadastroPage(){
   if(step==='success') return (
     <main style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:24,background:'var(--bg)'}}>
       <div style={{textAlign:'center',maxWidth:480,animation:'slideUp .3s ease'}}>
-        <div style={{width:64,height:64,borderRadius:'50%',background:'var(--neon-dim)',border:'1px solid var(--neon-border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,margin:'0 auto 20px'}}>✅</div>
+        <div style={{width:64,height:64,borderRadius:'50%',background:'var(--neon-dim)',border:'1px solid var(--neon-border)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',color:'var(--neon)'}}><IcoCheckCircle size={32}/></div>
         <h2 className="font-display" style={{fontSize:24,fontWeight:800,color:'var(--txt)',marginBottom:8}}>Solicitação recebida!</h2>
         <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'6px 16px',borderRadius:100,background:'var(--neon-dim)',border:'1px solid var(--neon-border)',color:'var(--neon)',fontSize:13,fontWeight:600,marginBottom:20}}>
-          ⭐ Plano {selPlan?.name}
+          Plano {selPlan?.name}
         </div>
         <div style={{background:'var(--bg-card)',border:'1px solid var(--neon-border)',borderRadius:14,padding:24,marginBottom:20,textAlign:'left'}}>
           <strong style={{color:'var(--neon)'}}>O seu atendimento personalizado está sendo construído.</strong>
@@ -72,7 +73,7 @@ export default function CadastroPage(){
         <form onSubmit={submit}>
           {/* Dados */}
           <div className="card" style={{padding:24,marginBottom:16}}>
-            <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:16}}>📋 Dados do lead</p>
+            <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:16,display:'flex',alignItems:'center',gap:6}}><IcoClipboard size={13}/> Dados do lead</p>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div><label style={labelStyle}>Nome completo</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="João da Silva" required style={inputStyle}/></div>
               <div><label style={labelStyle}>Empresa</label><input value={company} onChange={e=>setCompany(e.target.value)} placeholder="Sua empresa" required style={inputStyle}/></div>
