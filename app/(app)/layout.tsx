@@ -166,17 +166,17 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
 
         <div style={{flex:1,padding:'10px 8px',overflowY:'auto',overflowX:'hidden'}}>
+          {role==='master' && <>
+            <SecLabel label="Master Admin" />
+            {MASTER_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
+          </>}
+
           <SecLabel label="Principal" />
           {MAIN_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
 
           {(role==='supervisor'||role==='master') && <>
             <SecLabel label="Configurações" />
             {CONFIG_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
-          </>}
-
-          {role==='master' && <>
-            <SecLabel label="Master Admin" />
-            {MASTER_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
           </>}
 
           <button onClick={()=>signOut({callbackUrl:'/login'})} title={collapsed?'Sair':undefined} style={{display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 10px',borderRadius:10,border:'1px solid transparent',cursor:'pointer',marginTop:8,background:'transparent',color:'#A0A0A0',fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:13,fontWeight:500,whiteSpace:'nowrap'}}>
