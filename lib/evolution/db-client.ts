@@ -44,20 +44,49 @@ export async function getLidMapping(instanceName: string): Promise<Map<string, s
   const instanceId = await getInstanceId(instanceName)
   if (!instanceId) return new Map()
 
+  // Estratégia 1: mensagens enviadas (fromMe=true) armazenadas com @lid
+  // têm o mesmo remoteJid que mensagens recebidas do mesmo contato
+  // Buscamos pares @lid ↔ @s.whatsapp.net via Chat ou Message onde ambos existam
   const result = await pool.query<{ lid: string; phone: string }>(
-    `SELECT DISTINCT 
-       "key"->>'remoteJid' as lid,
-       "key"->>'remoteJidAlt' as phone
-     FROM "Message"
-     WHERE "key"->>'remoteJid' LIKE '%@lid'
-       AND "key"->>'remoteJidAlt' LIKE '%@s.whatsapp.net'
-       AND "instanceId" = $1`,
+    `SELECT DISTINCT
+       m1."key"->>'remoteJid' AS lid,
+       m2."key"->>'remoteJid' AS phone
+     FROM "Message" m1
+     JOIN "Message" m2
+       ON m1."key"->>'id' = m2."key"->>'id'
+      AND m1."instanceId" = m2."instanceId"
+     WHERE m1."instanceId" = $1
+       AND m1."key"->>'remoteJid' LIKE '%@lid'
+       AND m2."key"->>'remoteJid' LIKE '%@s.whatsapp.net'
+     LIMIT 500`,
     [instanceId]
   )
 
   const map = new Map<string, string>()
   for (const row of result.rows) {
     if (row.lid && row.phone) map.set(row.lid, row.phone)
+  }
+
+  // Estratégia 2 (fallback): busca direta na tabela Chat se existir
+  if (map.size === 0) {
+    try {
+      const chatResult = await pool.query<{ lid: string; phone: string }>(
+        `SELECT DISTINCT
+           "remoteJid" AS lid,
+           "phoneNumber" AS phone
+         FROM "Chat"
+         WHERE "instanceId" = $1
+           AND "remoteJid" LIKE '%@lid'
+           AND "phoneNumber" IS NOT NULL
+         LIMIT 500`,
+        [instanceId]
+      )
+      for (const row of chatResult.rows) {
+        if (row.lid && row.phone) map.set(row.lid, row.phone)
+      }
+    } catch {
+      // Chat table ou coluna pode não existir nessa versão do Evolution API
+    }
   }
 
   lidMappingCache.set(instanceName, { map, ts: Date.now() })
@@ -80,8 +109,10 @@ export async function findAllMessages(
     message: Record<string, unknown>
     messageTimestamp: number
     messageType: string
+    status: string | null
   }>(
-    `SELECT key, "pushName", message, "messageTimestamp", "messageType"
+    `SELECT key, "pushName", message, "messageTimestamp", "messageType",
+            COALESCE("status", NULL) AS status
      FROM "Message"
      WHERE "key"->>'remoteJid' IN (${placeholders})
        AND "instanceId" = $${remoteJids.length + 1}
@@ -96,5 +127,6 @@ export async function findAllMessages(
     message: row.message,
     messageTimestamp: row.messageTimestamp,
     messageType: row.messageType,
+    status: row.status ?? undefined,
   }))
 }
