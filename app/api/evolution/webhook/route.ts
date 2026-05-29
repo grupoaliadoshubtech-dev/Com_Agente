@@ -90,7 +90,10 @@ async function processWebhookEvent(
       // (Evolution API pode não salvar fromMe=false por padrão)
       for (const msg of messages) {
         if (!msg.key.fromMe) {
-          await saveReceivedMessage(msg, tenant.instanceName).catch(() => {})
+          await saveReceivedMessage(
+            { ...msg, message: msg.message as Record<string, unknown> | undefined },
+            tenant.instanceName
+          ).catch(() => {})
         }
       }
 

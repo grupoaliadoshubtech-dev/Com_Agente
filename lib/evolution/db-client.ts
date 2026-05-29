@@ -115,7 +115,7 @@ export async function saveReceivedMessage(
           : msg.messageTimestamp)
       : Math.floor(Date.now() / 1000)
 
-    await pool.query(
+    await pool.query<Record<string, never>>(
       `INSERT INTO "Message"
          ("key", "pushName", "message", "messageTimestamp", "messageType", "instanceId")
        VALUES ($1, $2, $3, $4, $5, $6)
