@@ -44,20 +44,16 @@ export async function getLidMapping(instanceName: string): Promise<Map<string, s
   const instanceId = await getInstanceId(instanceName)
   if (!instanceId) return new Map()
 
-  // Estratégia 1: mensagens enviadas (fromMe=true) armazenadas com @lid
-  // têm o mesmo remoteJid que mensagens recebidas do mesmo contato
-  // Buscamos pares @lid ↔ @s.whatsapp.net via Chat ou Message onde ambos existam
+  // remoteJidAlt existe no schema do Evolution API v2:
+  // mensagens recebidas guardam remoteJid=@lid e remoteJidAlt=phone@s.whatsapp.net
   const result = await pool.query<{ lid: string; phone: string }>(
     `SELECT DISTINCT
-       m1."key"->>'remoteJid' AS lid,
-       m2."key"->>'remoteJid' AS phone
-     FROM "Message" m1
-     JOIN "Message" m2
-       ON m1."key"->>'id' = m2."key"->>'id'
-      AND m1."instanceId" = m2."instanceId"
-     WHERE m1."instanceId" = $1
-       AND m1."key"->>'remoteJid' LIKE '%@lid'
-       AND m2."key"->>'remoteJid' LIKE '%@s.whatsapp.net'
+       "key"->>'remoteJid'    AS lid,
+       "key"->>'remoteJidAlt' AS phone
+     FROM "Message"
+     WHERE "instanceId" = $1
+       AND "key"->>'remoteJid'    LIKE '%@lid'
+       AND "key"->>'remoteJidAlt' LIKE '%@s.whatsapp.net'
      LIMIT 500`,
     [instanceId]
   )
@@ -65,28 +61,6 @@ export async function getLidMapping(instanceName: string): Promise<Map<string, s
   const map = new Map<string, string>()
   for (const row of result.rows) {
     if (row.lid && row.phone) map.set(row.lid, row.phone)
-  }
-
-  // Estratégia 2 (fallback): busca direta na tabela Chat se existir
-  if (map.size === 0) {
-    try {
-      const chatResult = await pool.query<{ lid: string; phone: string }>(
-        `SELECT DISTINCT
-           "remoteJid" AS lid,
-           "phoneNumber" AS phone
-         FROM "Chat"
-         WHERE "instanceId" = $1
-           AND "remoteJid" LIKE '%@lid'
-           AND "phoneNumber" IS NOT NULL
-         LIMIT 500`,
-        [instanceId]
-      )
-      for (const row of chatResult.rows) {
-        if (row.lid && row.phone) map.set(row.lid, row.phone)
-      }
-    } catch {
-      // Chat table ou coluna pode não existir nessa versão do Evolution API
-    }
   }
 
   lidMappingCache.set(instanceName, { map, ts: Date.now() })
@@ -145,6 +119,8 @@ export async function findAllMessages(
 
   const placeholders = remoteJids.map((_, i) => `$${i + 1}`).join(', ')
 
+  // Busca por remoteJid (mensagens enviadas) OU remoteJidAlt (mensagens recebidas via @lid).
+  // No WhatsApp moderno, mensagens recebidas usam remoteJid=@lid e guardam o telefone em remoteJidAlt.
   const result = await pool.query<{
     key: DBMessage['key']
     pushName: string
@@ -156,7 +132,10 @@ export async function findAllMessages(
     `SELECT key, "pushName", message, "messageTimestamp", "messageType",
             COALESCE("status", NULL) AS status
      FROM "Message"
-     WHERE "key"->>'remoteJid' IN (${placeholders})
+     WHERE (
+       "key"->>'remoteJid'    IN (${placeholders})
+       OR "key"->>'remoteJidAlt' IN (${placeholders})
+     )
        AND "instanceId" = $${remoteJids.length + 1}
      ORDER BY "messageTimestamp" ASC
      LIMIT $${remoteJids.length + 2}`,
