@@ -192,6 +192,23 @@ export class EvolutionClient {
     return []
   }
 
+  // Busca explicitamente mensagens RECEBIDAS (fromMe=false) via HTTP.
+  // O endpoint /chat/findMessages retorna só fromMe=true por padrão (bug conhecido).
+  // Ao passar fromMe:false explicitamente, o Evolution API v2 filtra o lado correto.
+  async findReceivedMessages(remoteJid: string, count = 50): Promise<EvolutionMessage[]> {
+    try {
+      const result = await this.request<{ messages?: { records: EvolutionMessage[] } }>(
+        'POST', `/chat/findMessages/${this.instanceName}`,
+        { where: { key: { remoteJid, fromMe: false } }, limit: count }
+      )
+      if (Array.isArray(result)) return result as unknown as EvolutionMessage[]
+      if (result?.messages?.records) return result.messages.records
+      return []
+    } catch {
+      return []
+    }
+  }
+
   // ════════════════════════════════════════════════════════════
   // MÍDIA — FASE 2 (NOVO)
   // ════════════════════════════════════════════════════════════

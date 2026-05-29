@@ -7,6 +7,7 @@ import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.reposi
 import { findAllMessages } from '@/lib/evolution/db-client'
 import type { ApiResponse } from '@/types'
 
+
 export const dynamic = 'force-dynamic'
 
 const tenantsRepo = new TenantsRepository()
@@ -91,14 +92,41 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     }
 
     const phoneJid = numberToJid(phone)
+    const client   = EvolutionClient.fromEnv(instanceName)
 
     // Busca pelos dois JIDs se @lid estiver disponível
     const jids = [phoneJid]
     if (lidJid) jids.push(lidJid)
 
-    const rawMessages = await findAllMessages(jids, instanceName, count)
+    // Fonte 1: PostgreSQL (geralmente tem fromMe=true + mensagens salvas pelo webhook)
+    const dbMessages = await findAllMessages(jids, instanceName, count)
 
-    const messages = rawMessages
+    // Fonte 2: HTTP com fromMe=false explícito — busca mensagens RECEBIDAS do cliente
+    // O Evolution API v2 bug: sem filtro retorna só fromMe=true; com fromMe:false retorna recebidas
+    const httpReceived = await client.findReceivedMessages(phoneJid, count)
+
+    // Merge das duas fontes, deduplicando pelo key.id
+    const seen = new Set<string>()
+    const merged: typeof dbMessages = []
+
+    for (const m of dbMessages) {
+      if (!seen.has(m.key.id)) { seen.add(m.key.id); merged.push(m) }
+    }
+    for (const m of httpReceived) {
+      if (!seen.has(m.key.id)) {
+        seen.add(m.key.id)
+        merged.push({
+          key:              m.key,
+          pushName:         m.pushName,
+          message:          m.message as Record<string, unknown> | undefined,
+          messageTimestamp: typeof m.messageTimestamp === 'string' ? parseInt(m.messageTimestamp, 10) : m.messageTimestamp,
+          messageType:      m.messageType,
+          status:           m.status,
+        })
+      }
+    }
+
+    const rawMessages = merged
       .filter(msg => {
         const m = msg.message as Record<string, unknown> | undefined
         if (!m) return false
@@ -122,7 +150,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
           remoteJid: msg.key.remoteJid,
           type: fromMe ? 'outgoing' as const : 'incoming' as const,
           text,
-          time: ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bahia' }),
+          time: ts.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
           timestamp: ts.toISOString(),
           pushName: msg.pushName ?? phone,
           fromMe,
@@ -137,7 +165,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
       })
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
-    return NextResponse.json({ success: true, data: messages })
+    return NextResponse.json({ success: true, data: rawMessages })
   } catch (err) {
     console.error('[/api/evolution/messages]', err)
     return NextResponse.json({ success: false, error: `Erro ao buscar mensagens: ${String(err)}` }, { status: 500 })
