@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { EvolutionClient, numberToJid } from '@/lib/evolution/client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
-import { findAllMessages } from '@/lib/evolution/db-client'
 import type { ApiResponse } from '@/types'
 
 
@@ -94,35 +93,32 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const phoneJid = numberToJid(phone)
     const client   = EvolutionClient.fromEnv(instanceName)
 
-    // Busca pelos dois JIDs se @lid estiver disponível
-    const jids = [phoneJid]
-    if (lidJid) jids.push(lidJid)
+    // Duas queries HTTP provadas via teste direto na Evolution API:
+    // 1. remoteJid = @s.whatsapp.net → retorna mensagens ENVIADAS (fromMe=true)
+    // 2. remoteJidAlt = @s.whatsapp.net → retorna mensagens RECEBIDAS (fromMe=false, remoteJid=@lid)
+    const [httpSent, httpReceived] = await Promise.all([
+      client.findMessages(phoneJid, count),
+      client.findReceivedMessages(phoneJid, count),
+    ])
 
-    // Fonte 1: PostgreSQL (geralmente tem fromMe=true + mensagens salvas pelo webhook)
-    const dbMessages = await findAllMessages(jids, instanceName, count)
-
-    // Fonte 2: HTTP com fromMe=false explícito — busca mensagens RECEBIDAS do cliente
-    // O Evolution API v2 bug: sem filtro retorna só fromMe=true; com fromMe:false retorna recebidas
-    const httpReceived = await client.findReceivedMessages(phoneJid, count)
-
-    // Merge das duas fontes, deduplicando pelo key.id
+    // Merge deduplicando pelo key.id (WhatsApp message ID)
     const seen = new Set<string>()
-    const merged: typeof dbMessages = []
+    type MsgRow = { key: { id: string; fromMe: boolean; remoteJid: string }; pushName?: string; message?: Record<string, unknown>; messageTimestamp?: number; messageType?: string; status?: string }
+    const merged: MsgRow[] = []
 
-    for (const m of dbMessages) {
-      if (!seen.has(m.key.id)) { seen.add(m.key.id); merged.push(m) }
-    }
-    for (const m of httpReceived) {
-      if (!seen.has(m.key.id)) {
-        seen.add(m.key.id)
-        merged.push({
-          key:              m.key,
-          pushName:         m.pushName,
-          message:          m.message as Record<string, unknown> | undefined,
-          messageTimestamp: typeof m.messageTimestamp === 'string' ? parseInt(m.messageTimestamp, 10) : m.messageTimestamp,
-          messageType:      m.messageType,
-          status:           m.status,
-        })
+    for (const src of [httpSent, httpReceived]) {
+      for (const m of src) {
+        if (!seen.has(m.key.id)) {
+          seen.add(m.key.id)
+          merged.push({
+            key:              m.key,
+            pushName:         m.pushName,
+            message:          m.message as Record<string, unknown> | undefined,
+            messageTimestamp: typeof m.messageTimestamp === 'string' ? parseInt(m.messageTimestamp, 10) : m.messageTimestamp,
+            messageType:      m.messageType,
+            status:           m.status,
+          })
+        }
       }
     }
 
