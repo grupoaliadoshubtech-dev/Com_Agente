@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>28 de maio de 2026</strong> (v1.6)<br>
+    Documento consolidado e atualizado — <strong>29 de maio de 2026</strong> (v1.7)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -178,6 +178,7 @@
       <tr><td>24/05/2026</td><td>1.4</td><td>Mobile: remoção da barra de navegação inferior — tela 60px maior no mobile</td></tr>
       <tr><td>25/05/2026</td><td>1.5</td><td>Mobile avançado: workspace WhatsApp-style, foto de perfil, conexão WhatsApp, reset de senha, sidebar independente mobile/desktop</td></tr>
       <tr><td>28/05/2026</td><td>1.6</td><td>Padronização SVG icons, sidebar master reordenada, filtros workspace, planos no login, header fixo, páginas equipe e planos do cliente</td></tr>
+      <tr><td>29/05/2026</td><td>1.7</td><td>Fix definitivo mensagens recebidas no workspace — diagnóstico via API, solução 100% HTTP com remoteJidAlt</td></tr>
     </tbody>
   </table>
 </div>
@@ -366,6 +367,7 @@
     <tr><td>"Sob consulta" para planos Enterprise</td><td><span class="ok">✓ 28/05/2026 — price=0 exibe "Sob consulta" em /supervisor/planos e /login</span></td></tr>
     <tr><td>Filtros de conversa no workspace</td><td><span class="ok">✓ 28/05/2026 — Pills estilo WhatsApp: Todos / IA / Humano / Em Aberto / Finalizado</span></td></tr>
     <tr><td>Header topbar fixo em todas as telas</td><td><span class="ok">✓ 28/05/2026 — Coluna com overflow:hidden + main com overflow:auto. Header nunca rola.</span></td></tr>
+    <tr><td>Mensagens recebidas no workspace (fix definitivo)</td><td><span class="ok">✓ 29/05/2026 — Dual HTTP: enviadas via remoteJid, recebidas via remoteJidAlt. Diagnóstico via teste direto na Evolution API.</span></td></tr>
   </tbody>
 </table>
 
@@ -587,6 +589,51 @@
 <div class="pend-card open">
   <h4>6.21 Filtro "Finalizado" no workspace — pendente</h4>
   <p>O HandoffRepository só tem status <code>ativo</code> e <code>pausado</code>. Para o filtro "Finalizado" funcionar, o comando <code>/finalizar</code> do n8n precisa gravar <code>status=finalizado</code> na Fila_Humana E a API <code>/api/evolution/chats</code> precisa expor esse campo no <code>ChatContact</code>. A infraestrutura de UI está pronta.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.22 Mensagens recebidas não apareciam no workspace — fix definitivo — 29/05/2026</h4>
+
+  <p><strong>Histórico:</strong> em 20/04/2026 foi implementada a busca via PostgreSQL da Evolution API para contornar o bug do endpoint HTTP que retornava apenas <code>fromMe: true</code>. Funcionou até ~26/04/2026.</p>
+
+  <p><strong>Erro:</strong> mensagens dos clientes apareciam no preview da lista de contatos (via chat list HTTP) mas não dentro do chat (via query PostgreSQL). Testes diretos na Evolution API revelaram a causa raiz:</p>
+
+  <table>
+    <thead><tr><th>Tipo</th><th>key.remoteJid</th><th>key.remoteJidAlt</th></tr></thead>
+    <tbody>
+      <tr><td>Enviada (bot/IA)</td><td><code>557182608738@s.whatsapp.net</code></td><td>—</td></tr>
+      <tr><td>Recebida (cliente)</td><td><code>211132707020926@lid</code></td><td><code>557182608738@s.whatsapp.net</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>O WhatsApp moderno usa <strong>JID no formato <code>@lid</code></strong> (device-linked ID) como identificador primário para mensagens recebidas. O telefone real fica em <code>remoteJidAlt</code>. A query PostgreSQL buscava apenas por <code>remoteJid</code>, nunca encontrando as mensagens recebidas.</p>
+
+  <p><strong>Diagnóstico — testes diretos na Evolution API (29/05/2026):</strong></p>
+  <table>
+    <thead><tr><th>Query HTTP enviada</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td><code>where: { key: { remoteJid: "phone@s.whatsapp.net" } }</code></td><td>335 mensagens, todas <code>fromMe: true</code> (enviadas)</td></tr>
+      <tr><td><code>where: { key: { remoteJid: "211132707020926@lid" } }</code></td><td>183 mensagens, todas <code>fromMe: false</code> (recebidas)</td></tr>
+      <tr><td><code>where: { key: { remoteJidAlt: "phone@s.whatsapp.net" } }</code></td><td><strong>112 mensagens recebidas ✓</strong></td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Solução implementada</strong> em <code>app/api/evolution/messages/route.ts</code> e <code>lib/evolution/client.ts</code>:</p>
+  <ul>
+    <li>Eliminada dependência do PostgreSQL para busca de mensagens (instável)</li>
+    <li>Duas queries HTTP em paralelo via <code>Promise.all</code>:
+      <ol>
+        <li><code>findMessages(phoneJid)</code> → filtra por <code>remoteJid = @s.whatsapp.net</code> → mensagens <strong>enviadas</strong></li>
+        <li><code>findReceivedMessages(phoneJid)</code> → filtra por <code>remoteJidAlt = @s.whatsapp.net</code> → mensagens <strong>recebidas</strong></li>
+      </ol>
+    </li>
+    <li>Merge deduplicado por <code>key.id</code> (WhatsApp message ID)</li>
+    <li>Horário corrigido de <code>America/Bahia</code> para <code>America/Sao_Paulo</code></li>
+  </ul>
+
+  <p><strong>Resultado verificado pelo cliente:</strong> conversa completa (enviadas + recebidas) aparece no workspace. ✓</p>
+
+  <p><strong>Nota para próximas sessões:</strong> O PostgreSQL da Evolution API (<code>EVOLUTION_DB_URL</code>) continua ativo para o mapeamento <code>@lid → phone</code> via <code>getLidMapping()</code> (usado no chats route). Mas a rota <code>/api/evolution/messages</code> agora usa exclusivamente o HTTP da Evolution API.</p>
 </div>
 
 
