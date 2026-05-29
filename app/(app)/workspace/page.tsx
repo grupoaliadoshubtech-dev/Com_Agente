@@ -335,7 +335,17 @@ export default function WorkspacePage() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  function openChat(c: ChatContact) { setSelected(c); setMessages([]); setLoadingMsg(true); fetchMessages(c.telefone, c.lidJid); setMobileView('chat') }
+  function openChat(c: ChatContact) {
+    setSelected(c)
+    setMessages([])
+    setLoadingMsg(true)
+    fetchMessages(c.telefone, c.lidJid)
+    setMobileView('chat')
+    // Reseta o badge imediatamente no estado local
+    setChats(prev => prev.map(x => x.telefone === c.telefone ? { ...x, unreadCount: 0 } : x))
+    // Marca mensagens como lidas na Evolution API em background
+    fetch(`/api/evolution/mark-read?phone=${encodeURIComponent(c.telefone)}${c.lidJid ? `&lid=${encodeURIComponent(c.lidJid)}` : ''}`, { method: 'POST' }).catch(() => {})
+  }
   function backToList() { setMobileView('list') }
 
   async function openProfile(c: ChatContact) {
