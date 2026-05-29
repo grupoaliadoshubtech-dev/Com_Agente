@@ -196,6 +196,17 @@ export class EvolutionClient {
   // Mensagens recebidas no WhatsApp moderno usam remoteJid=@lid e guardam
   // o telefone do contato em remoteJidAlt. Filtrar por remoteJidAlt retorna
   // todas as mensagens recebidas daquele número.
+  // Envia confirmação de leitura ao remetente (double blue check no WhatsApp do cliente).
+  async markMessagesAsRead(messages: Array<{ remoteJid: string; fromMe: boolean; id: string }>): Promise<void> {
+    try {
+      await this.request('POST', `/chat/markMessageAsRead/${this.instanceName}`, {
+        readMessages: messages,
+      })
+    } catch {
+      // Não crítico — se falhar, cliente simplesmente não vê o azul
+    }
+  }
+
   async findReceivedMessages(phoneJid: string, count = 50): Promise<EvolutionMessage[]> {
     try {
       const result = await this.request<{ messages?: { records: EvolutionMessage[] } }>(
