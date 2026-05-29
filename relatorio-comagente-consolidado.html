@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>29 de maio de 2026</strong> (v1.7)<br>
+    Documento consolidado e atualizado — <strong>29 de maio de 2026</strong> (v1.8)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -179,6 +179,7 @@
       <tr><td>25/05/2026</td><td>1.5</td><td>Mobile avançado: workspace WhatsApp-style, foto de perfil, conexão WhatsApp, reset de senha, sidebar independente mobile/desktop</td></tr>
       <tr><td>28/05/2026</td><td>1.6</td><td>Padronização SVG icons, sidebar master reordenada, filtros workspace, planos no login, header fixo, páginas equipe e planos do cliente</td></tr>
       <tr><td>29/05/2026</td><td>1.7</td><td>Fix definitivo mensagens recebidas no workspace — diagnóstico via API, solução 100% HTTP com remoteJidAlt</td></tr>
+      <tr><td>29/05/2026</td><td>1.8</td><td>Read receipt (✓✓ azul) habilitado — readMessages e readStatus ativados na instância lucenadecoracoes</td></tr>
     </tbody>
   </table>
 </div>
@@ -368,6 +369,7 @@
     <tr><td>Filtros de conversa no workspace</td><td><span class="ok">✓ 28/05/2026 — Pills estilo WhatsApp: Todos / IA / Humano / Em Aberto / Finalizado</span></td></tr>
     <tr><td>Header topbar fixo em todas as telas</td><td><span class="ok">✓ 28/05/2026 — Coluna com overflow:hidden + main com overflow:auto. Header nunca rola.</span></td></tr>
     <tr><td>Mensagens recebidas no workspace (fix definitivo)</td><td><span class="ok">✓ 29/05/2026 — Dual HTTP: enviadas via remoteJid, recebidas via remoteJidAlt. Diagnóstico via teste direto na Evolution API.</span></td></tr>
+    <tr><td>Read receipt — ✓✓ azul para o cliente</td><td><span class="ok">✓ 29/05/2026 — readMessages=true e readStatus=true ativados via API na instância lucenadecoracoes</span></td></tr>
   </tbody>
 </table>
 
@@ -584,6 +586,19 @@
     <li>Main: <code>flex: 1; overflow: auto; min-height: 0</code> — único container de scroll</li>
   </ul>
   <p>O scroll acontece exclusivamente dentro do <code>main</code>. O header é irmão do <code>main</code> no flex e não participa do scroll. Rodapés de páginas continuam acessíveis via scroll do <code>main</code>.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.23 Read receipt (✓✓ azul) para o cliente — 29/05/2026</h4>
+  <p>Mensagens enviadas pelos clientes para o bot apareciam com apenas <strong>✓</strong> (enviado ao servidor) no WhatsApp do cliente — nunca evoluíam para ✓✓ cinza (entregue) nem ✓✓ azul (lido).</p>
+  <p><strong>Causa:</strong> configurações da instância <code>lucenadecoracoes</code> no Evolution API tinham <code>readMessages: false</code> e <code>readStatus: false</code>. Com <code>readStatus: false</code>, a Evolution API bloqueava qualquer envio de confirmação de leitura ao remetente — inclusive chamadas manuais via API que retornavam "success" sem efeito real.</p>
+  <p><strong>Solução:</strong> habilitado via <code>POST /settings/set/lucenadecoracoes</code>:</p>
+  <ul>
+    <li><code>readMessages: true</code> — Evolution API chama <code>sock.readMessages()</code> automaticamente ao receber cada mensagem</li>
+    <li><code>readStatus: true</code> — Evolution API envia o receipt de leitura ao remetente via protocolo WhatsApp Web (Baileys)</li>
+  </ul>
+  <p><strong>Comportamento atual:</strong> o ✓✓ azul aparece no WhatsApp do cliente assim que a mensagem chega ao servidor do bot — antes mesmo do processamento pela IA. Isso é o comportamento correto para bots de atendimento: confirma ao cliente que o sistema recebeu a mensagem.</p>
+  <p><strong>Nota:</strong> este é um ajuste de configuração na Evolution API, não requer código no ComAgente. Em caso de recriação da instância, aplicar novamente via API ou pelo painel da Evolution.</p>
 </div>
 
 <div class="pend-card open">
