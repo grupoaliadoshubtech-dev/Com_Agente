@@ -43,13 +43,14 @@ export function useEvolution() {
 // ── Hook específico para a página de Conexão WhatsApp ─────────
 
 interface QRState {
-  loading:     boolean
-  connected:   boolean
-  state:       string
-  qrcode?:     string     // base64
-  profileName?: string
-  phone?:       string
-  error?:       string
+  loading:       boolean
+  connected:     boolean
+  state:         string
+  qrcode?:       string     // base64
+  profileName?:  string
+  phone?:        string
+  instanceName?: string
+  error?:        string
 }
 
 export function useQRCode(pollIntervalMs = 5000) {
@@ -68,13 +69,14 @@ export function useQRCode(pollIntervalMs = 5000) {
       }
 
       setQrState({
-        loading:     false,
-        connected:   data.data.connected,
-        state:       data.data.state,
-        qrcode:      data.data.qrcode,
-        profileName: data.data.profileName,
-        phone:       data.data.phone,
-        error:       undefined,
+        loading:      false,
+        connected:    data.data.connected,
+        state:        data.data.state,
+        qrcode:       data.data.qrcode,
+        profileName:  data.data.profileName,
+        phone:        data.data.phone,
+        instanceName: data.data.instanceName,
+        error:        undefined,
       })
     } catch (err) {
       setQrState(s => ({ ...s, loading: false, error: String(err) }))

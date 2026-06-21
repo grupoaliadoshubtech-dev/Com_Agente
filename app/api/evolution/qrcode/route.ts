@@ -55,10 +55,11 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
       return NextResponse.json({
         success: true,
         data:    {
-          connected:   true,
-          state:       'open',
-          profileName: status.instance.profileName,
-          phone:       status.instance.phoneNumber,
+          connected:    true,
+          state:        'open',
+          profileName:  status.instance.profileName,
+          phone:        status.instance.phoneNumber,
+          instanceName,
         },
       })
     }
@@ -69,10 +70,11 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     return NextResponse.json({
       success: true,
       data:    {
-        connected: false,
-        state:     status.instance.state,
-        qrcode:    qr.qrcode.base64.replace(/^data:image\/[^;]+;base64,/, ''), // remove prefixo se vier
-        code:      qr.qrcode.code,
+        connected:    false,
+        state:        status.instance.state,
+        qrcode:       qr.qrcode.base64.replace(/^data:image\/[^;]+;base64,/, ''),
+        code:         qr.qrcode.code,
+        instanceName,
       },
     })
   } catch (err) {

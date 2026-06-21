@@ -13,7 +13,7 @@ export default function ConexaoPage() {
   const [disconnecting, setDisconnecting] = useState(false)
   const [confirmDisc,   setConfirmDisc]   = useState(false)
 
-  const instanceName = process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE || session?.user?.tenantId || '—'
+  const instanceName = qr.instanceName || process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE || '—'
 
   async function handleConnect() {
     setConnecting(true)
