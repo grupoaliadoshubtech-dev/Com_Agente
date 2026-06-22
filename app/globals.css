@@ -339,6 +339,30 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   }
 }
 
+/* ── Toast — notificação centralizada ────────────────────────── */
+.toast-base {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  background: var(--bg-card, #1a1a1a);
+  color: var(--txt, #fff);
+  border: 1px solid var(--border, #333);
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  pointer-events: none;
+  animation: toast-in .18s ease;
+  white-space: nowrap;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
 /* ── Print: esconde elementos de UI ──────────────────────────── */
 @media print {
   aside, nav, .topbar-base, .btn-neon, .btn-outline, .ia-toggle,
