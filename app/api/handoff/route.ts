@@ -2,7 +2,7 @@
 // app/api/handoff/route.ts
 //
 // POST /api/handoff
-// Corpo: { action: 'pausar' | 'retomar' | 'kill_switch', telefone?: string }
+// Corpo: { action: 'pausar' | 'retomar' | 'pausa_global', telefone?: string }
 //
 // Grava na aba Fila_Humana do tenant com exatamente 4 colunas:
 //   A: Telefone | B: Status | C: Timestamp ISO | D: Atendente
@@ -16,7 +16,7 @@ import { z } from 'zod'
 import type { ApiResponse } from '@/types'
 
 const HandoffSchema = z.object({
-  action:   z.enum(['pausar', 'retomar', 'kill_switch']),
+  action:   z.enum(['pausar', 'retomar', 'pausa_global']),
   telefone: z.string().optional(),
 })
 
@@ -76,12 +76,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
           data: { telefone, status: 'ativo', atendente: atendenteId, timestamp: new Date().toISOString() }
         })
 
-      case 'kill_switch':
-        // Kill switch: grava "ALL" — afeta todos os atendimentos
-        await repo.killSwitch(atendenteId)
+      case 'pausa_global':
+        await repo.pausaGlobal(atendenteId)
         return NextResponse.json({
           success: true,
-          message: 'Kill Switch acionado — IA pausada para TODOS',
+          message: 'Pausa Global acionada — IA pausada para TODOS',
           data: { telefone: 'ALL', status: 'pausado', atendente: atendenteId, timestamp: new Date().toISOString() }
         })
     }

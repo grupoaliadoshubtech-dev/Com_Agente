@@ -35,11 +35,11 @@ export class HandoffRepository {
   }
 
   /**
-   * Kill Switch Global — pausa IA para TODOS.
+   * Pausa Global — pausa IA para TODOS.
    * Grava "ALL" na coluna Telefone. O n8n detecta "ALL" e
    * bloqueia processamento de qualquer número.
    */
-  async killSwitch(atendenteId: string): Promise<void> {
+  async pausaGlobal(atendenteId: string): Promise<void> {
     await this.pausar('ALL', atendenteId)
   }
 
@@ -51,7 +51,6 @@ export class HandoffRepository {
     const rows = await readRange(this.spreadsheetId, RANGE)
     if (rows.length < 2) return
 
-    // linha 0 = header (índice 0 na planilha), dados começam na linha 1
     const indices: number[] = []
     for (let i = 1; i < rows.length; i++) {
       if ((rows[i][0] ?? '').trim() === telefone) indices.push(i)

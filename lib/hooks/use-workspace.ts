@@ -39,9 +39,9 @@ export function useWorkspace() {
     return handoff.retomar(telefone)
   }
 
-  /** Kill Switch — grava ALL na Fila_Humana. */
-  async function killSwitch() {
-    return handoff.killSwitch()
+  /** Pausa Global — grava ALL na Fila_Humana. */
+  async function pausaGlobal() {
+    return handoff.pausaGlobal()
   }
 
   return {
@@ -50,6 +50,6 @@ export function useWorkspace() {
     sendMessage,
     pauseIA,
     resumeIA,
-    killSwitch,
+    pausaGlobal,
   }
 }

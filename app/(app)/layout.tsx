@@ -99,7 +99,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   async function doKill() {
-    const r = await handoff.killSwitch()
+    const r = await handoff.pausaGlobal()
     setKillModal(false)
     showToast(r.success ? '🛑 IA pausada — ALL gravado' : `Erro: ${r.error}`)
   }
