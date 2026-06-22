@@ -255,9 +255,11 @@ export default function WorkspacePage() {
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const tpl = useTemplates()
 
-  const endRef      = useRef<HTMLDivElement>(null)
-  const selectedRef = useRef<ChatContact | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const endRef          = useRef<HTMLDivElement>(null)
+  const msgContainerRef = useRef<HTMLDivElement>(null)
+  const isAtBottom      = useRef(true)
+  const selectedRef     = useRef<ChatContact | null>(null)
+  const fileInputRef    = useRef<HTMLInputElement>(null)
   const lastBackMs  = useRef(0)
 
   useEffect(() => { selectedRef.current = selected }, [selected])
@@ -333,9 +335,14 @@ export default function WorkspacePage() {
     return () => clearInterval(i)
   }, [selected, fetchMessages])
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+  useEffect(() => {
+    if (isAtBottom.current) {
+      endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages])
 
   function openChat(c: ChatContact) {
+    isAtBottom.current = true  // novo chat sempre começa no final
     setSelected(c)
     setMessages([])
     setLoadingMsg(true)
@@ -605,7 +612,16 @@ export default function WorkspacePage() {
           </div>
 
           {/* Mensagens */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-1.5" style={{ background: 'rgba(0,0,0,0.15)' }}>
+          <div
+            ref={msgContainerRef}
+            onScroll={() => {
+              const el = msgContainerRef.current
+              if (!el) return
+              isAtBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+            }}
+            className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-1.5"
+            style={{ background: 'rgba(0,0,0,0.15)' }}
+          >
             {loadingMsg ? <div className="flex-1 flex items-center justify-center text-[13px] text-muted">Carregando mensagens...</div>
             : messages.length === 0 ? (
               <div className="flex-1 flex items-center justify-center flex-col gap-2 text-muted">
