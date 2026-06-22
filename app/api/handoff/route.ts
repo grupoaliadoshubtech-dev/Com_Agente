@@ -69,7 +69,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         if (!telefone) {
           return NextResponse.json({ success: false, error: 'telefone obrigatório para retomar' }, { status: 422 })
         }
-        await repo.retomar(telefone, atendenteId)
+        await repo.retomar(telefone)
         return NextResponse.json({
           success: true,
           message: `IA retomada para ${telefone}`,

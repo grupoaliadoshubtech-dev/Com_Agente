@@ -86,6 +86,26 @@ export async function updateRange(
 }
 
 /**
+ * Apaga linhas de uma aba pelo índice (0-based).
+ * Os índices devem vir em ordem DECRESCENTE para evitar shift durante deleção.
+ */
+export async function deleteRows(
+  spreadsheetId: string,
+  sheetId: number,
+  rowIndices: number[]
+): Promise<void> {
+  if (rowIndices.length === 0) return
+  const sheets = getSheetsClient()
+  const sorted = [...rowIndices].sort((a, b) => b - a) // decrescente
+  const requests = sorted.map(i => ({
+    deleteDimension: {
+      range: { sheetId, dimension: 'ROWS', startIndex: i, endIndex: i + 1 },
+    },
+  }))
+  await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } })
+}
+
+/**
  * Limpa um range (útil para resetar fila).
  */
 export async function clearRange(

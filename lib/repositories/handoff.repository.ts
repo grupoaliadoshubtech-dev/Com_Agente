@@ -10,11 +10,12 @@
 //   D: Atendente (ID do usuário logado)
 // ─────────────────────────────────────────────────────────────
 
-import { appendRows, readRange, rowsToObjects } from '@/lib/sheets/client'
+import { appendRows, readRange, deleteRows, rowsToObjects } from '@/lib/sheets/client'
 import type { HandoffRecord } from '@/types'
 
-const SHEET = 'Fila_Humana'
-const RANGE = `${SHEET}!A:D`
+const SHEET    = 'Fila_Humana'
+const RANGE    = `${SHEET}!A:D`
+const SHEET_ID = 1239974346  // gid da aba Fila_Humana
 
 export class HandoffRepository {
   constructor(private spreadsheetId: string) {}
@@ -43,16 +44,20 @@ export class HandoffRepository {
   }
 
   /**
-   * Retoma IA para um cliente (grava status "ativo").
+   * Retoma IA para um cliente — apaga todas as linhas do telefone na fila.
+   * getStatus() sem registros retorna 'ativo' por padrão, então não precisa gravar nada.
    */
-  async retomar(telefone: string, atendenteId: string): Promise<void> {
-    const record: string[] = [
-      telefone,
-      'ativo',
-      new Date().toISOString(),
-      atendenteId,
-    ]
-    await appendRows(this.spreadsheetId, RANGE, [record])
+  async retomar(telefone: string): Promise<void> {
+    const rows = await readRange(this.spreadsheetId, RANGE)
+    if (rows.length < 2) return
+
+    // linha 0 = header (índice 0 na planilha), dados começam na linha 1
+    const indices: number[] = []
+    for (let i = 1; i < rows.length; i++) {
+      if ((rows[i][0] ?? '').trim() === telefone) indices.push(i)
+    }
+
+    await deleteRows(this.spreadsheetId, SHEET_ID, indices)
   }
 
   /**
