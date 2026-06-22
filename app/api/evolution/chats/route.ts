@@ -5,14 +5,16 @@ import { authOptions } from '@/lib/auth'
 import { EvolutionClient, jidToNumber } from '@/lib/evolution/client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import { HandoffRepository } from '@/lib/repositories/handoff.repository'
+import { ClientesRepository } from '@/lib/repositories/clientes.repository'
 import { getLidMapping } from '@/lib/evolution/db-client'
 import type { ApiResponse } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
-const tenantsRepo = new TenantsRepository()
-const tenantCache = new Map<string, { data: unknown; ts: number }>()
-const handoffCache = new Map<string, { data: unknown[]; ts: number }>()
+const tenantsRepo   = new TenantsRepository()
+const tenantCache   = new Map<string, { data: unknown; ts: number }>()
+const handoffCache  = new Map<string, { data: unknown[]; ts: number }>()
+const clientesCache = new Map<string, { map: Map<string, string>; ts: number }>()
 
 function extractText(message?: Record<string, unknown>): string {
   if (!message) return ''
@@ -65,6 +67,19 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       } catch {}
     }
 
+    // Busca nomes cadastrados na aba Clientes da planilha do tenant
+    const cachedClientes = clientesCache.get(cacheKey)
+    let clienteNames = new Map<string, string>()
+    if (cachedClientes && Date.now() - cachedClientes.ts < 60000) {
+      clienteNames = cachedClientes.map
+    } else {
+      try {
+        const clientesRepo = new ClientesRepository(cacheKey)
+        clienteNames = await clientesRepo.buildNameMap()
+        clientesCache.set(cacheKey, { map: clienteNames, ts: Date.now() })
+      } catch { /* planilha pode não ter a aba ainda */ }
+    }
+
     // Busca mapeamento @lid → @s.whatsapp.net do PostgreSQL
     const lidToPhone = await getLidMapping(instanceName)
     const phoneToLid = new Map<string, string>()
@@ -106,6 +121,7 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       }
 
       const phone = jidToNumber(phoneJid)
+      const clienteNome = clienteNames.get(phone) ?? null
       const lastMsg = chat.lastMessage
       const handoffEntry = handoffRecords
         .filter(h => h.telefone === phone || h.telefone === 'ALL')
@@ -124,7 +140,7 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
         unified.set(phoneJid, {
           telefone: phone,
           lidJid: lidJid ?? existing?.lidJid ?? null,
-          nome: chat.pushName ?? lastMsg?.pushName ?? phone,
+          nome: clienteNome ?? chat.pushName ?? lastMsg?.pushName ?? phone,
           preview: fromMe ? `Você: ${preview}` : preview,
           timestamp,
           iaStatus,
