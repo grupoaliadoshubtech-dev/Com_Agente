@@ -2,7 +2,7 @@
 // app/api/handoff/route.ts
 //
 // POST /api/handoff
-// Corpo: { action: 'pausar' | 'retomar' | 'pausa_global', telefone?: string }
+// Corpo: { action: 'pausar' | 'retomar' | 'pausa_global' | 'retornar_global', telefone?: string }
 //
 // Grava na aba Fila_Humana do tenant com exatamente 4 colunas:
 //   A: Telefone | B: Status | C: Timestamp ISO | D: Atendente
@@ -16,7 +16,7 @@ import { z } from 'zod'
 import type { ApiResponse } from '@/types'
 
 const HandoffSchema = z.object({
-  action:   z.enum(['pausar', 'retomar', 'pausa_global']),
+  action:   z.enum(['pausar', 'retomar', 'pausa_global', 'retornar_global']),
   telefone: z.string().optional(),
 })
 
@@ -82,6 +82,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
           success: true,
           message: 'Pausa Global acionada — IA pausada para TODOS',
           data: { telefone: 'ALL', status: 'pausado', atendente: atendenteId, timestamp: new Date().toISOString() }
+        })
+
+      case 'retornar_global':
+        await repo.retomar('ALL')
+        return NextResponse.json({
+          success: true,
+          message: 'Pausa Global removida — IA reativada para TODOS',
+          data: { telefone: 'ALL', status: 'ativo', atendente: atendenteId, timestamp: new Date().toISOString() }
         })
     }
   } catch (err) {

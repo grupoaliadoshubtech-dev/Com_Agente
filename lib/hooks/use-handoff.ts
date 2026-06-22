@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import type { ApiResponse, HandoffRecord } from '@/types'
 
-type Action = 'pausar' | 'retomar' | 'pausa_global'
+type Action = 'pausar' | 'retomar' | 'pausa_global' | 'retornar_global'
 
 interface HandoffResult {
   success: boolean
@@ -37,6 +37,7 @@ export function useHandoff() {
     loading,
     pausar:      (telefone: string) => execute('pausar', telefone),
     retomar:     (telefone: string) => execute('retomar', telefone),
-    pausaGlobal: ()                 => execute('pausa_global'),
+    pausaGlobal:    ()                 => execute('pausa_global'),
+    retomarGlobal:  ()                 => execute('retornar_global'),
   }
 }

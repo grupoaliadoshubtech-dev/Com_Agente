@@ -3,7 +3,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useHandoff } from '@/lib/hooks/use-handoff'
 import { ThemeProvider, useTheme } from '@/lib/context/theme-context'
 
@@ -79,10 +79,18 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const handoff  = useHandoff()
   const { isDark, toggleTheme } = useTheme()
 
-  const [col,       setCol]       = useState(false)
-  const [mobOpen,   setMobOpen]   = useState(false)
-  const [killModal, setKillModal] = useState(false)
-  const [toast,     setToast]     = useState('')
+  const [col,              setCol]              = useState(false)
+  const [mobOpen,          setMobOpen]          = useState(false)
+  const [killModal,        setKillModal]        = useState(false)
+  const [toast,            setToast]            = useState('')
+  const [pausaGlobalAtiva, setPausaGlobalAtiva] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/handoff?telefone=ALL')
+      .then(r => r.json())
+      .then(d => { if (d.success) setPausaGlobalAtiva(d.data.status === 'pausado') })
+      .catch(() => {})
+  }, [])
 
   const user = session?.user
   const role = user?.role ?? 'atendente'
@@ -99,9 +107,12 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   async function doKill() {
-    const r = await handoff.pausaGlobal()
+    const r = pausaGlobalAtiva ? await handoff.retomarGlobal() : await handoff.pausaGlobal()
+    if (r.success) setPausaGlobalAtiva(!pausaGlobalAtiva)
     setKillModal(false)
-    showToast(r.success ? '🛑 IA pausada — ALL gravado' : `Erro: ${r.error}`)
+    showToast(r.success
+      ? pausaGlobalAtiva ? '▶ IA reativada para todos' : '⏸ IA pausada para todos'
+      : `Erro: ${r.error}`)
   }
 
   function nav(href: string) { router.push(href); setMobOpen(false) }
@@ -231,9 +242,10 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               <span className="hide-mobile">{isDark ? 'Tema Claro' : 'Tema Escuro'}</span>
             </button>
             {(role==='supervisor'||role==='master') && (
-              <button className="btn-kill" onClick={()=>setKillModal(true)}>
+              <button className="btn-kill" onClick={()=>setKillModal(true)}
+                style={pausaGlobalAtiva ? { borderColor:'#EF4444', color:'#EF4444', background:'rgba(239,68,68,0.12)' } : undefined}>
                 {IC.stop}
-                <span className="hide-mobile">Pausar Global</span>
+                <span className="hide-mobile">{pausaGlobalAtiva ? 'Retornar Global' : 'Pausar Global'}</span>
               </button>
             )}
             <button className="btn-icon hide-mobile">{IC.bell}</button>
@@ -246,14 +258,26 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       {killModal && (
         <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setKillModal(false)}}>
           <div className="card animate-slide-up" style={{maxWidth:380,width:'100%',padding:24}}>
-            <div className="font-display" style={{fontSize:16,fontWeight:700,marginBottom:8,color:'var(--txt)'}}>🛑 Pausar Global</div>
+            <div className="font-display" style={{fontSize:16,fontWeight:700,marginBottom:8,color:'var(--txt)'}}>
+              {pausaGlobalAtiva ? '▶ Retornar Global' : '⏸ Pausar Global'}
+            </div>
             <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:20}}>
-              Pausará a IA em <strong style={{color:'var(--txt)'}}>TODOS os atendimentos</strong>.
-              Grava <code style={{background:'var(--bg-input)',padding:'2px 6px',borderRadius:4,fontSize:12}}>{'"ALL"'}</code> na Fila_Humana.
+              {pausaGlobalAtiva
+                ? <>Remove a pausa global e <strong style={{color:'var(--txt)'}}>reativa a IA para TODOS</strong> os atendimentos.</>
+                : <>Pausará a IA em <strong style={{color:'var(--txt)'}}>TODOS os atendimentos</strong>. A IA deixará de responder até ser reativada.</>
+              }
             </p>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button className="btn-outline" onClick={()=>setKillModal(false)} style={{padding:'8px 16px',fontSize:13}}>Cancelar</button>
-              <button className="btn-danger" onClick={doKill} style={{padding:'8px 16px',fontSize:13}}>{handoff.loading?'Pausando...':'Pausar toda a IA'}</button>
+              <button
+                onClick={doKill}
+                disabled={handoff.loading}
+                className={pausaGlobalAtiva ? 'btn-primary' : 'btn-danger'}
+                style={{padding:'8px 16px',fontSize:13}}>
+                {handoff.loading
+                  ? (pausaGlobalAtiva ? 'Reativando...' : 'Pausando...')
+                  : (pausaGlobalAtiva ? 'Retornar Global' : 'Pausar toda a IA')}
+              </button>
             </div>
           </div>
         </div>
