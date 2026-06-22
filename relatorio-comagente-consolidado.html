@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>29 de maio de 2026</strong> (v1.8)<br>
+    Documento consolidado e atualizado — <strong>22 de junho de 2026</strong> (v1.9)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -180,6 +180,7 @@
       <tr><td>28/05/2026</td><td>1.6</td><td>Padronização SVG icons, sidebar master reordenada, filtros workspace, planos no login, header fixo, páginas equipe e planos do cliente</td></tr>
       <tr><td>29/05/2026</td><td>1.7</td><td>Fix definitivo mensagens recebidas no workspace — diagnóstico via API, solução 100% HTTP com remoteJidAlt</td></tr>
       <tr><td>29/05/2026</td><td>1.8</td><td>Read receipt (✓✓ azul) habilitado — readMessages e readStatus ativados na instância lucenadecoracoes</td></tr>
+      <tr><td>22/06/2026</td><td>1.9</td><td>Instância correta na página de conexão, nome do cliente via aba Clientes, retomar IA limpa Fila_Humana</td></tr>
     </tbody>
   </table>
 </div>
@@ -370,6 +371,9 @@
     <tr><td>Header topbar fixo em todas as telas</td><td><span class="ok">✓ 28/05/2026 — Coluna com overflow:hidden + main com overflow:auto. Header nunca rola.</span></td></tr>
     <tr><td>Mensagens recebidas no workspace (fix definitivo)</td><td><span class="ok">✓ 29/05/2026 — Dual HTTP: enviadas via remoteJid, recebidas via remoteJidAlt. Diagnóstico via teste direto na Evolution API.</span></td></tr>
     <tr><td>Read receipt — ✓✓ azul para o cliente</td><td><span class="ok">✓ 29/05/2026 — readMessages=true e readStatus=true ativados via API na instância lucenadecoracoes</span></td></tr>
+    <tr><td>Instância correta na página de Conexão WhatsApp</td><td><span class="ok">✓ 22/06/2026 — exibe nome real da instância (lucenadecoracoes) via tenant.evolutionInstance</span></td></tr>
+    <tr><td>Nome do cliente via aba Clientes da planilha</td><td><span class="ok">✓ 22/06/2026 — ClientesRepository enriquece lista de chats com nome cadastrado (cache 60s)</span></td></tr>
+    <tr><td>Retomar IA limpa Fila_Humana</td><td><span class="ok">✓ 22/06/2026 — deleteRows apaga linhas do telefone; pausar continua append</span></td></tr>
   </tbody>
 </table>
 
@@ -601,6 +605,40 @@
   <p><strong>Nota:</strong> este é um ajuste de configuração na Evolution API, não requer código no ComAgente. Em caso de recriação da instância, aplicar novamente via API ou pelo painel da Evolution.</p>
 </div>
 
+<div class="pend-card done">
+  <h4>6.24 Instância correta na página de Conexão WhatsApp — 22/06/2026</h4>
+  <p>O card "Instância" exibia o ID da planilha Google Sheets (<code>1fvrlD2raZxl...</code>) porque o frontend usava <code>session.user.tenantId</code> como fallback. Corrigido em três arquivos:</p>
+  <ul>
+    <li><code>app/api/evolution/qrcode/route.ts</code> — retorna <code>instanceName</code> (resolvido via <code>tenant.evolutionInstance</code>) na resposta</li>
+    <li><code>lib/hooks/use-evolution.ts</code> — expõe <code>instanceName</code> no estado do hook <code>useQRCode</code></li>
+    <li><code>app/(app)/supervisor/conexao/page.tsx</code> — usa <code>qr.instanceName</code> em vez do tenantId</li>
+  </ul>
+  <p>Agora exibe corretamente o nome da instância Evolution API (<code>lucenadecoracoes</code>).</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.25 Nome do cliente via aba Clientes da planilha — 22/06/2026</h4>
+  <p>A lista de chats exibia apenas o <code>pushName</code> do WhatsApp (nome de perfil). Criado <code>lib/repositories/clientes.repository.ts</code> que lê a aba <strong>Clientes</strong> da planilha do tenant e constrói um <code>Map&lt;telefone, nome&gt;</code>.</p>
+  <p>A rota <code>/api/evolution/chats</code> foi atualizada para enriquecer cada chat com esse mapa (cache 60s). Prioridade do nome exibido:</p>
+  <ol>
+    <li>Nome cadastrado na aba Clientes <strong>(novo)</strong></li>
+    <li>pushName do WhatsApp</li>
+    <li>Número do telefone (fallback)</li>
+  </ol>
+  <p>Se a aba Clientes não existir na planilha do tenant, cai silenciosamente para o comportamento anterior.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.26 Retomar IA limpa a Fila_Humana em vez de fazer append — 22/06/2026</h4>
+  <p>Antes, "Retomar IA" gravava uma nova linha <code>status=ativo</code> na Fila_Humana, acumulando registros indefinidamente. Agora a operação <strong>apaga</strong> todas as linhas do telefone na aba.</p>
+  <ul>
+    <li><code>lib/sheets/client.ts</code> — nova função <code>deleteRows(spreadsheetId, sheetId, rowIndices[])</code> via <code>batchUpdate + DeleteDimensionRequest</code>. Índices processados em ordem decrescente para evitar shift.</li>
+    <li><code>lib/repositories/handoff.repository.ts</code> — <code>retomar()</code> lê a aba, coleta índices do telefone e chama <code>deleteRows</code>. sheetId fixo: <code>1239974346</code> (gid da aba Fila_Humana).</li>
+    <li><code>pausar()</code> continua idêntico (append).</li>
+  </ul>
+  <p><code>getStatus()</code> sem registros retorna <code>'ativo'</code> por padrão — sem necessidade de gravar linha nova.</p>
+</div>
+
 <div class="pend-card open">
   <h4>6.21 Filtro "Finalizado" no workspace — pendente</h4>
   <p>O HandoffRepository só tem status <code>ativo</code> e <code>pausado</code>. Para o filtro "Finalizado" funcionar, o comando <code>/finalizar</code> do n8n precisa gravar <code>status=finalizado</code> na Fila_Humana E a API <code>/api/evolution/chats</code> precisa expor esse campo no <code>ChatContact</code>. A infraestrutura de UI está pronta.</p>
@@ -721,7 +759,7 @@ curl -I http://localhost:3001</pre>
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 1.4 | 24 de maio de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 1.9 | 22 de junho de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
