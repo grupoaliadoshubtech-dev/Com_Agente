@@ -233,7 +233,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             {(role==='supervisor'||role==='master') && (
               <button className="btn-kill" onClick={()=>setKillModal(true)}>
                 {IC.stop}
-                <span className="hide-mobile">Kill Switch</span>
+                <span className="hide-mobile">Pausar Global</span>
               </button>
             )}
             <button className="btn-icon hide-mobile">{IC.bell}</button>
@@ -246,7 +246,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       {killModal && (
         <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setKillModal(false)}}>
           <div className="card animate-slide-up" style={{maxWidth:380,width:'100%',padding:24}}>
-            <div className="font-display" style={{fontSize:16,fontWeight:700,marginBottom:8,color:'var(--txt)'}}>🛑 Kill Switch Global</div>
+            <div className="font-display" style={{fontSize:16,fontWeight:700,marginBottom:8,color:'var(--txt)'}}>🛑 Pausar Global</div>
             <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:20}}>
               Pausará a IA em <strong style={{color:'var(--txt)'}}>TODOS os atendimentos</strong>.
               Grava <code style={{background:'var(--bg-input)',padding:'2px 6px',borderRadius:4,fontSize:12}}>{'"ALL"'}</code> na Fila_Humana.
