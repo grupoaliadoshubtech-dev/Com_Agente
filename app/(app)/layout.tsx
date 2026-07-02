@@ -133,7 +133,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           padding:'9px 10px', borderRadius:10, border:'1px solid transparent',
           cursor:'pointer', marginBottom:2, textAlign:'left',
           background: active ? 'var(--nav-active-bg)' : 'transparent',
-          color:       active ? 'var(--nav-active-txt)' : '#A0A0A0',
+          color:       active ? 'var(--nav-active-txt)' : 'var(--sidebar-txt)',
           borderColor: active ? 'var(--nav-active-border)' : 'transparent',
           fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13, fontWeight:500,
           position:'relative', whiteSpace:'nowrap',
@@ -147,7 +147,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     }
 
     function SecLabel({ label }: { label: string }) {
-      return <div style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#5A5D63',padding:'12px 10px 5px',opacity:collapsed?0:1,height:collapsed?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,height .2s'}}>{label}</div>
+      return <div style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--sidebar-txt-2)',padding:'12px 10px 5px',opacity:collapsed?0:1,height:collapsed?0:'auto',overflow:'hidden',whiteSpace:'nowrap',transition:'opacity .2s,height .2s'}}>{label}</div>
     }
 
     return (
@@ -158,7 +158,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           </button>
         )}
 
-        <div style={{height:58,display:'flex',alignItems:'center',padding:'0 16px',gap:10,borderBottom:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
+        <div style={{height:58,display:'flex',alignItems:'center',padding:'0 16px',gap:10,borderBottom:'1px solid var(--sidebar-border)',flexShrink:0}}>
           <div style={{width:32,height:32,borderRadius:9,background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
             <svg width="32" height="32" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" style={{display:'block'}}>
               <defs>
@@ -176,7 +176,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             Com<span style={{color:'var(--neon)'}}>Agente</span>
           </div>
           {onClose && (
-            <button onClick={onClose} style={{width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.06)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#A0A0A0',flexShrink:0}}>
+            <button onClick={onClose} style={{width:30,height:30,borderRadius:8,background:'var(--sidebar-hover)',border:'none',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'var(--sidebar-txt)',flexShrink:0}}>
               {IC.chevron}
             </button>
           )}
@@ -196,18 +196,18 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             {CONFIG_NAV.map(i=><NavBtn key={i.href} {...i}/>)}
           </>}
 
-          <button onClick={()=>signOut({callbackUrl:'/login'})} title={collapsed?'Sair':undefined} style={{display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 10px',borderRadius:10,border:'1px solid transparent',cursor:'pointer',marginTop:8,background:'transparent',color:'#A0A0A0',fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:13,fontWeight:500,whiteSpace:'nowrap'}}>
+          <button onClick={()=>signOut({callbackUrl:'/login'})} title={collapsed?'Sair':undefined} style={{display:'flex',alignItems:'center',gap:10,width:'100%',padding:'9px 10px',borderRadius:10,border:'1px solid transparent',cursor:'pointer',marginTop:8,background:'transparent',color:'var(--sidebar-txt)',fontFamily:"'Plus Jakarta Sans',sans-serif",fontSize:13,fontWeight:500,whiteSpace:'nowrap'}}>
             <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>{IC.logout}</span>
             <span style={{opacity:collapsed?0:1,transition:'opacity .2s'}}>Sair</span>
           </button>
         </div>
 
-        <div style={{padding:8,borderTop:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:10,background:'rgba(255,255,255,.04)'}}>
+        <div style={{padding:8,borderTop:'1px solid var(--sidebar-border)',flexShrink:0}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:10,background:'var(--sidebar-hover)'}}>
             <div style={{width:32,height:32,borderRadius:'50%',background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#0a0a0a'}}>{initials}</div>
             <div style={{flex:1,minWidth:0,opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s'}}>
               <div style={{fontSize:12,fontWeight:600,color:'#fff',whiteSpace:'nowrap'}}>{user?.name??'Usuário'}</div>
-              <div style={{fontSize:10,color:'#5A5D63',textTransform:'capitalize'}}>{role}</div>
+              <div style={{fontSize:10,color:'var(--sidebar-txt-2)',textTransform:'capitalize'}}>{role}</div>
             </div>
           </div>
         </div>
@@ -219,11 +219,11 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
       {mobOpen && <div onClick={()=>setMobOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:25}}/>}
 
-      <aside className="hide-mobile" style={{width:col?64:230,background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,.06)',display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden',position:'relative',zIndex:30,transition:'width .22s ease'}}>
+      <aside className="hide-mobile" style={{width:col?64:230,background:'var(--bg-sidebar)',borderRight:'1px solid var(--sidebar-border)',display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden',position:'relative',zIndex:30,transition:'width .22s ease'}}>
         <SidebarContent collapsed={col} showToggle />
       </aside>
 
-      <aside className="show-mobile" style={{position:'fixed',top:0,left:0,bottom:0,width:240,background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,.06)',display:'flex',flexDirection:'column',overflow:'hidden',zIndex:40,transform:mobOpen?'translateX(0)':'translateX(-100%)',transition:'transform .22s ease'}}>
+      <aside className="show-mobile" style={{position:'fixed',top:0,left:0,bottom:0,width:240,background:'var(--bg-sidebar)',borderRight:'1px solid var(--sidebar-border)',display:'flex',flexDirection:'column',overflow:'hidden',zIndex:40,transform:mobOpen?'translateX(0)':'translateX(-100%)',transition:'transform .22s ease'}}>
         <SidebarContent collapsed={false} onClose={()=>setMobOpen(false)} />
       </aside>
 

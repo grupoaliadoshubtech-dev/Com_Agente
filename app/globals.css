@@ -18,6 +18,7 @@
   --danger: #EF4444; --danger-dim: rgba(239,68,68,.12); --warning: #F59E0B; --success: #10B981;
   --shadow: 0 4px 24px rgba(0,0,0,.45); --shadow-sm: 0 2px 10px rgba(0,0,0,.35);
   --nav-active-bg: rgba(163,230,53,.1); --nav-active-border: rgba(163,230,53,.2); --nav-active-txt: #A3E635;
+  --sidebar-border: rgba(255,255,255,.06); --sidebar-hover: rgba(255,255,255,.04); --sidebar-txt: #A0A0A0; --sidebar-txt-2: #5A5D63;
   --wa-bg: #0B141A; --wa-sidebar: #111B21; --wa-header: #202C33; --wa-input-bg: #202C33;
   --wa-bubble-out: #005C4B; --wa-bubble-in: #202C33; --wa-txt: #E9EDEF; --wa-txt-2: #8696A0;
   --bg-base: #111214; --text-primary: #F0F2F5; --text-secondary: #A0A0A0; --text-muted: #5A5D63;
@@ -25,13 +26,14 @@
 
 /* LIGHT */
 [data-theme="light"] {
-  --bg: #F4F7F6; --bg-card: #FFFFFF; --bg-sidebar: #1E1E1E; --bg-input: #EDF0EE; --bg-hover: rgba(0,0,0,.04);
+  --bg: #F4F7F6; --bg-card: #FFFFFF; --bg-sidebar: #1A2332; --bg-input: #EDF0EE; --bg-hover: rgba(0,0,0,.04);
   --neon: #2D9F75; --neon-dim: rgba(45,159,117,.09); --neon-glow: rgba(45,159,117,.18); --neon-border: rgba(45,159,117,.28);
   --txt: #2D3748; --txt-2: #718096; --txt-3: #A0AEC0;
   --border: rgba(0,0,0,.08); --border-md: rgba(0,0,0,.14);
   --danger: #E53E3E; --danger-dim: rgba(229,62,62,.1); --warning: #D69E2E; --success: #2D9F75;
   --shadow: 0 4px 24px rgba(0,0,0,.1); --shadow-sm: 0 2px 10px rgba(0,0,0,.07);
-  --nav-active-bg: rgba(163,230,53,.12); --nav-active-border: rgba(163,230,53,.25); --nav-active-txt: #A3E635;
+  --nav-active-bg: rgba(45,159,117,.15); --nav-active-border: rgba(45,159,117,.3); --nav-active-txt: #2D9F75;
+  --sidebar-border: rgba(255,255,255,.07); --sidebar-hover: rgba(255,255,255,.05); --sidebar-txt: #CBD5E0; --sidebar-txt-2: #718096;
   --wa-bg: #EAE6DF; --wa-sidebar: #F0F2F5; --wa-header: #F0F2F5; --wa-input-bg: #F0F2F5;
   --wa-bubble-out: #D9FDD3; --wa-bubble-in: #FFFFFF; --wa-txt: #111B21; --wa-txt-2: #667781;
   --bg-base: #F4F7F6; --text-primary: #2D3748; --text-secondary: #718096; --text-muted: #A0AEC0;
