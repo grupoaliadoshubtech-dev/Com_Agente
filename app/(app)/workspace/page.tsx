@@ -544,11 +544,11 @@ export default function WorkspacePage() {
             return (
               <div key={c.telefone} onClick={() => openChat(c)}
                 className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-all border-b"
-                style={{ borderColor: 'rgba(255,255,255,0.04)', background: isSel ? 'rgba(163,230,53,0.08)' : 'transparent' }}
-                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                style={{ borderColor: 'var(--border)', background: isSel ? 'rgba(163,230,53,0.08)' : 'transparent' }}
+                onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg-hover)' }}
                 onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}>
                 <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-semibold"
-                  style={{ background: iaOn(c) ? 'rgba(163,230,53,0.15)' : 'rgba(255,255,255,0.06)', color: iaOn(c) ? 'var(--neon)' : 'var(--text-secondary)', border: `1px solid ${iaOn(c) ? 'rgba(163,230,53,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+                  style={{ background: iaOn(c) ? 'rgba(163,230,53,0.15)' : 'var(--bg-input)', color: iaOn(c) ? 'var(--neon)' : 'var(--txt-2)', border: `1px solid ${iaOn(c) ? 'rgba(163,230,53,0.3)' : 'var(--border-md)'}` }}>
                   {ini(c.nome)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -620,7 +620,7 @@ export default function WorkspacePage() {
               isAtBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
             }}
             className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-1.5"
-            style={{ background: 'rgba(0,0,0,0.15)' }}
+            style={{ background: 'var(--wa-bg)' }}
           >
             {loadingMsg ? <div className="flex-1 flex items-center justify-center text-[13px] text-muted">Carregando mensagens...</div>
             : messages.length === 0 ? (
@@ -638,7 +638,7 @@ export default function WorkspacePage() {
                     <div className="px-3 py-2 rounded-xl text-[13px] leading-relaxed"
                       style={isOut
                         ? { background: 'var(--neon)', color: '#0a0a0a', fontWeight: 500, borderBottomRightRadius: 4 }
-                        : { background: 'rgba(255,255,255,0.08)', borderBottomLeftRadius: 4 }}>
+                        : { background: 'var(--wa-bubble-in)', color: 'var(--wa-txt)', borderBottomLeftRadius: 4 }}>
 
                       {/* Renderiza mídia */}
                       {msg.mediaType && <MediaBubble msg={{...msg, remoteJid: msg.remoteJid.endsWith('@lid') ? (selected?.telefone + '@s.whatsapp.net') : msg.remoteJid}} />}
@@ -665,7 +665,7 @@ export default function WorkspacePage() {
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowAttach(!showAttach)}
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-[18px] transition-all flex-shrink-0"
-                style={{ background: showAttach ? 'rgba(163,230,53,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${showAttach ? 'rgba(163,230,53,0.3)' : 'var(--border)'}`, color: showAttach ? 'var(--neon)' : 'var(--text-secondary)' }}>
+                style={{ background: showAttach ? 'rgba(163,230,53,0.15)' : 'var(--bg-input)', border: `1px solid ${showAttach ? 'rgba(163,230,53,0.3)' : 'var(--border)'}`, color: showAttach ? 'var(--neon)' : 'var(--txt-2)' }}>
                 +
               </button>
               {showAttach && (
@@ -684,7 +684,7 @@ export default function WorkspacePage() {
                     }}
                       className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[13px] transition-all"
                       style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--txt)' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <span>{item.icon}</span><span>{item.label}</span>
                     </button>
