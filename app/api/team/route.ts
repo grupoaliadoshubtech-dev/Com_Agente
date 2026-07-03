@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────
 // app/api/team/route.ts
-// GET  /api/team          — lista atendentes do tenant
-// POST /api/team          — cria novo atendente
-// PATCH /api/team/[id]    — atualiza toggles de permissão
-// DELETE /api/team/[id]   — desativa atendente (soft delete)
+// GET  /api/team  — lista equipe do tenant (filtra por tenantId na master)
+// POST /api/team  — cria novo atendente na master com tenantId do supervisor
+// PATCH           — atualiza toggles de permissão na master
+// DELETE          — desativa atendente na master (soft delete)
 // ─────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -40,10 +40,9 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     return NextResponse.json({ success: false, error: 'Acesso negado' }, { status: 403 })
   }
 
-  const repo = new UsersRepository(session.user.tenantId)
+  const repo = new UsersRepository() // sempre master
   try {
-    const users = await repo.findAll()
-    // Remove passwordHash da resposta
+    const users = await repo.findByTenantId(session.user.tenantId)
     const safe = users.map(({ passwordHash: _, ...u }) => u)
     return NextResponse.json({ success: true, data: safe })
   } catch (err) {
@@ -68,9 +67,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     return NextResponse.json({ success: false, error: 'Dados inválidos', data: parsed.error.flatten() }, { status: 422 })
   }
 
-  const repo = new UsersRepository(session.user.tenantId)
+  const repo = new UsersRepository() // sempre master
 
-  // Verifica se e-mail já existe
+  // Verifica se e-mail já existe (em toda a master)
   const existing = await repo.findByEmail(parsed.data.email)
   if (existing) {
     return NextResponse.json({ success: false, error: 'E-mail já cadastrado' }, { status: 409 })
@@ -121,7 +120,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse<ApiResponse>
     return NextResponse.json({ success: false, error: 'Dados inválidos' }, { status: 422 })
   }
 
-  const repo = new UsersRepository(session.user.tenantId)
+  const repo = new UsersRepository() // sempre master
   try {
     await repo.updateToggles(parsed.data.userId, {
       canViewDashboard:    parsed.data.canViewDashboard,

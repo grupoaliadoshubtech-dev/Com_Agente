@@ -1,7 +1,9 @@
 // ─────────────────────────────────────────────────────────────
 // lib/repositories/users.repository.ts
 //
-// Fonte de verdade: aba "Usuarios" de CADA planilha de tenant.
+// Fonte de verdade: aba "Usuarios" da planilha MASTER.
+// Todos os usuários (master, supervisor, atendente) ficam aqui.
+// Isolamento por tenant via campo tenantId (shared schema).
 //
 // Colunas esperadas (linha 1 = cabeçalho):
 //   A: id | B: tenantId | C: email | D: passwordHash | E: name
@@ -66,6 +68,12 @@ export class UsersRepository {
     return rowsToObjects<Record<string, string>>(rows)
       .map(parseUser)
       .filter(u => u.isActive)
+  }
+
+  /** Busca todos os usuários ativos de um tenant (filtra por tenantId). */
+  async findByTenantId(tenantId: string): Promise<UserRecord[]> {
+    const all = await this.findAll()
+    return all.filter(u => u.tenantId === tenantId)
   }
 
   /** Busca usuário por e-mail (case-insensitive). */

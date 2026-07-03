@@ -75,14 +75,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
       evolutionInstance: d.evolutionInstance,
     })
 
-    // 2. Cria o usuário Supervisor na planilha do tenant
-    //    (o spreadsheetId do tenant é a planilha dele mesmo)
-    const usersRepo = new UsersRepository(d.spreadsheetId)
+    // 2. Cria o usuário Supervisor na planilha MASTER (necessário para o login)
+    //    com tenantId = spreadsheetId da planilha do tenant
+    const usersRepo = new UsersRepository() // master
     const passwordHash = await bcrypt.hash(d.supervisorPassword, 12)
 
     const supervisor: UserRecord = {
       id:                  randomUUID(),
-      tenantId:            d.spreadsheetId, // planilha do tenant = ID lógico
+      tenantId:            d.spreadsheetId, // aponta para a planilha do tenant
       email:               d.supervisorEmail,
       passwordHash,
       name:                d.supervisorName,
