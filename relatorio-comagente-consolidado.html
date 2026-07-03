@@ -829,6 +829,69 @@ curl -I http://localhost:3001</pre>
 
 
 <!-- ══════════════════════════════════════════════════════════
+     7. ARQUITETURA DAS PLANILHAS
+══════════════════════════════════════════════════════════ -->
+<h2>7. Arquitetura das Planilhas Google Sheets</h2>
+
+<p>Decisão de arquitetura consolidada em 03/07/2026. O sistema adota o padrão <strong>Shared Schema Multi-tenancy</strong> — todos os usuários em uma única tabela central, isolados por <code>tenantId</code>. É o mesmo padrão usado por Stripe, Intercom, Linear e Vercel.</p>
+
+<h3 style="margin:24px 0 12px; font-size:15px; color:var(--dark);">7.1 Planilha Master</h3>
+<p>Fonte de verdade global do sistema. Contém dados de todos os tenants.</p>
+
+<table>
+  <thead><tr><th>Aba</th><th>Função</th><th>Colunas principais</th></tr></thead>
+  <tbody>
+    <tr><td><code>Usuarios</code></td><td>Todos os usuários do sistema (master, supervisors e atendentes). Única fonte para login e gestão de equipe.</td><td>id | tenantId | email | passwordHash | name | role | phone | canView* | createdAt | isActive</td></tr>
+    <tr><td><code>Empresas</code></td><td>Registro de cada empresa/tenant contratante.</td><td>id | name | email | phone | planId | status | createdAt | evolutionInstance</td></tr>
+    <tr><td><code>Planos</code></td><td>Planos de assinatura disponíveis.</td><td>id | name | price | period | maxInstances | maxAttendants | features | isActive</td></tr>
+    <tr><td><code>Leads</code></td><td>Leads captados antes da contratação.</td><td>id | name | email | phone | company | message | source | createdAt | status</td></tr>
+    <tr><td><code>ResetTokens</code></td><td>Tokens de redefinição de senha (TTL 1h).</td><td>id | userId | email | token | expiresAt | usedAt</td></tr>
+    <tr><td><code>Blacklist</code></td><td>Números bloqueados globalmente.</td><td>phone | reason | createdAt | tenantId | createdBy</td></tr>
+  </tbody>
+</table>
+
+<h3 style="margin:24px 0 12px; font-size:15px; color:var(--dark);">7.2 Planilha de cada Empresa (Tenant)</h3>
+<p>Uma planilha por empresa. O ID dessa planilha é o <code>tenantId</code> armazenado em cada usuário na master.</p>
+
+<table>
+  <thead><tr><th>Aba</th><th>Função</th><th>Colunas principais</th></tr></thead>
+  <tbody>
+    <tr><td><code>Usuarios</code></td><td>Cópia local da equipe para operações internas (roteamento de chats, distribuição). Espelha os atendentes do tenant.</td><td>id | tenantId | email | passwordHash | name | role | phone | canView* | createdAt | isActive</td></tr>
+    <tr><td><code>Fila_Humana</code></td><td>Chats em atendimento humano ativo.</td><td>telefone | nome | atendente | status | inicio | ultimaMensagem</td></tr>
+    <tr><td><code>Clientes</code></td><td>Base de contatos/clientes do tenant.</td><td>phone | name | email | tags | createdAt | lastContact</td></tr>
+    <tr><td><code>Atendimentos</code></td><td>Histórico de atendimentos finalizados.</td><td>id | phone | atendente | inicio | fim | satisfacao | tags</td></tr>
+    <tr><td><code>Primeiros_Contatos</code></td><td>Registro de primeiros contatos recebidos.</td><td>phone | nome | mensagem | data</td></tr>
+    <tr><td><code>Conhecimento</code></td><td>Base de conhecimento para a IA do tenant.</td><td>id | categoria | pergunta | resposta | ativo</td></tr>
+    <tr><td><code>Agendamentos</code></td><td>Agendamentos realizados via IA.</td><td>id | phone | nome | data | hora | servico | status</td></tr>
+    <tr><td><code>Satisfacao</code></td><td>Notas de satisfação dos atendimentos.</td><td>phone | nota | comentario | atendente | data</td></tr>
+    <tr><td><code>Templates</code></td><td>Mensagens prontas para o supervisor/atendente.</td><td>id | nome | categoria | conteudo | ativo | createdAt</td></tr>
+    <tr><td><code>Blacklist</code></td><td>Números bloqueados localmente pelo tenant.</td><td>phone | reason | createdAt</td></tr>
+    <tr><td><code>Log_Erros</code></td><td>Log de erros de integração (n8n, Evolution API).</td><td>data | tipo | mensagem | detalhes</td></tr>
+  </tbody>
+</table>
+
+<h3 style="margin:24px 0 12px; font-size:15px; color:var(--dark);">7.3 Fluxo de Login e Equipe</h3>
+
+<table>
+  <thead><tr><th>Ação</th><th>Onde busca</th><th>Lógica</th></tr></thead>
+  <tbody>
+    <tr><td>Login (qualquer role)</td><td>Master → <code>Usuarios</code></td><td>Busca por email → compara bcrypt → retorna tenantId da sessão</td></tr>
+    <tr><td>Listar equipe</td><td>Master → <code>Usuarios</code></td><td>Filtra por <code>tenantId === session.tenantId</code></td></tr>
+    <tr><td>Criar atendente</td><td>Master → <code>Usuarios</code></td><td>Insere com <code>tenantId</code> igual ao do supervisor logado</td></tr>
+    <tr><td>Provisionar empresa</td><td>Master → <code>Usuarios</code></td><td>Cria supervisor com <code>tenantId = spreadsheetId</code> da empresa</td></tr>
+    <tr><td>Roteamento de chats</td><td>Tenant → <code>Usuarios</code></td><td>Distribuição local usa cópia da equipe na planilha da empresa</td></tr>
+  </tbody>
+</table>
+
+<h3 style="margin:24px 0 12px; font-size:15px; color:var(--dark);">7.4 Regra de tenantId</h3>
+<p>O campo <code>tenantId</code> em cada usuário é o <strong>ID da planilha Google Sheets da empresa</strong> (o código longo da URL: <code>https://docs.google.com/spreadsheets/d/<strong>ESTE_ID</strong>/edit</code>). Todos os usuários de uma mesma empresa compartilham o mesmo <code>tenantId</code>. Isso permite:</p>
+<ul style="margin:10px 0 0 20px; line-height:2">
+  <li>Filtro de equipe: <code>WHERE tenantId = X</code></li>
+  <li>Acesso à planilha da empresa: <code>new UsersRepository(session.tenantId)</code></li>
+  <li>Isolamento total entre empresas sem múltiplos bancos</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
