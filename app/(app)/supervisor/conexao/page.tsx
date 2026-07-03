@@ -81,9 +81,11 @@ export default function ConexaoPage() {
         ) : qr.error ? (
           <div className="flex flex-col items-center gap-4 py-12 px-6 text-center">
             <div className="flex items-center justify-center" style={{color:'#F59E0B'}}><IcoAlertTriangle size={40}/></div>
-            <p className="text-[14px] font-medium">Erro ao conectar com Evolution API</p>
-            <p className="text-[12px] text-muted">{qr.error}</p>
-            <BtnConnect label="Tentar novamente" />
+            <p className="text-[14px] font-medium">Instância não encontrada</p>
+            <p className="text-[12px] text-muted">
+              A instância WhatsApp ainda não foi criada. Clique em "Gerar QR Code" para criar e conectar.
+            </p>
+            <BtnConnect label="Gerar QR Code" />
           </div>
 
         ) : qr.connected ? (
