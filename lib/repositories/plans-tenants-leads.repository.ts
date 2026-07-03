@@ -100,10 +100,11 @@ export class TenantsRepository {
   }
 
   async create(data: Omit<Tenant, 'createdAt'>): Promise<Tenant> {
+    const { id: providedId, ...rest } = data
     const tenant: Tenant = {
-      id:        data.id ?? randomUUID(),
+      id:        providedId ?? randomUUID(),
       createdAt: new Date().toISOString(),
-      ...data,
+      ...rest,
     }
     await appendRows(this.spreadsheetId, `${this.sheet}!A:H`, [[
       tenant.id,
