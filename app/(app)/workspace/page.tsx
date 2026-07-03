@@ -553,11 +553,11 @@ export default function WorkspacePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-[13px] font-medium truncate" style={{ color: 'var(--txt)' }}>{c.nome}</p>
-                    <span className="text-[10px] text-muted flex-shrink-0 ml-2">{timeAgo(c.timestamp)}</span>
+                    <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--txt)' }}>{c.nome}</p>
+                    <span className="text-[10px] flex-shrink-0 ml-2" style={{ color: 'var(--txt-2)' }}>{timeAgo(c.timestamp)}</span>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
-                    <p className="text-[11px] text-muted truncate pr-2">{c.preview || 'Sem mensagens'}</p>
+                    <p className="text-[11px] truncate pr-2" style={{ color: 'var(--txt-2)' }}>{c.preview || 'Sem mensagens'}</p>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {c.unreadCount > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--neon)', color: '#0a0a0a' }}>{c.unreadCount}</span>}
                       <div className="w-2 h-2 rounded-full" style={{ background: iaOn(c) ? 'var(--neon)' : '#EF4444' }} title={iaOn(c) ? 'IA Ativa' : 'IA Pausada'} />
