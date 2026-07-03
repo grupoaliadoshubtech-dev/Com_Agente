@@ -66,7 +66,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
 
   try {
     // 1. Cria o tenant na planilha Master
+    //    id = spreadsheetId para que tenantsRepo.findById(tenantId) funcione
     const tenant = await tenantsRepo.create({
+      id:                d.spreadsheetId,
       name:              d.name,
       email:             d.email,
       phone:             d.phone,

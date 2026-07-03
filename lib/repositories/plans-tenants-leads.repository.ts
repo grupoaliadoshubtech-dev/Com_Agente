@@ -99,9 +99,9 @@ export class TenantsRepository {
     return all.find(t => t.id === id) ?? null
   }
 
-  async create(data: Omit<Tenant, 'id' | 'createdAt'>): Promise<Tenant> {
+  async create(data: Omit<Tenant, 'createdAt'>): Promise<Tenant> {
     const tenant: Tenant = {
-      id:        randomUUID(),
+      id:        data.id ?? randomUUID(),
       createdAt: new Date().toISOString(),
       ...data,
     }
