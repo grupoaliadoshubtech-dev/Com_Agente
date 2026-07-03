@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>22 de junho de 2026</strong> (v1.9)<br>
+    Documento consolidado e atualizado — <strong>02 de julho de 2026</strong> (v2.0)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -181,6 +181,7 @@
       <tr><td>29/05/2026</td><td>1.7</td><td>Fix definitivo mensagens recebidas no workspace — diagnóstico via API, solução 100% HTTP com remoteJidAlt</td></tr>
       <tr><td>29/05/2026</td><td>1.8</td><td>Read receipt (✓✓ azul) habilitado — readMessages e readStatus ativados na instância lucenadecoracoes</td></tr>
       <tr><td>22/06/2026</td><td>1.9</td><td>Instância correta na página de conexão, nome do cliente via aba Clientes, retomar IA limpa Fila_Humana</td></tr>
+      <tr><td>02/07/2026</td><td>2.0</td><td>Sistema de tema Dia/Noite funcional, Pausar Global com toggle real, toast e modal centralizados, scroll do chat inteligente, botão mostrar/ocultar senha</td></tr>
     </tbody>
   </table>
 </div>
@@ -374,6 +375,11 @@
     <tr><td>Instância correta na página de Conexão WhatsApp</td><td><span class="ok">✓ 22/06/2026 — exibe nome real da instância (lucenadecoracoes) via tenant.evolutionInstance</span></td></tr>
     <tr><td>Nome do cliente via aba Clientes da planilha</td><td><span class="ok">✓ 22/06/2026 — ClientesRepository enriquece lista de chats com nome cadastrado (cache 60s)</span></td></tr>
     <tr><td>Retomar IA limpa Fila_Humana</td><td><span class="ok">✓ 22/06/2026 — deleteRows apaga linhas do telefone; pausar continua append</span></td></tr>
+    <tr><td>Botão mostrar/ocultar senha no login</td><td><span class="ok">✓ 02/07/2026 — ícone olho aberto/fechado, estado showPwd, input type text/password</span></td></tr>
+    <tr><td>Pausar Global — renomeado e com toggle real</td><td><span class="ok">✓ 02/07/2026 — Kill Switch → Pausar Global. Botão alterna Pausar/Retornar com estado real via GET /api/handoff?telefone=ALL</span></td></tr>
+    <tr><td>Toast e modal de confirmação centralizados</td><td><span class="ok">✓ 02/07/2026 — position: fixed; inset: 0; display: flex; align-items/justify-content: center</span></td></tr>
+    <tr><td>Scroll do chat — não interrompe leitura do histórico</td><td><span class="ok">✓ 02/07/2026 — isAtBottom ref: auto-scroll só ocorre se usuário já está no fim da conversa</span></td></tr>
+    <tr><td>Sistema de tema Dia/Noite funcional</td><td><span class="ok">✓ 02/07/2026 — CSS variables temáticas, Tailwind config atualizado, text-white removido do body</span></td></tr>
   </tbody>
 </table>
 
@@ -639,6 +645,73 @@
   <p><code>getStatus()</code> sem registros retorna <code>'ativo'</code> por padrão — sem necessidade de gravar linha nova.</p>
 </div>
 
+<div class="pend-card done">
+  <h4>6.27 Botão mostrar/ocultar senha no login — 02/07/2026</h4>
+  <p>Adicionado em <code>app/(auth)/login/login-client.tsx</code>. Estado <code>showPwd</code> alterna o <code>type</code> do input entre <code>password</code> e <code>text</code>. Botão com ícone SVG olho aberto/fechado posicionado absolutamente à direita do campo. Padding-right de 44px no input para evitar sobreposição.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.28 Pausar Global — renomeação e toggle com estado real — 02/07/2026</h4>
+  <p>Renomeado "Kill Switch Global" → "Pausar Global" em todos os labels de UI e nomes internos (<code>pausaGlobal</code>, <code>retomarGlobal</code>, ação <code>retornar_global</code>). Arquivos alterados:</p>
+  <ul>
+    <li><code>app/(app)/layout.tsx</code> — estado <code>pausaGlobalAtiva</code>, <code>useEffect</code> que consulta <code>GET /api/handoff?telefone=ALL</code> no mount para saber estado atual. Botão alterna label Pausar Global / Retornar Global. Modal e toast adaptam texto ao estado.</li>
+    <li><code>lib/hooks/use-handoff.ts</code> — exports <code>pausaGlobal()</code> e <code>retomarGlobal()</code></li>
+    <li><code>app/api/handoff/route.ts</code> — ações <code>pausa_global</code> e <code>retornar_global</code></li>
+    <li><code>lib/repositories/handoff.repository.ts</code> — <code>pausaGlobal()</code> e <code>retomar('ALL')</code></li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.29 Toast e modal de confirmação centralizados na tela — 02/07/2026</h4>
+  <p>Corrigido em <code>app/globals.css</code>:</p>
+  <ul>
+    <li><strong>Modal:</strong> <code>.modal-bg { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; }</code></li>
+    <li><strong>Toast:</strong> <code>.toast-base { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; }</code> com animação <code>@keyframes toast-in</code></li>
+  </ul>
+  <p>Funciona tanto no desktop quanto no mobile.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.30 Scroll do chat não interrompe leitura do histórico — 02/07/2026</h4>
+  <p>Corrigido em <code>app/(app)/workspace/page.tsx</code>. Implementado padrão <code>isAtBottom</code> ref:</p>
+  <ul>
+    <li><code>msgContainerRef</code> referencia o container de mensagens</li>
+    <li>Handler <code>onScroll</code>: <code>isAtBottom.current = scrollHeight - scrollTop - clientHeight &lt; 80</code></li>
+    <li>O <code>useEffect</code> de scroll só chama <code>scrollIntoView</code> quando <code>isAtBottom.current === true</code></li>
+    <li>Ao abrir um novo chat, <code>isAtBottom.current = true</code> é resetado para garantir scroll inicial</li>
+  </ul>
+  <p>Resultado: polling de 3s não força retorno ao fim quando o atendente está lendo o histórico.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.31 Sistema de tema Dia/Noite funcional — 02/07/2026</h4>
+  <p>Correção completa do sistema de troca de tema. Três causas raiz identificadas e resolvidas:</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Causa 1 — <code>text-white bg-base</code> no body</h4>
+  <p>O <code>app/layout.tsx</code> tinha <code>className="bg-base text-white ..."</code> no <code>&lt;body&gt;</code>. A classe Tailwind <code>text-white</code> (seletor de classe) sobrescrevia o <code>body { color: var(--txt) }</code> (seletor de elemento) do globals.css. Resultado: texto sempre branco em qualquer tema. <strong>Fix:</strong> removidos <code>bg-base</code> e <code>text-white</code> do body.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Causa 2 — Tailwind config com cores hardcoded</h4>
+  <p><code>tailwind.config.ts</code> tinha <code>bg-base: '#121212'</code>, <code>bg-card: '#1E1E1E'</code> e <code>borderColor DEFAULT: 'rgba(255,255,255,0.08)'</code> — valores fixos dark. <strong>Fix:</strong> substituídos por <code>var(--bg)</code>, <code>var(--bg-card)</code>, <code>var(--border)</code>. Também adicionados <code>textColor.muted</code> e <code>textColor.secondary</code> mapeados para variáveis CSS.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Causa 3 — rgba(255,255,255,...) hardcoded no workspace</h4>
+  <p>O workspace usava valores fixos de dark mode para bordas, avatares, hover, fundo do chat e bolha de mensagem recebida. <strong>Fix:</strong> substituídos por <code>var(--border)</code>, <code>var(--bg-input)</code>, <code>var(--bg-hover)</code>, <code>var(--wa-bg)</code>, <code>var(--wa-bubble-in)</code>.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Tema Light — especificações finais</h4>
+  <table>
+    <thead><tr><th>Variável</th><th>Valor</th><th>Função</th></tr></thead>
+    <tbody>
+      <tr><td><code>--bg</code></td><td>#EBF2EF</td><td>Fundo sage claro</td></tr>
+      <tr><td><code>--bg-sidebar</code></td><td>#1B3D2F</td><td>Sidebar verde floresta (intencional — igual ao WhatsApp light)</td></tr>
+      <tr><td><code>--bg-card</code></td><td>#FFFFFF</td><td>Cards e modais</td></tr>
+      <tr><td><code>--neon</code></td><td>#A3E635</td><td>Verde neon — <strong>idêntico ao dark</strong> (identidade visual)</td></tr>
+      <tr><td><code>--txt</code></td><td>#0a0a0a</td><td>Texto principal preto</td></tr>
+      <tr><td><code>--txt-2</code></td><td>#1F2937</td><td>Texto secundário quase preto</td></tr>
+      <tr><td><code>--txt-3</code></td><td>#4B5563</td><td>Texto mudo cinza escuro</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="pend-card open">
+  <h4>6.32 Integração Figma MCP — pendente</h4>
+  <p>Análise comparativa design ↔ código usando servidor MCP oficial do Figma. Requer decisão sobre token de API do Figma. Comando: <code>claude mcp add figma</code> em sessão interativa.</p>
+</div>
+
 <div class="pend-card open">
   <h4>6.21 Filtro "Finalizado" no workspace — pendente</h4>
   <p>O HandoffRepository só tem status <code>ativo</code> e <code>pausado</code>. Para o filtro "Finalizado" funcionar, o comando <code>/finalizar</code> do n8n precisa gravar <code>status=finalizado</code> na Fila_Humana E a API <code>/api/evolution/chats</code> precisa expor esse campo no <code>ChatContact</code>. A infraestrutura de UI está pronta.</p>
@@ -759,7 +832,7 @@ curl -I http://localhost:3001</pre>
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 1.9 | 22 de junho de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 2.0 | 02 de julho de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
