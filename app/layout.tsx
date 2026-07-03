@@ -47,7 +47,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${dmSans.variable} ${spaceGrotesk.variable}`}>
-      <body className="bg-base text-white font-sans antialiased min-h-screen">
+      <body className="font-sans antialiased min-h-screen">
         <SessionProvider>{children}</SessionProvider>
         <PWARegister />
       </body>

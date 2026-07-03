@@ -164,6 +164,8 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 /* bg-neon-dim compat */
 .bg-neon-dim { background: var(--neon-dim); }
 .text-neon { color: var(--neon); }
+.text-muted { color: var(--txt-3); }
+.text-secondary { color: var(--txt-2); }
 .bg-card-aad { background: var(--bg-card); }
 .bg-input-aad { background: var(--bg-input); }
 .border-aad { border-color: var(--border); }

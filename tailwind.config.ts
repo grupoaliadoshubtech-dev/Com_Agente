@@ -10,21 +10,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Design System AAD
-        base:   '#121212',
-        card:   '#1E1E1E',
-        input:  '#2A2A2A',
-        neon:   '#A3E635',
+        // Design System — usa variáveis CSS para suporte a temas
+        base:      'var(--bg)',
+        card:      'var(--bg-card)',
+        input:     'var(--bg-input)',
+        neon:      'var(--neon)',
+        muted:     'var(--txt-3)',
+        secondary: 'var(--txt-2)',
       },
       backgroundColor: {
-        base:  '#121212',
-        card:  '#1E1E1E',
-        input: '#2A2A2A',
+        base:  'var(--bg)',
+        card:  'var(--bg-card)',
+        input: 'var(--bg-input)',
       },
       borderColor: {
-        DEFAULT: 'rgba(255,255,255,0.08)',
+        DEFAULT: 'var(--border)',
         neon:    'rgba(163,230,53,0.3)',
         danger:  'rgba(239,68,68,0.4)',
+      },
+      textColor: {
+        muted:     'var(--txt-3)',
+        secondary: 'var(--txt-2)',
+        neon:      'var(--neon)',
       },
       fontFamily: {
         sans:    ['DM Sans', 'sans-serif'],
