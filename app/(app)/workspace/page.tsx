@@ -567,8 +567,7 @@ export default function WorkspacePage() {
                 style={{ borderColor: 'var(--border)', background: isSel ? 'rgba(163,230,53,0.08)' : 'transparent' }}
                 onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg-hover)' }}
                 onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}>
-                <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-semibold"
-                  style={{ background: iaOn(c) ? 'rgba(163,230,53,0.15)' : 'var(--bg-input)', color: iaOn(c) ? 'var(--neon)' : 'var(--txt-2)', border: `1px solid ${iaOn(c) ? 'rgba(163,230,53,0.3)' : 'var(--border-md)'}` }}>
+                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-semibold ${iaOn(c) ? 'av-ia' : 'av-off'}`}>
                   {ini(c.nome)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -600,9 +599,9 @@ export default function WorkspacePage() {
                 style={{ display: 'none', background: 'rgba(163,230,53,0.12)', border: '1px solid rgba(163,230,53,0.3)', cursor: 'pointer', color: 'var(--neon)', padding: '0', width: 34, height: 34, borderRadius: '50%', alignItems: 'center', justifyContent: 'center', fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
                 ‹
               </button>
-              <div className="chat-header-avatar w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
+              <div className="chat-header-avatar av-hdr w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold"
                 onClick={() => openProfile(selected)}
-                style={{ background: 'rgba(163,230,53,0.12)', color: 'var(--neon)', border: '1px solid rgba(163,230,53,0.25)', cursor: 'pointer' }}>
+                style={{ cursor: 'pointer' }}>
                 {ini(selected.nome)}
               </div>
               <div style={{ minWidth: 0 }}>
@@ -772,7 +771,7 @@ export default function WorkspacePage() {
               {profilePic
                 ? <img src={profilePic} alt={profileModal.nome} onError={() => setProfilePic(null)}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72, fontWeight: 700, color: 'var(--neon)' }}>
+                : <div className="av-hdr" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72, fontWeight: 700, border: 'none', borderRadius: 0 }}>
                     {ini(profileModal.nome)}
                   </div>
               }
