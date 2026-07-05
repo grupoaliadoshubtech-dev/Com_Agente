@@ -116,8 +116,8 @@ export async function getSheetId(
   const sheets = getSheetsClient()
   const res = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' })
   const sheet = res.data.sheets?.find(s => s.properties?.title === sheetName)
-  if (!sheet?.properties?.sheetId == null) throw new Error(`Aba "${sheetName}" não encontrada`)
-  return sheet.properties!.sheetId!
+  if (!sheet || sheet.properties?.sheetId == null) throw new Error(`Aba "${sheetName}" não encontrada`)
+  return sheet.properties.sheetId
 }
 
 /**
