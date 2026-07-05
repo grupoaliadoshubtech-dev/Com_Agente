@@ -48,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
 
   const repo = new BlacklistRepository(session.user.tenantId)
   try {
-    await repo.add(parsed.data.telefone, parsed.data.motivo, session.user.id)
+    await repo.add(parsed.data.telefone, parsed.data.motivo, `ComAgente - ${session.user.name}`)
     return NextResponse.json({
       success: true,
       message: `${parsed.data.telefone} adicionado à blacklist`,

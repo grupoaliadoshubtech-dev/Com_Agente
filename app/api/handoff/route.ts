@@ -42,7 +42,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
   }
 
   const { action, telefone } = parsed.data
-  const atendenteId = session.user.id
+  const atendenteId = `ComAgente - ${session.user.name}`
   const tenantId    = session.user.tenantId
 
   if (!tenantId) {
