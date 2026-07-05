@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>02 de julho de 2026</strong> (v2.0)<br>
+    Documento consolidado e atualizado — <strong>05 de julho de 2026</strong> (v2.1)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -712,6 +712,47 @@
   <p>Análise comparativa design ↔ código usando servidor MCP oficial do Figma. Requer decisão sobre token de API do Figma. Comando: <code>claude mcp add figma</code> em sessão interativa.</p>
 </div>
 
+<div class="card-feature">
+  <h4>6.33 Redesign Avatar de Iniciais do Cliente — 05/07/2026</h4>
+  <p>Redesign do avatar de iniciais (círculo com letras do nome do cliente) nos 3 pontos do workspace: lista de chats, header do chat e modal de perfil. O avatar passa a comunicar o estado da IA visualmente: <strong>verde = IA ativa</strong>, <strong>vermelho = atendimento humano</strong>.</p>
+  <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:12px">
+    <thead>
+      <tr style="background:rgba(255,255,255,0.04)">
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Estado</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Escuro — antes</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Escuro — depois</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Claro — antes</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Claro — depois</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:8px 10px;font-weight:600">IA Ativa</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">bg neon 15%<br>cor #A3E635</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">sem alteração</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#F59E0B">bg neon 15%<br>cor #A3E635<br>⚠ ilegível</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#A3E635">bg #A3E635 sólido<br>cor #1B3D2F<br>borda #1B3D2F</td>
+      </tr>
+      <tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:8px 10px;font-weight:600">Humano (IA pausada)</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#F59E0B">bg #25282C cinza<br>cor #A0A0A0<br>⚠ baixo contraste</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#EF4444">bg danger 15%<br>cor #EF4444<br>borda danger 30%</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">bg #F3F4F6<br>cor #1F2937</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#EF4444">bg danger 15%<br>cor #EF4444<br>borda danger 30%</td>
+      </tr>
+      <tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:8px 10px;font-weight:600">Header / Modal</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">bg neon 12%<br>cor #A3E635</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">sem alteração</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#F59E0B">bg neon 12%<br>cor #A3E635<br>⚠ ilegível</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#A3E635">bg #A3E635 sólido<br>cor #1B3D2F<br>borda #1B3D2F</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Arquivos:</strong> <code>app/globals.css</code> — classes <code>.av-ia</code>, <code>.av-off</code>, <code>.av-hdr</code> com override <code>[data-theme="light"]</code>. <code>app/(app)/workspace/page.tsx</code> — inline styles substituídos por className.</p>
+  <p style="margin-top:8px"><strong>Para reverter:</strong> Em <code>globals.css</code>, restaurar <code>.av-off</code> para <code>background: var(--bg-input); color: var(--txt-2); border: 1px solid var(--border-md)</code> e remover os overrides <code>[data-theme="light"]</code>.</p>
+</div>
+
 <div class="pend-card open">
   <h4>6.21 Filtro "Finalizado" no workspace — pendente</h4>
   <p>O HandoffRepository só tem status <code>ativo</code> e <code>pausado</code>. Para o filtro "Finalizado" funcionar, o comando <code>/finalizar</code> do n8n precisa gravar <code>status=finalizado</code> na Fila_Humana E a API <code>/api/evolution/chats</code> precisa expor esse campo no <code>ChatContact</code>. A infraestrutura de UI está pronta.</p>
@@ -895,7 +936,7 @@ curl -I http://localhost:3001</pre>
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 2.0 | 02 de julho de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 2.1 | 05 de julho de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
