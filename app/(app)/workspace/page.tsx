@@ -247,6 +247,7 @@ export default function WorkspacePage() {
   const [sending, setSending]     = useState(false)
   const [toast, setToast]         = useState('')
   const [blModal, setBlModal]         = useState<ChatContact | null>(null)
+  const [blocked, setBlocked]         = useState<Set<string>>(new Set())
   const [iaModal, setIaModal]         = useState<ChatContact | null>(null)
   const [profileModal, setProfileModal] = useState<ChatContact | null>(null)
   const [chatFilter, setChatFilter]   = useState<'todos'|'ia'|'humano'|'aberto'|'finalizado'>('todos')
@@ -311,9 +312,10 @@ export default function WorkspacePage() {
     } catch {} finally { setLoading(false) }
   }, [])
 
-  // Inicia o polling de chats
+  // Inicia o polling de chats e carrega blacklist
   useEffect(() => {
     fetchChats()
+    fetchBlacklist()
     const i = setInterval(fetchChats, CHAT_POLL)
     return () => clearInterval(i)
   }, [fetchChats])
@@ -456,16 +458,34 @@ export default function WorkspacePage() {
 
   // ── Blacklist ──────────────────────────────────────────────
 
+  async function fetchBlacklist() {
+    try {
+      const r = await fetch('/api/blacklist')
+      const d = await r.json()
+      if (d.success) setBlocked(new Set(d.data.map((x: { telefone: string }) => x.telefone)))
+    } catch { /* silencioso */ }
+  }
+
   async function confirmBl() {
     if (!blModal) return
+    const isBlocked = blocked.has(blModal.telefone)
     try {
-      const r = await fetch('/api/blacklist', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefone: blModal.telefone, motivo: 'Bloqueado pelo atendente' }),
-      })
-      const d = await r.json()
-      setBlModal(null); showToast(d.success ? '🚫 Bloqueado' : 'Erro: ' + d.error); fetchChats()
-    } catch { setBlModal(null); showToast('Erro ao bloquear') }
+      if (isBlocked) {
+        const r = await fetch(`/api/blacklist?telefone=${blModal.telefone}`, { method: 'DELETE' })
+        const d = await r.json()
+        if (d.success) setBlocked(prev => { const s = new Set(prev); s.delete(blModal.telefone); return s })
+        setBlModal(null); showToast(d.success ? '✅ Desbloqueado' : 'Erro: ' + d.error)
+      } else {
+        const r = await fetch('/api/blacklist', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telefone: blModal.telefone, motivo: 'Bloqueado pelo atendente' }),
+        })
+        const d = await r.json()
+        if (d.success) setBlocked(prev => new Set(prev).add(blModal.telefone))
+        setBlModal(null); showToast(d.success ? '🚫 Bloqueado' : 'Erro: ' + d.error)
+      }
+      fetchChats()
+    } catch { setBlModal(null); showToast('Erro ao atualizar blacklist') }
   }
 
   // ── Filtro ─────────────────────────────────────────────────
@@ -606,9 +626,13 @@ export default function WorkspacePage() {
                 <span className="chat-header-ia-txt">{iaOn(selected) ? 'Humano' : 'Ativar IA'}</span>
               </button>
               <button onClick={() => setBlModal(selected)}
-                className="px-2 py-1.5 rounded-lg text-[12px] font-medium border transition-all"
-                style={{ borderColor: 'rgba(239,68,68,0.4)', color: '#EF4444', background: 'rgba(239,68,68,0.08)' }}
-                title="Blacklist"><IcoBan size={14}/></button>
+                className="px-2 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
+                style={blocked.has(selected.telefone)
+                  ? { background: 'var(--neon)', color: '#0a0a0a', border: 'none' }
+                  : { background: 'var(--danger)', color: '#fff', border: 'none' }}
+                title={blocked.has(selected.telefone) ? 'Desbloquear' : 'Bloquear'}>
+                <IcoBan size={14}/>
+              </button>
               <button onClick={() => fetchMessages(selected.telefone, selected.lidJid)} className="chat-header-refresh px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
             </div>
           </div>
@@ -820,11 +844,20 @@ export default function WorkspacePage() {
       {blModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }} onClick={e => { if (e.target === e.currentTarget) setBlModal(null) }}>
           <div className="rounded-xl p-6 max-w-[380px] w-full" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <h3 className="text-[16px] font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--txt)' }}><IcoBan size={16}/> Blacklist</h3>
-            <p className="text-[13px] mb-5" style={{ color: 'var(--text-secondary)' }}>Bloquear <strong style={{ color: 'var(--txt)' }}>{blModal.nome}</strong> ({fmtPhone(blModal.telefone)})?</p>
+            <h3 className="text-[16px] font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--txt)' }}>
+              <IcoBan size={16}/> {blocked.has(blModal.telefone) ? 'Desbloquear' : 'Bloquear'}
+            </h3>
+            <p className="text-[13px] mb-5" style={{ color: 'var(--txt-2)' }}>
+              {blocked.has(blModal.telefone) ? 'Remover' : 'Bloquear'} <strong style={{ color: 'var(--txt)' }}>{blModal.nome}</strong> ({fmtPhone(blModal.telefone)})?
+            </p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setBlModal(null)} className="px-4 py-2 rounded-lg text-[13px] border" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>Cancelar</button>
-              <button onClick={confirmBl} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white" style={{ background: '#EF4444' }}>Confirmar</button>
+              <button onClick={() => setBlModal(null)} className="px-4 py-2 rounded-lg text-[13px] border" style={{ borderColor: 'var(--border)', color: 'var(--txt-2)' }}>Cancelar</button>
+              <button onClick={confirmBl} className="px-4 py-2 rounded-lg text-[13px] font-semibold"
+                style={blocked.has(blModal.telefone)
+                  ? { background: 'var(--neon)', color: '#0a0a0a' }
+                  : { background: 'var(--danger)', color: '#fff' }}>
+                {blocked.has(blModal.telefone) ? 'Desbloquear' : 'Bloquear'}
+              </button>
             </div>
           </div>
         </div>

@@ -106,6 +106,21 @@ export async function deleteRows(
 }
 
 /**
+ * Retorna o sheetId numérico de uma aba pelo nome.
+ * Necessário para deleteRows (que usa batchUpdate com índice numérico).
+ */
+export async function getSheetId(
+  spreadsheetId: string,
+  sheetName: string
+): Promise<number> {
+  const sheets = getSheetsClient()
+  const res = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' })
+  const sheet = res.data.sheets?.find(s => s.properties?.title === sheetName)
+  if (!sheet?.properties?.sheetId == null) throw new Error(`Aba "${sheetName}" não encontrada`)
+  return sheet.properties!.sheetId!
+}
+
+/**
  * Limpa um range (útil para resetar fila).
  */
 export async function clearRange(
