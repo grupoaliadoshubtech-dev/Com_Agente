@@ -173,13 +173,13 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 .text-secondary-aad { color: var(--txt-2); }
 
 /* Avatar de iniciais do cliente — adapta por tema e estado da IA */
-.av-ia  { background: rgba(163,230,53,0.15); color: var(--neon);    border: 1px solid rgba(163,230,53,0.3); }
-.av-off { background: rgba(239,68,68,0.15);  color: var(--danger);  border: 1px solid rgba(239,68,68,0.3); }
-.av-hdr { background: rgba(163,230,53,0.12); color: var(--neon);    border: 1px solid rgba(163,230,53,0.25); }
+.av-ia  { background: rgba(163,230,53,0.15); color: var(--neon);  border: 1px solid rgba(163,230,53,0.3); }
+.av-off { background: var(--bg-input);       color: var(--txt-2); border: 1px solid var(--border-md); }
+.av-hdr { background: rgba(163,230,53,0.12); color: var(--neon);  border: 1px solid rgba(163,230,53,0.25); }
 
-[data-theme="light"] .av-ia  { background: #A3E635;              color: #1B3D2F; border-color: #1B3D2F; }
-[data-theme="light"] .av-off { background: rgba(239,68,68,0.15); color: #EF4444; border-color: rgba(239,68,68,0.3); }
-[data-theme="light"] .av-hdr { background: #A3E635;              color: #1B3D2F; border-color: #1B3D2F; }
+[data-theme="light"] .av-ia  { background: #A3E635; color: #1B3D2F; border-color: #1B3D2F; }
+[data-theme="light"] .av-off { background: #F3F4F6; color: #1F2937; border-color: #1F2937; }
+[data-theme="light"] .av-hdr { background: #A3E635; color: #1B3D2F; border-color: #1B3D2F; }
 
 @media (max-width:768px) { .hide-mobile { display:none !important; } }
 @media (min-width:769px) { .hide-desktop { display:none !important; } }
