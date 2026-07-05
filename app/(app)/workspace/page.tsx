@@ -8,7 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useHandoff } from '@/lib/hooks/use-handoff'
 import { useTemplates } from '@/lib/hooks/use-templates'
-import { IcoMapPin, IcoUser, IcoBan, IcoMessageCircle } from '@/components/icons'
+import { IcoMapPin, IcoUser, IcoBot, IcoBan, IcoMessageCircle } from '@/components/icons'
 import { TemplateMenu } from '@/components/template-menu'
 
 // ── Tipos ────────────────────────────────────────────────────
@@ -622,7 +622,7 @@ export default function WorkspacePage() {
                 style={iaOn(selected)
                   ? { background: 'var(--danger)', color: '#fff', border: 'none' }
                   : { background: 'var(--neon)', color: '#0a0a0a', border: 'none' }}>
-                <span>{iaOn(selected) ? '👤' : '🤖'}</span>
+                {iaOn(selected) ? <IcoUser size={14}/> : <IcoBot size={14}/>}
                 <span className="chat-header-ia-txt">{iaOn(selected) ? 'Humano' : 'Ativar IA'}</span>
               </button>
               <button onClick={() => setBlModal(selected)}
