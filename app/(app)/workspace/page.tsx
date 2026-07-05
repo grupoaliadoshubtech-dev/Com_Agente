@@ -598,10 +598,12 @@ export default function WorkspacePage() {
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button onClick={() => setIaModal(selected)} disabled={handoff.loading}
-                className="chat-header-ia-btn px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all flex items-center gap-1"
-                style={{ borderColor: iaOn(selected) ? 'var(--neon)' : '#EF4444', color: iaOn(selected) ? 'var(--neon)' : '#EF4444', background: iaOn(selected) ? 'rgba(163,230,53,0.08)' : 'rgba(239,68,68,0.08)' }}>
-                <span>{iaOn(selected) ? '⏸' : '▶'}</span>
-                <span className="chat-header-ia-txt">{iaOn(selected) ? 'IA Ativa' : 'Humano'}</span>
+                className="chat-header-ia-btn px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all flex items-center gap-1"
+                style={iaOn(selected)
+                  ? { background: 'var(--danger)', color: '#fff', border: 'none' }
+                  : { background: 'var(--neon)', color: '#0a0a0a', border: 'none' }}>
+                <span>{iaOn(selected) ? '👤' : '🤖'}</span>
+                <span className="chat-header-ia-txt">{iaOn(selected) ? 'Humano' : 'Ativar IA'}</span>
               </button>
               <button onClick={() => setBlModal(selected)}
                 className="px-2 py-1.5 rounded-lg text-[12px] font-medium border transition-all"
