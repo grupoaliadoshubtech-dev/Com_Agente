@@ -58,6 +58,7 @@ export interface UserRecord {
   canViewSatisfacao: boolean
   createdAt: string
   isActive: boolean
+  avatarUrl?: string
 }
 
 // ── HANDOFF ───────────────────────────────────────────────────

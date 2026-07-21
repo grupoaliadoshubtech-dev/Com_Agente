@@ -22,6 +22,7 @@ declare module 'next-auth' {
       canViewCRM:          boolean
       canViewTranscricoes: boolean
       canViewSatisfacao:   boolean
+      mustChangePassword:  boolean
     }
   }
   interface User {
@@ -33,6 +34,7 @@ declare module 'next-auth' {
     canViewCRM:          boolean
     canViewTranscricoes: boolean
     canViewSatisfacao:   boolean
+    mustChangePassword:  boolean
   }
 }
 
@@ -46,6 +48,7 @@ declare module 'next-auth/jwt' {
     canViewCRM:          boolean
     canViewTranscricoes: boolean
     canViewSatisfacao:   boolean
+    mustChangePassword:  boolean
   }
 }
 
@@ -94,6 +97,7 @@ export const authOptions: NextAuthOptions = {
           canViewCRM:          user.canViewCRM,
           canViewTranscricoes: user.canViewTranscricoes,
           canViewSatisfacao:   user.canViewSatisfacao,
+          mustChangePassword:  credentials.password === '098765',
         }
       },
     }),
@@ -101,7 +105,11 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     // Persiste campos customizados no token JWT
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session: updateData }) {
+      if (trigger === 'update' && updateData) {
+        if ('mustChangePassword' in updateData) token.mustChangePassword = updateData.mustChangePassword
+        if ('name' in updateData) token.name = updateData.name
+      }
       if (user) {
         token.id                  = user.id
         token.role                = user.role
@@ -111,6 +119,7 @@ export const authOptions: NextAuthOptions = {
         token.canViewCRM          = user.canViewCRM
         token.canViewTranscricoes = user.canViewTranscricoes
         token.canViewSatisfacao   = user.canViewSatisfacao
+        token.mustChangePassword  = user.mustChangePassword
       }
       return token
     },
@@ -125,6 +134,7 @@ export const authOptions: NextAuthOptions = {
       session.user.canViewCRM          = token.canViewCRM
       session.user.canViewTranscricoes = token.canViewTranscricoes
       session.user.canViewSatisfacao   = token.canViewSatisfacao
+      session.user.mustChangePassword  = token.mustChangePassword ?? false
       return session
     },
   },

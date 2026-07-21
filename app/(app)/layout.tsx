@@ -3,7 +3,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useHandoff } from '@/lib/hooks/use-handoff'
 import { ThemeProvider, useTheme } from '@/lib/context/theme-context'
 
@@ -72,8 +72,31 @@ const PAGE_META: Record<string, [string, string]> = {
   '/admin/logs':              ['Log de Erros',       'Erros do sistema'],
 }
 
+// ── Helper: redimensiona imagem para base64 100x100 ──────────
+function resizeToBase64(file: File): Promise<string> {
+  return new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const img = new Image()
+      img.onload = () => {
+        const SIZE = 100
+        const canvas = document.createElement('canvas')
+        canvas.width = SIZE; canvas.height = SIZE
+        const ctx = canvas.getContext('2d')!
+        const min = Math.min(img.width, img.height)
+        const sx  = (img.width  - min) / 2
+        const sy  = (img.height - min) / 2
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+      img.src = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
   const router   = useRouter()
   const pathname = usePathname()
   const handoff  = useHandoff()
@@ -85,6 +108,25 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [toast,            setToast]            = useState('')
   const [pausaGlobalAtiva, setPausaGlobalAtiva] = useState(false)
 
+  // ── Modal: perfil do usuário ─────────────────────────────────
+  const [profileOpen,   setProfileOpen]   = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileName,   setProfileName]   = useState('')
+  const [avatarPreview, setAvatarPreview] = useState('')
+  const [curPw,         setCurPw]         = useState('')
+  const [newPw,         setNewPw]         = useState('')
+  const [confirmPw,     setConfirmPw]     = useState('')
+  const [profileErr,    setProfileErr]    = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  // ── Modal: primeiro acesso (senha padrão) ───────────────────
+  const [firstPw,      setFirstPw]      = useState('')
+  const [firstConfirm, setFirstConfirm] = useState('')
+  const [firstSaving,  setFirstSaving]  = useState(false)
+  const [firstErr,     setFirstErr]     = useState('')
+
+  const mustChangePw = session?.user?.mustChangePassword === true
+
   useEffect(() => {
     fetch('/api/handoff?telefone=ALL')
       .then(r => r.json())
@@ -92,9 +134,63 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       .catch(() => {})
   }, [])
 
-  const user = session?.user
-  const role = user?.role ?? 'atendente'
+  // Carrega dados do perfil ao abrir o modal
+  useEffect(() => {
+    if (!profileOpen) return
+    setProfileName(session?.user?.name ?? '')
+    setProfileErr('')
+    setCurPw(''); setNewPw(''); setConfirmPw('')
+    fetch('/api/user/profile')
+      .then(r => r.json())
+      .then(d => { if (d.success) { setProfileName(d.data.name); setAvatarPreview(d.data.avatarUrl ?? '') } })
+      .catch(() => {})
+  }, [profileOpen, session?.user?.name])
+
+  const user     = session?.user
+  const role     = user?.role ?? 'atendente'
   const initials = user?.name?.split(' ').map((n:string)=>n[0]).slice(0,2).join('').toUpperCase() ?? 'AA'
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const b64 = await resizeToBase64(file)
+    setAvatarPreview(b64)
+  }
+
+  async function saveProfile() {
+    setProfileErr('')
+    if (newPw && newPw !== confirmPw) { setProfileErr('As senhas não coincidem'); return }
+    if (newPw && newPw.length < 6)    { setProfileErr('A nova senha deve ter no mínimo 6 caracteres'); return }
+    setProfileSaving(true)
+    try {
+      const body: Record<string, string> = {}
+      if (profileName.trim()) body.name = profileName.trim()
+      if (avatarPreview)       body.avatarUrl = avatarPreview
+      if (newPw)               { body.currentPassword = curPw; body.newPassword = newPw }
+      const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const d = await r.json()
+      if (!d.success) { setProfileErr(d.error ?? 'Erro ao salvar'); return }
+      await updateSession({ name: body.name ?? user?.name })
+      showToast('Perfil atualizado!')
+      setProfileOpen(false)
+    } catch { setProfileErr('Erro de conexão') }
+    finally  { setProfileSaving(false) }
+  }
+
+  async function saveFirstPassword() {
+    setFirstErr('')
+    if (firstPw.length < 6)          { setFirstErr('A senha deve ter no mínimo 6 caracteres'); return }
+    if (firstPw !== firstConfirm)     { setFirstErr('As senhas não coincidem'); return }
+    setFirstSaving(true)
+    try {
+      const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: '098765', newPassword: firstPw }) })
+      const d = await r.json()
+      if (!d.success) { setFirstErr(d.error ?? 'Erro ao salvar'); return }
+      await updateSession({ mustChangePassword: false })
+      showToast('Senha definida com sucesso!')
+    } catch { setFirstErr('Erro de conexão') }
+    finally  { setFirstSaving(false) }
+  }
 
   const pageMeta = Object.entries(PAGE_META).find(([k])=>pathname.startsWith(k))
   const [pageTitle, pageSub] = pageMeta?.[1] ?? ['Página', '']
@@ -203,13 +299,19 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
 
         <div style={{padding:8,borderTop:'1px solid var(--sidebar-border)',flexShrink:0}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:10,background:'var(--sidebar-hover)'}}>
-            <div style={{width:32,height:32,borderRadius:'50%',background:'var(--neon)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#0a0a0a'}}>{initials}</div>
+          <button onClick={()=>setProfileOpen(true)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:10,background:'var(--sidebar-hover)',width:'100%',border:'1px solid transparent',cursor:'pointer',textAlign:'left',transition:'border-color .15s'}}
+            onMouseEnter={e=>(e.currentTarget.style.borderColor='rgba(163,230,53,.25)')}
+            onMouseLeave={e=>(e.currentTarget.style.borderColor='transparent')}>
+            <div style={{width:32,height:32,borderRadius:'50%',flexShrink:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#0a0a0a',background:'var(--neon)'}}>
+              {avatarPreview
+                ? <img src={avatarPreview} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                : initials}
+            </div>
             <div style={{flex:1,minWidth:0,opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s'}}>
               <div style={{fontSize:12,fontWeight:600,color:'#fff',whiteSpace:'nowrap'}}>{user?.name??'Usuário'}</div>
               <div style={{fontSize:10,color:'var(--sidebar-txt-2)',textTransform:'capitalize'}}>{role}</div>
             </div>
-          </div>
+          </button>
         </div>
       </>
     )
@@ -284,6 +386,111 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       )}
 
       {toast && <div className="toast-base">{toast}</div>}
+
+      {/* ── Modal: Primeiro Acesso ─────────────────────────── */}
+      {mustChangePw && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:'16px'}}>
+          <div className="card animate-slide-up" style={{width:'min(420px, calc(100vw - 32px))',padding:'32px 28px',textAlign:'center'}}>
+            <div style={{width:48,height:48,borderRadius:'50%',background:'rgba(163,230,53,.12)',border:'1px solid rgba(163,230,53,.3)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:22}}>🔐</div>
+            <div className="font-display" style={{fontSize:18,fontWeight:700,color:'var(--txt)',marginBottom:6}}>Defina sua senha</div>
+            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:24}}>Este é seu primeiro acesso. Crie uma senha de sua escolha para continuar.</p>
+            <div style={{display:'flex',flexDirection:'column',gap:12,textAlign:'left'}}>
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Nova senha</label>
+                <input type="password" value={firstPw} onChange={e=>setFirstPw(e.target.value)} maxLength={20}
+                  placeholder="Mínimo 6 caracteres"
+                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+              </div>
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Confirmar senha</label>
+                <input type="password" value={firstConfirm} onChange={e=>setFirstConfirm(e.target.value)} maxLength={20}
+                  placeholder="Repita a nova senha"
+                  onKeyDown={e=>e.key==='Enter'&&saveFirstPassword()}
+                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+              </div>
+              {firstErr && <p style={{fontSize:12,color:'var(--danger)',margin:0}}>{firstErr}</p>}
+              <button onClick={saveFirstPassword} disabled={firstSaving} className="btn-primary"
+                style={{width:'100%',padding:'11px',fontSize:14,marginTop:4}}>
+                {firstSaving ? 'Salvando...' : 'Salvar senha'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Perfil do Usuário ──────────────────────────── */}
+      {profileOpen && (
+        <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setProfileOpen(false)}}>
+          <div className="card animate-slide-up" style={{width:'min(460px, calc(100vw - 24px))',maxHeight:'90vh',overflowY:'auto',padding:0}}>
+            {/* Header */}
+            <div style={{padding:'20px 24px 0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div className="font-display" style={{fontSize:16,fontWeight:700,color:'var(--txt)'}}>Meu Perfil</div>
+              <button onClick={()=>setProfileOpen(false)} style={{width:30,height:30,borderRadius:8,background:'var(--bg-input)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'var(--txt-2)',fontSize:16,flexShrink:0}}>×</button>
+            </div>
+
+            <div style={{padding:'20px 24px 24px',display:'flex',flexDirection:'column',gap:20}}>
+
+              {/* Avatar */}
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
+                <div style={{position:'relative',cursor:'pointer'}} onClick={()=>fileRef.current?.click()}>
+                  <div style={{width:80,height:80,borderRadius:'50%',background:'var(--neon)',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,fontWeight:700,color:'#0a0a0a',flexShrink:0}}>
+                    {avatarPreview
+                      ? <img src={avatarPreview} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                      : initials}
+                  </div>
+                  <div style={{position:'absolute',bottom:0,right:0,width:26,height:26,borderRadius:'50%',background:'var(--bg-card)',border:'2px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>📷</div>
+                </div>
+                <span style={{fontSize:11,color:'var(--txt-2)'}}>Clique para alterar a foto</span>
+                <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarChange}/>
+              </div>
+
+              {/* Nome */}
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Nome</label>
+                <input type="text" value={profileName} onChange={e=>setProfileName(e.target.value)} maxLength={60}
+                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+              </div>
+
+              {/* Divisor senha */}
+              <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:14}}>Alterar senha</div>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  <div>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Senha atual</label>
+                    <input type="password" value={curPw} onChange={e=>setCurPw(e.target.value)} maxLength={20}
+                      placeholder="Digite sua senha atual"
+                      style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                    <div>
+                      <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Nova senha</label>
+                      <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} maxLength={20}
+                        placeholder="Mínimo 6 caracteres"
+                        style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                    </div>
+                    <div>
+                      <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Confirmar</label>
+                      <input type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} maxLength={20}
+                        placeholder="Repita a senha"
+                        style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {profileErr && <p style={{fontSize:12,color:'var(--danger)',margin:0}}>{profileErr}</p>}
+
+              {/* Ações */}
+              <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                <button className="btn-outline" onClick={()=>setProfileOpen(false)} style={{padding:'9px 18px',fontSize:13}}>Cancelar</button>
+                <button className="btn-primary" onClick={saveProfile} disabled={profileSaving} style={{padding:'9px 18px',fontSize:13}}>
+                  {profileSaving ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

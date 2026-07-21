@@ -16,7 +16,7 @@ import { readRange, updateRange, appendRows, rowsToObjects } from '@/lib/sheets/
 import type { UserRecord } from '@/types'
 
 const SHEET   = 'Usuarios'
-const RANGE   = `${SHEET}!A:M`
+const RANGE   = `${SHEET}!A:N`
 const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
 // ── Helpers internos ─────────────────────────────────────────
@@ -36,6 +36,7 @@ function parseUser(raw: Record<string, string>): UserRecord {
     canViewSatisfacao:     raw.canViewSatisfacao === 'TRUE',
     createdAt:             raw.createdAt,
     isActive:              raw.isActive !== 'FALSE',
+    avatarUrl:             raw.avatarUrl ?? '',
   }
 }
 
@@ -143,6 +144,39 @@ export class UsersRepository {
     const sheetRow = rowIndex + 1
     const colLetter = String.fromCharCode(65 + hashCol) // D
     await updateRange(this.spreadsheetId, `${SHEET}!${colLetter}${sheetRow}`, [[newHash]])
+    return true
+  }
+
+  /** Atualiza nome, passwordHash e/ou avatarUrl do usuário. */
+  async updateProfile(
+    userId: string,
+    data: { name?: string; passwordHash?: string; avatarUrl?: string }
+  ): Promise<boolean> {
+    const rows = await readRange(this.spreadsheetId, RANGE)
+    if (rows.length < 2) return false
+
+    const headers  = rows[0]
+    const idCol    = headers.indexOf('id')
+    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === userId)
+    if (rowIndex === -1) return false
+
+    const sheetRow = rowIndex + 1
+    const updates: Promise<void>[] = []
+
+    if (data.name !== undefined) {
+      const col = headers.indexOf('name')
+      if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.name]]))
+    }
+    if (data.passwordHash !== undefined) {
+      const col = headers.indexOf('passwordHash')
+      if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.passwordHash]]))
+    }
+    if (data.avatarUrl !== undefined) {
+      const col = headers.indexOf('avatarUrl')
+      if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.avatarUrl]]))
+    }
+
+    await Promise.all(updates)
     return true
   }
 
