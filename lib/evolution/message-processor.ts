@@ -133,7 +133,7 @@ export class MessageProcessor {
       }
       if (acoes[intencao]) l.push(`- AÇÃO: ${acoes[intencao]}`)
     }
-    l.push('', 'REGRAS:', '- NÃO repita perguntas já respondidas', '- Use o nome do cliente', '- Continue de onde parou', '- Tom profissional e amigável')
+    l.push('', 'REGRAS:', '- NÃO repita perguntas já respondidas', '- Use o nome do cliente', '- Continue de onde parou', '- Tom profissional e amigável', '- FORMATAÇÃO WHATSAPP: sempre use quebra de linha entre cada campo ou informação; nunca envie dados estruturados (nome, data, status, itens, etc.) em uma única linha corrida; use *negrito* nos rótulos dos campos; separe blocos com uma linha em branco')
     return l.join('\n')
   }
 
