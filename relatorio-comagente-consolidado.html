@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>05 de julho de 2026</strong> (v2.1)<br>
+    Documento consolidado e atualizado — <strong>21 de julho de 2026</strong> (v2.2)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -751,6 +751,78 @@
   </table>
   <p><strong>Arquivos:</strong> <code>app/globals.css</code> — classes <code>.av-ia</code>, <code>.av-off</code>, <code>.av-hdr</code> com override <code>[data-theme="light"]</code>. <code>app/(app)/workspace/page.tsx</code> — inline styles substituídos por className.</p>
   <p style="margin-top:8px"><strong>Para reverter:</strong> Em <code>globals.css</code>, restaurar <code>.av-off</code> para <code>background: var(--bg-input); color: var(--txt-2); border: 1px solid var(--border-md)</code> e remover os overrides <code>[data-theme="light"]</code>.</p>
+</div>
+
+<div class="card-feature">
+  <h4>6.34 Refinamento Avatar Modo Claro — 05/07/2026</h4>
+  <p>Ajuste fino no avatar de iniciais do modo claro: remoção da borda sólida, adição de sombra fina e contorno na fonte (<code>-webkit-text-stroke</code>) para manter a identidade visual sem o traço duro da borda.</p>
+  <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:12px">
+    <thead>
+      <tr style="background:rgba(255,255,255,0.04)">
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Propriedade</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Antes</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Depois</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:8px 10px;font-weight:600">Borda</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">border: 1px solid #1B3D2F</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#A3E635">border: none</td>
+      </tr>
+      <tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:8px 10px;font-weight:600">Sombra</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">—</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#A3E635">box-shadow: 0 1px 5px rgba(0,0,0,.18)</td>
+      </tr>
+      <tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:8px 10px;font-weight:600">Contorno fonte</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">—</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#A3E635">-webkit-text-stroke: 0.5px #1B3D2F</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Arquivo:</strong> <code>app/globals.css</code> — overrides <code>[data-theme="light"] .av-ia</code> e <code>[data-theme="light"] .av-hdr</code>.</p>
+  <p style="margin-top:8px"><strong>Para reverter:</strong> Restaurar <code>border-color: #1B3D2F</code> e remover <code>box-shadow</code> e <code>-webkit-text-stroke</code>.</p>
+</div>
+
+<div class="card-feature">
+  <h4>6.35 Ajuste de Cor Vermelha (danger) — 05/07/2026</h4>
+  <p>A cor <code>#EF4444</code> (Tailwind red-500) apresentava tonalidade rosada em tela. Substituída por <code>#DC2626</code> (red-600), mais saturada e com aparência de vermelho puro.</p>
+  <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:12px">
+    <thead>
+      <tr style="background:rgba(255,255,255,0.04)">
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Variável</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Antes</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Depois</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:8px 10px;font-family:monospace">--danger (dark)</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#EF4444">#EF4444</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#DC2626">#DC2626</td>
+      </tr>
+      <tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:8px 10px;font-family:monospace">--danger-dim (dark)</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">rgba(239,68,68,.12)</td>
+        <td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#aaa">rgba(220,38,38,.12)</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Arquivo:</strong> <code>app/globals.css</code> — variáveis <code>--danger</code> e <code>--danger-dim</code> no tema escuro, mais hardcodes <code>rgba(239,68,68,...)</code> substituídos.</p>
+</div>
+
+<div class="card-feature">
+  <h4>6.36 Formatação WhatsApp nas Instruções do Agente IA — 21/07/2026</h4>
+  <p>Mensagens geradas pelo agente chegavam sem quebras de linha, com todos os campos de dados (evento, data, pessoas, itens, status) colados numa única linha corrida. Causa: o <code>systemInstructions</code> não continha regra de formatação.</p>
+  <p style="margin-top:8px"><strong>Solução:</strong> Adicionada regra obrigatória de formatação no método <code>buildInstructions</code> em <code>lib/evolution/message-processor.ts</code>. A regra é enviada a cada mensagem via webhook para o n8n, que a injeta no system prompt do Gemini via <code>{{ $json.systemInstructions }}</code>.</p>
+  <p style="margin-top:8px"><strong>Regra adicionada:</strong></p>
+  <blockquote style="margin:8px 0;padding:10px 14px;background:rgba(255,255,255,.03);border-left:3px solid rgba(163,230,53,.4);font-size:12px;font-family:monospace;line-height:1.7">
+    FORMATAÇÃO WHATSAPP OBRIGATÓRIA EM TODAS AS MENSAGENS: nunca escreva parágrafos longos em bloco único; quebre o texto em linhas curtas e objetivas; use uma linha em branco entre tópicos ou blocos de informação; quando listar dados coloque cada um em sua própria linha com *rótulo* em negrito; listas de opções devem ter cada item em uma linha separada; nunca concatene informações distintas na mesma linha.
+  </blockquote>
+  <p style="margin-top:8px"><strong>Escopo:</strong> Aplica-se apenas a mensagens futuras — o histórico já enviado no WhatsApp não é reprocessado.</p>
+  <p style="margin-top:8px"><strong>Arquivo:</strong> <code>lib/evolution/message-processor.ts</code> — linha 136, array de REGRAS.</p>
 </div>
 
 <div class="pend-card open">
