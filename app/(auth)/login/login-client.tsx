@@ -212,15 +212,19 @@ export default function LoginClient() {
                   />
                   <span style={{ fontSize: 12, color: 'var(--txt-2)' }}>Manter-me conectado</span>
                 </label>
-                <Link href="/recuperar-senha" style={{
-                  fontSize: 12, color: 'var(--txt-3)',
-                  textDecoration: 'none', transition: 'color .15s', whiteSpace: 'nowrap',
-                }}
+                <button
+                  type="button"
+                  onClick={() => router.push('/recuperar-senha')}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                    fontSize: 12, color: 'var(--txt-3)', whiteSpace: 'nowrap',
+                    transition: 'color .15s',
+                  }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--neon)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--txt-3)')}
                 >
                   Esqueci minha senha
-                </Link>
+                </button>
               </div>
 
               {error && (
