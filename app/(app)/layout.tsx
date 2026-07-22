@@ -109,14 +109,18 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [pausaGlobalAtiva, setPausaGlobalAtiva] = useState(false)
 
   // ── Modal: perfil do usuário ─────────────────────────────────
-  const [profileOpen,   setProfileOpen]   = useState(false)
-  const [profileSaving, setProfileSaving] = useState(false)
-  const [profileName,   setProfileName]   = useState('')
-  const [avatarPreview, setAvatarPreview] = useState('')
-  const [curPw,         setCurPw]         = useState('')
-  const [newPw,         setNewPw]         = useState('')
-  const [confirmPw,     setConfirmPw]     = useState('')
-  const [profileErr,    setProfileErr]    = useState('')
+  const [profileOpen,    setProfileOpen]    = useState(false)
+  const [profileSaving,  setProfileSaving]  = useState(false)
+  const [profileName,    setProfileName]    = useState('')
+  const [origName,       setOrigName]       = useState('')
+  const [avatarPreview,  setAvatarPreview]  = useState('')
+  const [origAvatar,     setOrigAvatar]     = useState('')
+  const [curPw,          setCurPw]          = useState('')
+  const [newPw,          setNewPw]          = useState('')
+  const [confirmPw,      setConfirmPw]      = useState('')
+  const [profileErr,     setProfileErr]     = useState('')
+  const [profileErrField,setProfileErrField]= useState('')   // qual campo tem erro
+  const [curPwStatus,    setCurPwStatus]    = useState<'idle'|'checking'|'ok'|'error'>('idle')
   const fileRef = useRef<HTMLInputElement>(null)
 
   // ── Modal: primeiro acesso (senha padrão) ───────────────────
@@ -126,6 +130,11 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [firstErr,     setFirstErr]     = useState('')
 
   const mustChangePw = session?.user?.mustChangePassword === true
+
+  // detecta modificações
+  const pwFilled  = newPw.length > 0
+  const pwMatch   = pwFilled && confirmPw.length > 0 ? newPw === confirmPw : null
+  const hasChanges = profileName !== origName || avatarPreview !== origAvatar || pwFilled
 
   useEffect(() => {
     fetch('/api/handoff?telefone=ALL')
@@ -137,14 +146,20 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   // Carrega dados do perfil ao abrir o modal
   useEffect(() => {
     if (!profileOpen) return
-    setProfileName(session?.user?.name ?? '')
-    setProfileErr('')
-    setCurPw(''); setNewPw(''); setConfirmPw('')
+    setProfileErr(''); setProfileErrField('')
+    setCurPw(''); setNewPw(''); setConfirmPw(''); setCurPwStatus('idle')
     fetch('/api/user/profile')
       .then(r => r.json())
-      .then(d => { if (d.success) { setProfileName(d.data.name); setAvatarPreview(d.data.avatarUrl ?? '') } })
+      .then(d => {
+        if (d.success) {
+          setProfileName(d.data.name)
+          setOrigName(d.data.name)
+          setAvatarPreview(d.data.avatarUrl ?? '')
+          setOrigAvatar(d.data.avatarUrl ?? '')
+        }
+      })
       .catch(() => {})
-  }, [profileOpen, session?.user?.name])
+  }, [profileOpen])
 
   const user     = session?.user
   const role     = user?.role ?? 'atendente'
@@ -157,21 +172,41 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     setAvatarPreview(b64)
   }
 
+  // Verifica senha atual ao sair do campo
+  async function checkCurPw() {
+    if (!curPw) { setCurPwStatus('idle'); return }
+    setCurPwStatus('checking')
+    try {
+      const r = await fetch('/api/user/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: curPw }) })
+      const d = await r.json()
+      setCurPwStatus(d.valid ? 'ok' : 'error')
+    } catch { setCurPwStatus('idle') }
+  }
+
   async function saveProfile() {
-    setProfileErr('')
-    if (newPw && newPw !== confirmPw) { setProfileErr('As senhas não coincidem'); return }
-    if (newPw && newPw.length < 6)    { setProfileErr('A nova senha deve ter no mínimo 6 caracteres'); return }
+    setProfileErr(''); setProfileErrField('')
+    if (!hasChanges) { setProfileErr('Nenhuma modificação foi feita'); return }
+    if (pwFilled) {
+      if (!curPw)             { setProfileErr('Informe a senha atual'); setProfileErrField('curPw'); return }
+      if (curPwStatus === 'error') { setProfileErr('Senha atual incorreta'); setProfileErrField('curPw'); return }
+      if (newPw.length < 6)   { setProfileErr('A nova senha deve ter no mínimo 6 caracteres'); setProfileErrField('newPw'); return }
+      if (newPw !== confirmPw) { setProfileErr('As senhas não coincidem'); setProfileErrField('confirmPw'); return }
+    }
     setProfileSaving(true)
     try {
       const body: Record<string, string> = {}
-      if (profileName.trim()) body.name = profileName.trim()
-      if (avatarPreview)       body.avatarUrl = avatarPreview
-      if (newPw)               { body.currentPassword = curPw; body.newPassword = newPw }
+      if (profileName.trim() !== origName) body.name = profileName.trim()
+      if (avatarPreview !== origAvatar)    body.avatarUrl = avatarPreview
+      if (pwFilled) { body.currentPassword = curPw; body.newPassword = newPw; body.confirmPassword = confirmPw }
       const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const d = await r.json()
-      if (!d.success) { setProfileErr(d.error ?? 'Erro ao salvar'); return }
+      if (!d.success) {
+        setProfileErr(d.error ?? 'Erro ao salvar')
+        if (d.field === 'currentPassword') setCurPwStatus('error')
+        return
+      }
       await updateSession({ name: body.name ?? user?.name })
-      showToast('Perfil atualizado!')
+      showToast('Perfil atualizado com sucesso!')
       setProfileOpen(false)
     } catch { setProfileErr('Erro de conexão') }
     finally  { setProfileSaving(false) }
@@ -179,17 +214,23 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   async function saveFirstPassword() {
     setFirstErr('')
-    if (firstPw.length < 6)          { setFirstErr('A senha deve ter no mínimo 6 caracteres'); return }
-    if (firstPw !== firstConfirm)     { setFirstErr('As senhas não coincidem'); return }
+    if (firstPw.length < 6)      { setFirstErr('A senha deve ter no mínimo 6 caracteres'); return }
+    if (firstPw !== firstConfirm) { setFirstErr('As senhas não coincidem'); return }
     setFirstSaving(true)
     try {
-      const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: '098765', newPassword: firstPw }) })
+      const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: '098765', newPassword: firstPw, confirmPassword: firstPw }) })
       const d = await r.json()
       if (!d.success) { setFirstErr(d.error ?? 'Erro ao salvar'); return }
       await updateSession({ mustChangePassword: false })
       showToast('Senha definida com sucesso!')
     } catch { setFirstErr('Erro de conexão') }
     finally  { setFirstSaving(false) }
+  }
+
+  // estilos de input dinâmicos
+  function iStyle(state?: 'error'|'ok'): React.CSSProperties {
+    const border = state === 'error' ? 'var(--danger)' : state === 'ok' ? '#10B981' : 'var(--border-md)'
+    return { width:'100%', padding:'10px 12px', borderRadius:8, border:`1px solid ${border}`, background:'var(--bg-input)', color:'var(--txt)', fontSize:13, boxSizing:'border-box', outline:'none', fontFamily:"'Plus Jakarta Sans',sans-serif" }
   }
 
   const pageMeta = Object.entries(PAGE_META).find(([k])=>pathname.startsWith(k))
@@ -421,73 +462,102 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       {/* ── Modal: Perfil do Usuário ──────────────────────────── */}
       {profileOpen && (
         <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setProfileOpen(false)}}>
-          <div className="card animate-slide-up" style={{width:'min(460px, calc(100vw - 24px))',maxHeight:'90vh',overflowY:'auto',padding:0}}>
-            {/* Header */}
-            <div style={{padding:'20px 24px 0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div className="font-display" style={{fontSize:16,fontWeight:700,color:'var(--txt)'}}>Meu Perfil</div>
-              <button onClick={()=>setProfileOpen(false)} style={{width:30,height:30,borderRadius:8,background:'var(--bg-input)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'var(--txt-2)',fontSize:16,flexShrink:0}}>×</button>
+          <div className="card animate-slide-up" style={{width:'min(460px, calc(100vw - 24px))',maxHeight:'92vh',overflowY:'auto',padding:0,borderRadius:16}}>
+
+            {/* Cabeçalho com avatar */}
+            <div style={{padding:'28px 24px 20px',display:'flex',flexDirection:'column',alignItems:'center',gap:4,borderBottom:'1px solid var(--border)',position:'relative'}}>
+              <button onClick={()=>setProfileOpen(false)} style={{position:'absolute',top:16,right:16,width:30,height:30,borderRadius:8,background:'var(--bg-input)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'var(--txt-2)',fontSize:18,lineHeight:1}}>×</button>
+
+              <div style={{position:'relative',cursor:'pointer',marginBottom:8}} onClick={()=>fileRef.current?.click()}>
+                <div style={{width:80,height:80,borderRadius:'50%',background:'var(--neon)',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,fontWeight:700,color:'#0a0a0a',boxShadow:'0 4px 16px rgba(163,230,53,.25)'}}>
+                  {avatarPreview ? <img src={avatarPreview} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : initials}
+                </div>
+                <div style={{position:'absolute',bottom:2,right:2,width:24,height:24,borderRadius:'50%',background:'var(--bg-card)',border:'2px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11}}>📷</div>
+              </div>
+              <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarChange}/>
+
+              <div style={{fontSize:15,fontWeight:700,color:'var(--txt)'}}>{origName || 'Meu Perfil'}</div>
+              <div style={{fontSize:11,color:'var(--txt-3)',textTransform:'capitalize'}}>{role} · {user?.email}</div>
+              <div style={{fontSize:10,color:'var(--txt-3)',marginTop:2}}>Clique no avatar para alterar a foto</div>
             </div>
 
-            <div style={{padding:'20px 24px 24px',display:'flex',flexDirection:'column',gap:20}}>
-
-              {/* Avatar */}
-              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
-                <div style={{position:'relative',cursor:'pointer'}} onClick={()=>fileRef.current?.click()}>
-                  <div style={{width:80,height:80,borderRadius:'50%',background:'var(--neon)',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,fontWeight:700,color:'#0a0a0a',flexShrink:0}}>
-                    {avatarPreview
-                      ? <img src={avatarPreview} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-                      : initials}
-                  </div>
-                  <div style={{position:'absolute',bottom:0,right:0,width:26,height:26,borderRadius:'50%',background:'var(--bg-card)',border:'2px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>📷</div>
-                </div>
-                <span style={{fontSize:11,color:'var(--txt-2)'}}>Clique para alterar a foto</span>
-                <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarChange}/>
-              </div>
+            {/* Corpo */}
+            <div style={{padding:'20px 24px',display:'flex',flexDirection:'column',gap:16}}>
 
               {/* Nome */}
               <div>
-                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Nome</label>
+                <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--txt-2)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.07em'}}>Nome</label>
                 <input type="text" value={profileName} onChange={e=>setProfileName(e.target.value)} maxLength={60}
-                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                  placeholder="Seu nome completo"
+                  style={iStyle(profileErrField==='name'?'error':profileName!==origName&&profileName?'ok':undefined)}/>
               </div>
 
-              {/* Divisor senha */}
-              <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:14}}>Alterar senha</div>
-                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {/* Seção de senha */}
+              <div style={{background:'var(--bg-input)',borderRadius:12,padding:'16px',border:'1px solid var(--border)'}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Alterar senha
+                </div>
+
+                <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                  {/* Senha atual */}
                   <div>
                     <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Senha atual</label>
-                    <input type="password" value={curPw} onChange={e=>setCurPw(e.target.value)} maxLength={20}
-                      placeholder="Digite sua senha atual"
-                      style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                    <div style={{position:'relative'}}>
+                      <input type="password" value={curPw}
+                        onChange={e=>{ setCurPw(e.target.value); if(curPwStatus!=='idle') setCurPwStatus('idle') }}
+                        onBlur={checkCurPw}
+                        maxLength={20} placeholder="Digite sua senha atual"
+                        style={{...iStyle(profileErrField==='curPw'||curPwStatus==='error'?'error':curPwStatus==='ok'?'ok':undefined), paddingRight:36}}/>
+                      {curPwStatus==='checking' && <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'var(--txt-3)'}}>…</span>}
+                      {curPwStatus==='ok'       && <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'#10B981'}}>✓</span>}
+                      {curPwStatus==='error'    && <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'var(--danger)'}}>✗</span>}
+                    </div>
+                    {curPwStatus==='error' && <p style={{fontSize:11,color:'var(--danger)',margin:'4px 0 0'}}>Senha atual incorreta</p>}
                   </div>
+
+                  {/* Nova + Confirmar */}
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                     <div>
                       <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Nova senha</label>
                       <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} maxLength={20}
-                        placeholder="Mínimo 6 caracteres"
-                        style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                        placeholder="Mín. 6 caracteres"
+                        style={iStyle(profileErrField==='newPw'?'error':newPw.length>=6?'ok':undefined)}/>
+                      {newPw.length>0&&newPw.length<6 && <p style={{fontSize:10,color:'var(--danger)',margin:'3px 0 0'}}>Mín. 6 caracteres</p>}
                     </div>
                     <div>
                       <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Confirmar</label>
                       <input type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} maxLength={20}
                         placeholder="Repita a senha"
-                        style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                        style={iStyle(pwMatch===false?'error':pwMatch===true?'ok':undefined)}/>
+                      {pwMatch===true  && <p style={{fontSize:10,color:'#10B981',margin:'3px 0 0'}}>✓ Senhas coincidem</p>}
+                      {pwMatch===false && <p style={{fontSize:10,color:'var(--danger)',margin:'3px 0 0'}}>✗ Senhas diferentes</p>}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {profileErr && <p style={{fontSize:12,color:'var(--danger)',margin:0}}>{profileErr}</p>}
+              {/* Mensagem de erro geral */}
+              {profileErr && (
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderRadius:8,background:'rgba(220,38,38,.08)',border:'1px solid rgba(220,38,38,.2)'}}>
+                  <span style={{color:'var(--danger)',fontSize:14}}>⚠</span>
+                  <span style={{fontSize:12,color:'var(--danger)'}}>{profileErr}</span>
+                </div>
+              )}
 
-              {/* Ações */}
-              <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-                <button className="btn-outline" onClick={()=>setProfileOpen(false)} style={{padding:'9px 18px',fontSize:13}}>Cancelar</button>
-                <button className="btn-primary" onClick={saveProfile} disabled={profileSaving} style={{padding:'9px 18px',fontSize:13}}>
-                  {profileSaving ? 'Salvando...' : 'Salvar'}
+              {/* Botões */}
+              <div style={{display:'flex',gap:8,paddingTop:4}}>
+                <button className="btn-outline" onClick={()=>setProfileOpen(false)}
+                  style={{flex:1,padding:'11px',fontSize:13,fontWeight:600}}>
+                  Cancelar
+                </button>
+                <button className="btn-neon" onClick={saveProfile} disabled={profileSaving}
+                  style={{flex:2,padding:'11px',fontSize:13,fontWeight:700,opacity:profileSaving?.6:1,transition:'opacity .15s'}}>
+                  {profileSaving ? 'Salvando...' : 'Salvar alterações'}
                 </button>
               </div>
             </div>
+
           </div>
         </div>
       )}
