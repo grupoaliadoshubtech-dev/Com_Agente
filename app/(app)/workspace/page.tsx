@@ -567,7 +567,7 @@ export default function WorkspacePage() {
                 style={{ borderColor: 'var(--border)', background: isSel ? 'rgba(163,230,53,0.08)' : 'transparent' }}
                 onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg-hover)' }}
                 onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent' }}>
-                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-semibold ${iaOn(c) ? 'av-ia' : 'av-off'}`}>
+                <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-semibold av-ia">
                   {ini(c.nome)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -669,7 +669,7 @@ export default function WorkspacePage() {
                       {msg.mediaType && <MediaBubble msg={{...msg, remoteJid: msg.remoteJid.endsWith('@lid') ? (selected?.telefone + '@s.whatsapp.net') : msg.remoteJid}} />}
 
                       {/* Texto (se não tem mídia, ou se mídia é location/contact que já mostra texto no componente) */}
-                      {hasText && !msg.mediaType && <span>{msg.text}</span>}
+                      {hasText && !msg.mediaType && <span style={{whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{msg.text}</span>}
                     </div>
                     <p className={`text-[9px] text-muted mt-0.5 px-1 ${isOut ? 'text-right' : ''}`}>
                       {msg.time}
