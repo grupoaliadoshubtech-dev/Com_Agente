@@ -6,6 +6,7 @@
 
 import type { NextAuthOptions, DefaultSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import { encode as nextAuthEncode, decode as nextAuthDecode } from 'next-auth/jwt'
 import bcrypt from 'bcryptjs'
 import { UsersRepository } from '@/lib/repositories/users.repository'
 import type { UserRole } from '@/types'
@@ -35,6 +36,7 @@ declare module 'next-auth' {
     canViewTranscricoes: boolean
     canViewSatisfacao:   boolean
     mustChangePassword:  boolean
+    rememberMe:          boolean
   }
 }
 
@@ -49,6 +51,7 @@ declare module 'next-auth/jwt' {
     canViewTranscricoes: boolean
     canViewSatisfacao:   boolean
     mustChangePassword:  boolean
+    rememberMe:          boolean
   }
 }
 
@@ -56,7 +59,16 @@ declare module 'next-auth/jwt' {
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: 'jwt', maxAge: 8 * 60 * 60 }, // 8 horas
+  session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 }, // cookie até 30 dias; JWT exp varia por rememberMe
+
+  // JWT exp: 30 dias se "lembrar", 8h se não
+  jwt: {
+    encode: async (params) => {
+      const rememberMe = (params.token as Record<string, unknown>)?.rememberMe ?? false
+      return nextAuthEncode({ ...params, maxAge: rememberMe ? 30 * 24 * 60 * 60 : 8 * 60 * 60 })
+    },
+    decode: (params) => nextAuthDecode(params),
+  },
 
   pages: {
     signIn:  '/login',
@@ -67,8 +79,9 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        email:    { label: 'E-mail', type: 'email' },
-        password: { label: 'Senha',  type: 'password' },
+        email:    { label: 'E-mail',         type: 'email' },
+        password: { label: 'Senha',          type: 'password' },
+        remember: { label: 'Manter-me conectado', type: 'checkbox' },
       },
 
       async authorize(credentials) {
@@ -98,6 +111,7 @@ export const authOptions: NextAuthOptions = {
           canViewTranscricoes: user.canViewTranscricoes,
           canViewSatisfacao:   user.canViewSatisfacao,
           mustChangePassword:  credentials.password === '098765',
+          rememberMe:          credentials.remember === 'true',
         }
       },
     }),
@@ -120,6 +134,7 @@ export const authOptions: NextAuthOptions = {
         token.canViewTranscricoes = user.canViewTranscricoes
         token.canViewSatisfacao   = user.canViewSatisfacao
         token.mustChangePassword  = user.mustChangePassword
+        token.rememberMe          = user.rememberMe ?? false
       }
       return token
     },

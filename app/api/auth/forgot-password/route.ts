@@ -21,6 +21,18 @@ import { sendMail, resetPasswordTemplate } from '@/lib/email/mailer'
 
 const Schema = z.object({ email: z.string().email() })
 
+// GET — informa se o envio de e-mail está disponível (SMTP configurado)
+export async function GET(): Promise<NextResponse> {
+  const configured = !!(
+    process.env.SMTP_HOST &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS &&
+    process.env.SMTP_USER !== 'COLE_AQUI' &&
+    process.env.SMTP_PASS !== 'COLE_AQUI'
+  )
+  return NextResponse.json({ available: configured })
+}
+
 const ALWAYS_OK = NextResponse.json({
   success: true,
   message: 'Se o e-mail estiver cadastrado, você receberá as instruções em breve.',

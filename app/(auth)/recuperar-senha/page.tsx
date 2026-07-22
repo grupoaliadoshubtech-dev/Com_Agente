@@ -1,29 +1,33 @@
 'use client'
 // app/(auth)/recuperar-senha/page.tsx
-// Página de solicitação de redefinição de senha.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-type Step = 'form' | 'loading' | 'sent'
+type Step = 'checking' | 'unavailable' | 'form' | 'loading' | 'sent'
 
 export default function RecuperarSenhaPage() {
-  const [email,   setEmail]   = useState('')
-  const [step,    setStep]    = useState<Step>('form')
-  const [error,   setError]   = useState('')
+  const [email, setEmail] = useState('')
+  const [step,  setStep]  = useState<Step>('checking')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/auth/forgot-password')
+      .then(r => r.json())
+      .then(({ available }) => setStep(available ? 'form' : 'unavailable'))
+      .catch(() => setStep('unavailable'))
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setStep('loading')
-
     try {
       await fetch('/api/auth/forgot-password', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email }),
       })
-      // Sempre mostra "enviado" — não vaza se e-mail existe
       setStep('sent')
     } catch {
       setError('Erro de conexão. Tente novamente.')
@@ -33,7 +37,6 @@ export default function RecuperarSenhaPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6 relative">
-      {/* Grid bg */}
       <div className="fixed inset-0 pointer-events-none"
         style={{
           backgroundImage: 'linear-gradient(rgba(163,230,53,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(163,230,53,0.03) 1px,transparent 1px)',
@@ -41,46 +44,52 @@ export default function RecuperarSenhaPage() {
         }} />
 
       <div className="relative z-10 w-full max-w-[400px]">
-        {/* Brand */}
         <div className="text-center mb-7">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-4"
             style={{ background: 'var(--neon-dim)', borderColor: 'var(--border-neon)' }}>
             <span className="pulse-dot" />
-            <span className="text-xs font-semibold tracking-widest uppercase text-neon">AAD</span>
+            <span className="text-xs font-semibold tracking-widest uppercase text-neon">ComAgente</span>
           </div>
           <h1 className="font-display text-[22px] font-bold">Recuperar senha</h1>
           <p className="text-[13px] text-secondary-aad mt-1">
-            Informe seu e-mail para receber o link de redefinição
+            {step === 'unavailable'
+              ? 'Redefinição por e-mail não está disponível'
+              : 'Informe seu e-mail para receber o link de redefinição'}
           </p>
         </div>
 
         <div className="bg-card-aad border border-aad rounded-xl p-7">
-          {step === 'sent' ? (
-            // ── Confirmação ──────────────────────────────────
+
+          {/* ── Verificando disponibilidade ── */}
+          {step === 'checking' && (
+            <div className="text-center py-4">
+              <span className="spinner w-5 h-5 mx-auto" style={{ display: 'block' }} />
+              <p className="text-[13px] text-secondary-aad mt-3">Verificando...</p>
+            </div>
+          )}
+
+          {/* ── SMTP não configurado ── */}
+          {step === 'unavailable' && (
             <div className="text-center">
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"
-                style={{ background: 'var(--neon-dim)', border: '1px solid var(--border-neon)' }}>
-                ✉️
+                style={{ background: 'rgba(220,38,38,.1)', border: '1px solid rgba(220,38,38,.3)' }}>
+                ⚠️
               </div>
-              <h2 className="font-display text-[16px] font-bold mb-2">Verifique seu e-mail</h2>
+              <h2 className="font-display text-[16px] font-bold mb-2">Envio de e-mail indisponível</h2>
               <p className="text-[13px] text-secondary-aad leading-relaxed mb-5">
-                Se <strong className="text-white">{email}</strong> estiver cadastrado,
-                você receberá as instruções de redefinição em breve.
+                O sistema de recuperação por e-mail não está configurado.
+                Entre em contato com o administrador para redefinir sua senha.
               </p>
-              <div className="rounded-lg p-3 mb-5 text-[12px] text-muted"
-                style={{ background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
-                Não recebeu? Verifique a caixa de spam ou aguarde alguns minutos.
+              <div className="rounded-lg p-3 text-[12px]"
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)' }}>
+                <strong style={{ color: 'var(--txt)' }}>Administrador:</strong> acesse o painel
+                Master Admin e redefina a senha do usuário em Equipe.
               </div>
-              <button
-                onClick={() => { setStep('form'); setEmail('') }}
-                className="text-[13px] text-neon hover:underline"
-              >
-                ← Tentar outro e-mail
-              </button>
             </div>
+          )}
 
-          ) : (
-            // ── Formulário ───────────────────────────────────
+          {/* ── Formulário ── */}
+          {(step === 'form' || step === 'loading') && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-[13px] font-medium text-secondary-aad mb-1.5">
@@ -108,14 +117,40 @@ export default function RecuperarSenhaPage() {
                 type="submit"
                 disabled={step === 'loading'}
                 className="w-full py-2.5 rounded-lg text-[14px] font-semibold flex items-center justify-center gap-2 transition-all"
-                style={{ background: 'var(--neon)', color: '#0a0a0a' }}
+                style={{ background: 'var(--neon)', color: '#0a0a0a', opacity: step === 'loading' ? .7 : 1 }}
               >
-                {step === 'loading' ? (
-                  <><span className="spinner w-4 h-4" /> Enviando...</>
-                ) : 'Enviar link de redefinição →'}
+                {step === 'loading'
+                  ? <><span className="spinner w-4 h-4" /> Enviando...</>
+                  : 'Enviar link de redefinição →'}
               </button>
             </form>
           )}
+
+          {/* ── Enviado ── */}
+          {step === 'sent' && (
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mx-auto mb-4"
+                style={{ background: 'var(--neon-dim)', border: '1px solid var(--border-neon)' }}>
+                ✉️
+              </div>
+              <h2 className="font-display text-[16px] font-bold mb-2">Verifique seu e-mail</h2>
+              <p className="text-[13px] text-secondary-aad leading-relaxed mb-5">
+                Se <strong style={{ color: 'var(--txt)' }}>{email}</strong> estiver cadastrado,
+                você receberá as instruções de redefinição em breve.
+              </p>
+              <div className="rounded-lg p-3 mb-5 text-[12px]"
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-3)' }}>
+                Não recebeu? Verifique a caixa de spam ou aguarde alguns minutos.
+              </div>
+              <button
+                onClick={() => { setStep('form'); setEmail('') }}
+                style={{ fontSize: 13, color: 'var(--neon)', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                ← Tentar outro e-mail
+              </button>
+            </div>
+          )}
+
         </div>
 
         <div className="text-center mt-4">
