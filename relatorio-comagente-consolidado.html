@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>21 de julho de 2026</strong> (v2.2)<br>
+    Documento consolidado e atualizado — <strong>23 de julho de 2026</strong> (v2.3)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -182,6 +182,9 @@
       <tr><td>29/05/2026</td><td>1.8</td><td>Read receipt (✓✓ azul) habilitado — readMessages e readStatus ativados na instância lucenadecoracoes</td></tr>
       <tr><td>22/06/2026</td><td>1.9</td><td>Instância correta na página de conexão, nome do cliente via aba Clientes, retomar IA limpa Fila_Humana</td></tr>
       <tr><td>02/07/2026</td><td>2.0</td><td>Sistema de tema Dia/Noite funcional, Pausar Global com toggle real, toast e modal centralizados, scroll do chat inteligente, botão mostrar/ocultar senha</td></tr>
+      <tr><td>21/07/2026</td><td>2.1</td><td>Avatares modo claro/escuro, ajuste cor vermelha danger, formatação WhatsApp nas instruções do agente IA</td></tr>
+      <tr><td>23/07/2026</td><td>2.2</td><td>Manter-me conectado (30 dias), Esqueci minha senha funcional, branding ComAgente nas páginas de auth, e-mail de recuperação simplificado, edição de empresas com confirmação de senha Master, redesign tabela Empresas, campo spreadsheetId editável</td></tr>
+      <tr><td>23/07/2026</td><td>2.3</td><td>E-mail Master atualizado para comagente@gaht.com.br, coluna spreadsheetId (I) e avatarUrl (N) adicionadas nas planilhas</td></tr>
     </tbody>
   </table>
 </div>
@@ -1004,11 +1007,85 @@ curl -I http://localhost:3001</pre>
   <li>Isolamento total entre empresas sem múltiplos bancos</li>
 </ul>
 
+<div class="pend-card done">
+  <h4>6.37 "Manter-me conectado" no login — 23/07/2026</h4>
+  <p>Adicionado checkbox abaixo do campo de senha em <code>app/(auth)/login/login-client.tsx</code>. Quando marcado, a sessão dura <strong>30 dias</strong>; desmarcado, <strong>8 horas</strong> (padrão).</p>
+  <p><strong>Implementação técnica:</strong> NextAuth v4 não suporta <code>maxAge</code> dinâmico nativamente. Solução: override de <code>jwt.encode</code> em <code>lib/auth.ts</code> que verifica <code>token.rememberMe</code> e assina o JWT com o <code>maxAge</code> correspondente. O campo <code>remember</code> é passado como credential extra no <code>signIn()</code>.</p>
+  <ul>
+    <li><code>lib/auth.ts</code> — <code>rememberMe: boolean</code> em User/JWT, custom <code>encode</code>/<code>decode</code>, <code>maxAge: 30 * 24 * 60 * 60</code> no cookie</li>
+    <li><code>app/(auth)/login/login-client.tsx</code> — estado <code>rememberMe</code>, checkbox à esquerda, botão "Esqueci minha senha" à direita na mesma linha</li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.38 "Esqueci minha senha" funcional — 23/07/2026</h4>
+  <p>Botão não navegava porque <code>/recuperar-senha</code> não estava no <code>PUBLIC_PATHS</code> do middleware — usuários não autenticados eram redirecionados de volta ao login imediatamente.</p>
+  <ul>
+    <li><code>middleware.ts</code> — adicionados <code>/recuperar-senha</code> e <code>/redefinir-senha</code> ao <code>PUBLIC_PATHS</code></li>
+    <li>Botão convertido de <code>&lt;Link&gt;</code> para <code>&lt;button type="button" onClick={() =&gt; router.push(...)}&gt;</code></li>
+    <li>API <code>GET /api/auth/forgot-password</code> — detecta se SMTP está configurado (verifica sentinela "COLE_AQUI"); retorna <code>{ available: boolean }</code></li>
+    <li>API <code>POST /api/auth/forgot-password</code> — retorna <code>{ notFound: true }</code> se e-mail não cadastrado; mensagem específica exibida na tela</li>
+    <li><code>app/(auth)/recuperar-senha/page.tsx</code> — estados: <code>checking → unavailable | form → loading → sent</code>; logo ComAgente idêntico ao login</li>
+    <li><code>app/(auth)/redefinir-senha/page.tsx</code> — corrigido "AAD" → "ComAgente" em badge e título</li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.39 E-mail de recuperação de senha simplificado + DMARC — 23/07/2026</h4>
+  <p>O e-mail de recuperação era um template HTML escuro. Substituído por e-mail pessoal simples para melhorar entregabilidade e evitar filtros anti-spam.</p>
+  <p><strong>Problema DMARC:</strong> e-mail enviado com <code>From: comagente@gaht.com.br</code> via SMTP Gmail (domínio <code>gmail.com</code>) gerava falha DMARC <code>550 5.7.1</code> — misalignment entre domínio do From e domínio do SMTP.</p>
+  <p><strong>Solução:</strong> <code>SMTP_FROM=ComAgente &lt;grupoaliadoshubtech@gmail.com&gt;</code> — From usa o próprio domínio Gmail, alinhando com o SMTP.</p>
+  <p><strong>Template:</strong> <code>lib/email/mailer.ts</code> — e-mail plain HTML com saudação pelo primeiro nome, link de redefinição e assinatura "Equipe ComAgente".</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.40 E-mail Master atualizado + debug de planilha — 23/07/2026</h4>
+  <p>O e-mail da conta Master estava como <code>admin@suaempresa.com.br</code> (placeholder). Atualizado para <code>comagente@gaht.com.br</code> diretamente na coluna C da aba Usuarios da planilha Master.</p>
+  <p>Para diagnóstico foi criado temporariamente <code>app/api/debug/users/route.ts</code> (GET com <code>?secret=comagente-debug-2026</code>) que retorna usuários sem hash de senha. <strong>Remover em produção após uso.</strong></p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.41 Edição de empresas com confirmação de senha Master — 23/07/2026</h4>
+  <p>Adicionada funcionalidade de editar dados de cada empresa diretamente pelo login Master, sem precisar acessar a planilha.</p>
+  <ul>
+    <li><code>app/(app)/admin/empresas/page.tsx</code> — modal de edição em 2 etapas: (1) formulário com nome, e-mail, telefone, plano, status, instância Evolution e ID da planilha; (2) confirmação de senha Master antes de salvar</li>
+    <li><code>app/api/tenants/[id]/route.ts</code> — PATCH com discriminated union: <code>action: 'status'</code> ou <code>action: 'edit'</code>; valida senha via bcrypt antes de salvar</li>
+    <li><code>lib/repositories/plans-tenants-leads.repository.ts</code> — método <code>updateTenant()</code> com update cirúrgico por cabeçalho de coluna; range atualizado para <code>A:I</code></li>
+    <li>Botão Webhook substituído por modal customizado (removido <code>window.confirm()</code> que é bloqueado em PWA)</li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.42 Redesign tabela Empresas — layout compacto — 23/07/2026</h4>
+  <p>A tabela de empresas tinha linhas muito esparsas com informações separadas em colunas demais.</p>
+  <ul>
+    <li>Coluna "Empresa" compacta: nome (negrito) + e-mail + telefone + link clicável para planilha Google (quando <code>spreadsheetId</code> preenchido)</li>
+    <li>Coluna "Contato" removida (informações unificadas na coluna Empresa)</li>
+    <li>Botão "Status" removido das ações externas — status gerenciado dentro do modal Editar</li>
+    <li>Campo "ID da Planilha Google" no modal Editar com botão "↗ Abrir" para abrir diretamente</li>
+    <li>Coluna <code>spreadsheetId</code> adicionada à aba Empresas da planilha Master (coluna I — cabeçalho a adicionar manualmente: <code>spreadsheetId</code>)</li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.43 Coluna avatarUrl na aba Usuarios — 23/07/2026</h4>
+  <p>O campo <code>avatarUrl</code> já existia no código (<code>types/index.ts</code>, <code>users.repository.ts</code>, método <code>updateProfile()</code>), mas o cabeçalho na planilha não havia sido criado.</p>
+  <p>Adicionado cabeçalho <code>avatarUrl</code> na célula <strong>N1</strong> da aba <strong>Usuarios</strong> da planilha Master. O sistema agora lê e escreve a URL do avatar do usuário corretamente.</p>
+  <p><strong>Resumo de cabeçalhos adicionados nesta sessão:</strong></p>
+  <table>
+    <thead><tr><th>Planilha</th><th>Aba</th><th>Coluna</th><th>Cabeçalho</th></tr></thead>
+    <tbody>
+      <tr><td>Master</td><td>Empresas</td><td>I</td><td><code>spreadsheetId</code></td></tr>
+      <tr><td>Master</td><td>Usuarios</td><td>N</td><td><code>avatarUrl</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 2.1 | 05 de julho de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 2.3 | 23 de julho de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
