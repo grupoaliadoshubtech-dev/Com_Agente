@@ -47,7 +47,7 @@ export default function EmpresasPage(){
 
   // Edição
   const [editOf,    setEditOf]    =useState<Tenant|null>(null)
-  const [editForm,  setEditForm]  =useState({name:'',email:'',phone:'',planId:'',status:'trial' as Tenant['status'],evolutionInstance:''})
+  const [editForm,  setEditForm]  =useState({name:'',email:'',phone:'',planId:'',status:'trial' as Tenant['status'],evolutionInstance:'',spreadsheetId:''})
   const [editStep,  setEditStep]  =useState<'form'|'confirm'>('form')
   const [masterPwd, setMasterPwd] =useState('')
   const [editSaving,setEditSaving]=useState(false)
@@ -63,7 +63,7 @@ export default function EmpresasPage(){
 
   function openEdit(t:Tenant){
     setEditOf(t)
-    setEditForm({name:t.name,email:t.email,phone:t.phone,planId:t.planId,status:t.status,evolutionInstance:t.evolutionInstance??''})
+    setEditForm({name:t.name,email:t.email,phone:t.phone,planId:t.planId,status:t.status,evolutionInstance:t.evolutionInstance??'',spreadsheetId:t.spreadsheetId??''})
     setEditStep('form')
     setMasterPwd('')
     setEditErr('')
@@ -155,14 +155,24 @@ export default function EmpresasPage(){
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:200,gap:10,color:'var(--txt-2)'}}><span className="spinner" style={{width:18,height:18}}/><span style={{fontSize:13}}>Carregando...</span></div>
         ):(
           <table style={{width:'100%',borderCollapse:'collapse'}}>
-            <thead><tr>{['Empresa','Contato','Plano','Status','Instância WA','Criado','Ações'].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+            <thead><tr>{['Empresa','Plano','Status','Instância WA','Criado','Ações'].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.map(t=>(
                 <tr key={t.id} style={{borderBottom:'1px solid var(--border)',transition:'background .12s'}}
                   onMouseEnter={e=>{(e.currentTarget as HTMLTableRowElement).style.background='var(--bg-hover)'}}
                   onMouseLeave={e=>{(e.currentTarget as HTMLTableRowElement).style.background='transparent'}}>
-                  <td style={td}><div style={{fontWeight:500,color:'var(--txt)'}}>{t.name}</div><div style={{fontSize:11,color:'var(--txt-3)',fontFamily:'monospace'}}>{t.id.slice(0,14)}…</div></td>
-                  <td style={td}><div>{t.email}</div><div style={{fontSize:11,color:'var(--txt-3)'}}>{t.phone}</div></td>
+                  <td style={td}>
+                    <div style={{fontWeight:600,color:'var(--txt)',fontSize:13}}>{t.name}</div>
+                    <div style={{fontSize:12,color:'var(--txt-2)',marginTop:1}}>{t.email}</div>
+                    <div style={{fontSize:11,color:'var(--txt-3)',marginTop:1}}>{t.phone}</div>
+                    {t.spreadsheetId&&(
+                      <a href={`https://docs.google.com/spreadsheets/d/${t.spreadsheetId}`} target="_blank" rel="noreferrer"
+                        style={{fontSize:10,fontFamily:'monospace',color:'var(--neon)',opacity:.7,marginTop:3,display:'inline-block',textDecoration:'none'}}
+                        title="Abrir planilha">
+                        ⊞ {t.spreadsheetId.slice(0,20)}…
+                      </a>
+                    )}
+                  </td>
                   <td style={td}>{planName(t.planId)}</td>
                   <td style={td}>
                     <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:100,background:`${ST_CLR[t.status]}18`,border:`1px solid ${ST_CLR[t.status]}40`,color:ST_CLR[t.status]}}>
@@ -174,7 +184,6 @@ export default function EmpresasPage(){
                   <td style={td}>
                     <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                       <button onClick={()=>openEdit(t)} className="btn-neon" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Editar</button>
-                      <button onClick={()=>{setStatusOf(t);setNewStatus(t.status)}} className="btn-outline" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Status</button>
                       <button onClick={()=>setWebhookOf(t)} className="btn-outline" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Webhook</button>
                     </div>
                   </td>
@@ -285,6 +294,19 @@ export default function EmpresasPage(){
                 </select>
               </div>
               <Field label="Instância Evolution API" value={editForm.evolutionInstance} onChange={v=>EF('evolutionInstance',v)} placeholder="empresa-nome"/>
+              <div style={{marginBottom:14}}>
+                <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>ID da Planilha Google</label>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <input type="text" value={editForm.spreadsheetId} onChange={e=>EF('spreadsheetId',e.target.value)} placeholder="1abc...xyz" style={{flex:1,padding:'9px 12px'}}/>
+                  {editForm.spreadsheetId&&(
+                    <a href={`https://docs.google.com/spreadsheets/d/${editForm.spreadsheetId}`} target="_blank" rel="noreferrer"
+                      style={{padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg-input)',fontSize:11,color:'var(--neon)',textDecoration:'none',whiteSpace:'nowrap'}}
+                      title="Abrir planilha">
+                      ↗ Abrir
+                    </a>
+                  )}
+                </div>
+              </div>
               <div style={{display:'flex',gap:10,marginTop:4}}>
                 <button onClick={()=>setEditOf(null)} className="btn-outline" style={{flex:1,padding:'10px',fontSize:13}}>Cancelar</button>
                 <button onClick={()=>{setEditStep('confirm');setEditErr('')}} className="btn-neon" style={{flex:1,padding:'10px',fontSize:13}}>Continuar →</button>

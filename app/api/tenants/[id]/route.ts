@@ -24,6 +24,7 @@ const EditSchema = z.object({
   planId:            z.string(),
   status:            z.enum(['active', 'trial', 'inactive']),
   evolutionInstance: z.string(),
+  spreadsheetId:     z.string().optional(),
   masterPassword:    z.string().min(1, 'Senha obrigatória'),
 })
 

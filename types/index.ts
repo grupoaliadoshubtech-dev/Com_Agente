@@ -29,6 +29,7 @@ export interface Tenant {
   status: 'active' | 'inactive' | 'trial'
   createdAt: string
   evolutionInstance?: string
+  spreadsheetId?: string
 }
 
 // ── PLANO ─────────────────────────────────────────────────────

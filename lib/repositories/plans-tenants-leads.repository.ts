@@ -78,19 +78,20 @@ export class TenantsRepository {
 
   private parse(raw: Record<string, string>): Tenant {
     return {
-      id:                 raw.id,
-      name:               raw.name,
-      email:              raw.email?.toLowerCase().trim(),
-      phone:              raw.phone ?? '',
-      planId:             raw.planId ?? '',
-      status:             (raw.status ?? 'trial') as Tenant['status'],
-      createdAt:          raw.createdAt,
-      evolutionInstance:  raw.evolutionInstance ?? '',
+      id:                raw.id,
+      name:              raw.name,
+      email:             raw.email?.toLowerCase().trim(),
+      phone:             raw.phone ?? '',
+      planId:            raw.planId ?? '',
+      status:            (raw.status ?? 'trial') as Tenant['status'],
+      createdAt:         raw.createdAt,
+      evolutionInstance: raw.evolutionInstance ?? '',
+      spreadsheetId:     raw.spreadsheetId ?? '',
     }
   }
 
   async findAll(): Promise<Tenant[]> {
-    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:H`)
+    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
     return rowsToObjects<Record<string, string>>(rows).map(this.parse)
   }
 
@@ -106,7 +107,7 @@ export class TenantsRepository {
       createdAt: new Date().toISOString(),
       ...rest,
     }
-    await appendRows(this.spreadsheetId, `${this.sheet}!A:H`, [[
+    await appendRows(this.spreadsheetId, `${this.sheet}!A:I`, [[
       tenant.id,
       tenant.name,
       tenant.email,
@@ -115,6 +116,7 @@ export class TenantsRepository {
       tenant.status,
       tenant.createdAt,
       tenant.evolutionInstance ?? '',
+      tenant.spreadsheetId    ?? '',
     ]])
     return tenant
   }
@@ -130,8 +132,8 @@ export class TenantsRepository {
     await updateRange(this.spreadsheetId, `${this.sheet}!F${sheetRow}`, [[status]])
   }
 
-  async updateTenant(id: string, data: Partial<Pick<Tenant, 'name' | 'email' | 'phone' | 'planId' | 'evolutionInstance' | 'status'>>): Promise<boolean> {
-    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:H`)
+  async updateTenant(id: string, data: Partial<Pick<Tenant, 'name' | 'email' | 'phone' | 'planId' | 'evolutionInstance' | 'status' | 'spreadsheetId'>>): Promise<boolean> {
+    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
     if (rows.length < 2) return false
     const headers  = rows[0]
     const idCol    = headers.indexOf('id')
@@ -146,6 +148,7 @@ export class TenantsRepository {
     if (data.planId            !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('planId')}${sheetRow}`,            [[data.planId]]))
     if (data.status            !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('status')}${sheetRow}`,            [[data.status]]))
     if (data.evolutionInstance !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('evolutionInstance')}${sheetRow}`, [[data.evolutionInstance]]))
+    if (data.spreadsheetId     !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('spreadsheetId')}${sheetRow}`,     [[data.spreadsheetId]]))
     await Promise.all(updates)
     return true
   }
