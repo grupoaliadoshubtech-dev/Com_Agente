@@ -57,16 +57,40 @@ export default function RecuperarSenhaPage() {
 
       <div className="relative z-10 w-full max-w-[400px]">
         <div className="text-center mb-7">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-4"
-            style={{ background: 'var(--neon-dim)', borderColor: 'var(--border-neon)' }}>
-            <span className="pulse-dot" />
-            <span className="text-xs font-semibold tracking-widest uppercase text-neon">ComAgente</span>
+          {/* Logo */}
+          <div style={{
+            width: 52, height: 52, borderRadius: 14,
+            background: 'var(--neon)', margin: '0 auto 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 8px 24px var(--neon-glow)', overflow: 'hidden',
+          }}>
+            <svg width="52" height="52" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+              <g transform="translate(33, 0)">
+                <text x="0" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">C</text>
+                <path d="M 182,346 L 214,346 L 254,167 L 222,167 Z" fill="#FFFFFF"/>
+                <path d="M 230,346 L 262,346 L 302,167 L 270,167 Z" fill="#FFFFFF"/>
+                <text x="277" y="346" fontFamily="Raleway, Arial Black, sans-serif" fontWeight="900" fontSize="248" fill="#000000">A</text>
+              </g>
+            </svg>
           </div>
-          <h1 className="font-display text-[22px] font-bold">Recuperar senha</h1>
-          <p className="text-[13px] text-secondary-aad mt-1">
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '5px 14px', borderRadius: 100,
+            background: 'var(--neon-dim)', border: '1px solid var(--neon-border)',
+            marginBottom: 14,
+          }}>
+            <span className="pulse-dot" />
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--neon)' }}>
+              Plataforma Ativa
+            </span>
+          </div>
+          <h1 className="font-display" style={{ fontSize: 26, fontWeight: 800, color: 'var(--txt)', marginBottom: 6, lineHeight: 1.2 }}>
+            Com<span style={{ color: 'var(--neon)' }}>Agente</span>
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--txt-2)' }}>
             {step === 'unavailable'
               ? 'Redefinição por e-mail não está disponível'
-              : 'Informe seu e-mail para receber o link de redefinição'}
+              : 'Recuperação de senha'}
           </p>
         </div>
 
