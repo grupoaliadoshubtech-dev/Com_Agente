@@ -27,7 +27,6 @@ const usersRepo = new UsersRepository()
 
 const SetupSchema = z.object({
   instanceName: z.string().min(1),
-  appUrl:       z.string().url().optional(),
 })
 
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
@@ -46,13 +45,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     return NextResponse.json({ success: false, error: 'Dados inválidos' }, { status: 422 })
   }
 
-  const { instanceName, appUrl } = parsed.data
+  const { instanceName } = parsed.data
 
   try {
     const client     = EvolutionClient.fromEnv(instanceName)
-    const webhookUrl = appUrl
-      ? `${appUrl}/api/evolution/webhook`
-      : `${process.env.NEXTAUTH_URL}/api/evolution/webhook`
+    const webhookUrl = `${process.env.NEXTAUTH_URL}/api/evolution/webhook`
 
     await client.setWebhook({
       url:     webhookUrl,
@@ -118,11 +115,10 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 })
   }
 
-  const instanceName = req.nextUrl.searchParams.get('instance') ??
-                       session.user.tenantId  // fallback: instância do próprio tenant
-
+  // Sempre usa a instância do próprio tenant — ignora parâmetro externo para evitar IDOR
+  const instanceName = session.user.tenantId
   if (!instanceName) {
-    return NextResponse.json({ success: false, error: 'instance obrigatório' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Tenant não identificado' }, { status: 400 })
   }
 
   try {

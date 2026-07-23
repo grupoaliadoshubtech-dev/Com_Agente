@@ -50,8 +50,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const repo = new UsersRepository()
   const user = await repo.findByEmail(email)
 
+  // Responde sempre igual — não revela se o e-mail está cadastrado
   if (!user || !user.isActive) {
-    return NextResponse.json({ success: false, notFound: true })
+    return NextResponse.json({ success: true })
   }
 
   try {

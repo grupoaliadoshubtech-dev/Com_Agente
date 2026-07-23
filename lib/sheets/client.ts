@@ -61,7 +61,7 @@ export async function appendRows(
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range,
-    valueInputOption: 'USER_ENTERED',
+    valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values: rows },
   })
@@ -80,7 +80,7 @@ export async function updateRange(
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range,
-    valueInputOption: 'USER_ENTERED',
+    valueInputOption: 'RAW',
     requestBody: { values: rows },
   })
 }
