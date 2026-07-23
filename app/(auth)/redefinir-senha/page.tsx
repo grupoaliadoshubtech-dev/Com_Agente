@@ -183,7 +183,7 @@ export default function RedefinirSenhaPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-4"
             style={{ background: 'var(--neon-dim)', borderColor: 'var(--border-neon)' }}>
             <span className="pulse-dot" />
-            <span className="text-xs font-semibold tracking-widest uppercase text-neon">AAD</span>
+            <span className="text-xs font-semibold tracking-widest uppercase text-neon">ComAgente</span>
           </div>
           <h1 className="font-display text-[22px] font-bold">Nova senha</h1>
           {email && (
