@@ -79,18 +79,47 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        email:    { label: 'E-mail',         type: 'email' },
-        password: { label: 'Senha',          type: 'password' },
+        email:    { label: 'E-mail',              type: 'email' },
+        password: { label: 'Senha',               type: 'password' },
         remember: { label: 'Manter-me conectado', type: 'checkbox' },
+        demo:     { label: 'Demo',                type: 'text' },
       },
 
       async authorize(credentials) {
+        const repo = new UsersRepository(process.env.GOOGLE_MASTER_SHEET_ID)
+
+        // ── Login demo — credenciais ficam só no servidor ────────
+        if (credentials?.demo === 'true') {
+          const demoEmail = process.env.DEMO_EMAIL
+          const demoPwd   = process.env.DEMO_PASSWORD
+          if (!demoEmail || !demoPwd) {
+            console.warn('[Auth] DEMO_EMAIL ou DEMO_PASSWORD não configurados.')
+            return null
+          }
+          const demoUser = await repo.findByEmail(demoEmail)
+          if (!demoUser || !demoUser.isActive) return null
+          const demoMatch = await bcrypt.compare(demoPwd, demoUser.passwordHash)
+          if (!demoMatch) return null
+          return {
+            id:                  demoUser.id,
+            email:               demoUser.email,
+            name:                demoUser.name,
+            role:                demoUser.role,
+            tenantId:            demoUser.tenantId,
+            tenantName:          '',
+            canViewDashboard:    demoUser.canViewDashboard,
+            canViewCRM:          demoUser.canViewCRM,
+            canViewTranscricoes: demoUser.canViewTranscricoes,
+            canViewSatisfacao:   demoUser.canViewSatisfacao,
+            mustChangePassword:  false,
+            rememberMe:          false,
+          }
+        }
+
+        // ── Login normal ─────────────────────────────────────────
         if (!credentials?.email || !credentials?.password) return null
 
-        // Master Admin usa a planilha master; outros usam tenant próprio
-        const repo = new UsersRepository(process.env.GOOGLE_MASTER_SHEET_ID)
         const user = await repo.findByEmail(credentials.email)
-
         if (!user || !user.isActive) return null
 
         const passwordMatch = await bcrypt.compare(
@@ -110,7 +139,7 @@ export const authOptions: NextAuthOptions = {
           canViewCRM:          user.canViewCRM,
           canViewTranscricoes: user.canViewTranscricoes,
           canViewSatisfacao:   user.canViewSatisfacao,
-          mustChangePassword:  credentials.password === '098765',
+          mustChangePassword:  false,
           rememberMe:          credentials.remember === 'true',
         }
       },

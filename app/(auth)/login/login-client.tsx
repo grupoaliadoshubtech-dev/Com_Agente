@@ -36,9 +36,10 @@ export default function LoginClient() {
   }
 
   async function handleDemo() {
-    setLoading(true)
-    await signIn('credentials', { redirect: false, email: 'demo@aad.com.br', password: 'demo1234' })
+    setError(''); setLoading(true)
+    const res = await signIn('credentials', { redirect: false, demo: 'true' })
     setLoading(false)
+    if (res?.error) { setError('Acesso demonstração não disponível no momento.'); return }
     router.push('/workspace')
   }
 
@@ -290,6 +291,16 @@ export default function LoginClient() {
               <p style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 24, lineHeight: 1.5 }}>
                 Explore todas as funcionalidades sem necessidade de cadastro.
               </p>
+              {error && (
+                <div style={{
+                  fontSize: 13, color: 'var(--danger)',
+                  background: 'var(--danger-dim)',
+                  border: '1px solid rgba(239,68,68,.2)',
+                  borderRadius: 8, padding: '10px 14px', marginBottom: 8,
+                }}>
+                  {error}
+                </div>
+              )}
               <button
                 onClick={handleDemo} disabled={loading}
                 className="btn-neon"
