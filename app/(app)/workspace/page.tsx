@@ -748,7 +748,7 @@ export default function WorkspacePage() {
         </>) : (
           <div className="flex-1 flex items-center justify-center flex-col gap-3 text-muted">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(163,230,53,0.08)', border: '1px solid rgba(163,230,53,0.15)', color: 'var(--neon)' }}><IcoMessageCircle size={32}/></div>
-            <p className="text-[14px] font-medium" style={{ color: 'var(--txt)' }}>ComAgente Workspace</p>
+            <p className="text-[14px] font-medium" style={{ color: 'var(--txt)' }}>ComAgente Conversas</p>
             <p className="text-[12px] text-center max-w-[280px]">Selecione uma conversa para começar. As conversas atualizam automaticamente.</p>
             <div className="flex items-center gap-1.5 mt-2">
               <span className="w-2 h-2 rounded-full" style={{ background: 'var(--neon)' }} /><span className="text-[11px]">IA Ativa</span>

@@ -492,7 +492,7 @@ export default function CRMPage() {
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <p style={labelStyle}>Ações rápidas</p>
                   <a href={`/transcricoes?telefone=${selected.telefone}`} style={{ fontSize: 12, color: 'var(--neon)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><IcoFileText size={12}/> Ver transcrições</a>
-                  <a href={`/workspace`} style={{ fontSize: 12, color: 'var(--neon)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><IcoMessageCircle size={12}/> Abrir no Workspace</a>
+                  <a href={`/workspace`} style={{ fontSize: 12, color: 'var(--neon)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><IcoMessageCircle size={12}/> Abrir em Conversas</a>
                 </div>
               </>
             )}

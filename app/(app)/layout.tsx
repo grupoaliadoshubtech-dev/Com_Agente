@@ -35,7 +35,7 @@ const IC = {
 }
 
 const MAIN_NAV    = [
-  { label:'Workspace',     href:'/workspace',    icon:'workspace',    badge:'5', toggle:'' },
+  { label:'Conversas',     href:'/workspace',    icon:'workspace',    badge:'5', toggle:'' },
   { label:'Dashboard',     href:'/dashboard',    icon:'dashboard',    badge:'',  toggle:'canViewDashboard' },
   { label:'CRM / Clientes',href:'/crm',          icon:'crm',          badge:'',  toggle:'canViewCRM' },
   { label:'Transcrições',  href:'/transcricoes', icon:'transcricoes', badge:'',  toggle:'canViewTranscricoes' },
@@ -56,7 +56,7 @@ const MASTER_NAV  = [
 ]
 
 const PAGE_META: Record<string, [string, string]> = {
-  '/workspace':               ['Workspace',          'Fila de atendimento em tempo real'],
+  '/workspace':               ['Conversas',          'Fila de atendimento em tempo real'],
   '/dashboard':               ['Dashboard',          'Visão geral da operação'],
   '/crm':                     ['CRM / Clientes',     'Base de clientes cadastrados'],
   '/transcricoes':            ['Transcrições',       'Histórico de atendimentos'],
