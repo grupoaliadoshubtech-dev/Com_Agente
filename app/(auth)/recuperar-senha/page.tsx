@@ -23,11 +23,23 @@ export default function RecuperarSenhaPage() {
     setError('')
     setStep('loading')
     try {
-      await fetch('/api/auth/forgot-password', {
+      const res  = await fetch('/api/auth/forgot-password', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email }),
       })
+      const data = await res.json()
+
+      if (data.notFound) {
+        setError('Este e-mail não está cadastrado no sistema.')
+        setStep('form')
+        return
+      }
+      if (!data.success) {
+        setError(data.error ?? 'Erro ao enviar e-mail. Tente novamente.')
+        setStep('form')
+        return
+      }
       setStep('sent')
     } catch {
       setError('Erro de conexão. Tente novamente.')

@@ -33,11 +33,6 @@ export async function GET(): Promise<NextResponse> {
   return NextResponse.json({ available: configured })
 }
 
-const ALWAYS_OK = NextResponse.json({
-  success: true,
-  message: 'Se o e-mail estiver cadastrado, você receberá as instruções em breve.',
-})
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   let body: unknown
   try { body = await req.json() } catch {
@@ -45,16 +40,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const parsed = Schema.safeParse(body)
-  if (!parsed.success) return ALWAYS_OK   // não vazar erros de validação
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: 'E-mail inválido' }, { status: 400 })
+  }
 
   const email = parsed.data.email.toLowerCase().trim()
 
-  try {
-    // 1. Busca usuário — responde OK mesmo se não encontrar
-    const repo = new UsersRepository()
-    const user = await repo.findByEmail(email)
-    if (!user || !user.isActive) return ALWAYS_OK
+  // 1. Busca usuário
+  const repo = new UsersRepository()
+  const user = await repo.findByEmail(email)
 
+  if (!user || !user.isActive) {
+    return NextResponse.json({ success: false, notFound: true })
+  }
+
+  try {
     // 2. Gera token
     const tokenRepo = new ResetTokenRepository()
     const token     = await tokenRepo.create(user.id, email)
@@ -66,15 +66,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // 4. Envia e-mail
     await sendMail({
       to:      email,
-      subject: 'Redefinição de senha — Agência de Atendimento Digital',
+      subject: 'Redefinição de senha — ComAgente',
       html:    resetPasswordTemplate(user.name, resetUrl),
     })
 
     console.log(`[forgot-password] E-mail enviado para ${email}`)
+    return NextResponse.json({ success: true })
   } catch (err) {
-    // Loga mas não expõe para o cliente
-    console.error('[forgot-password] Erro interno:', err)
+    console.error('[forgot-password] Erro ao enviar e-mail:', err)
+    return NextResponse.json({ success: false, error: 'Erro ao enviar e-mail. Tente novamente.' }, { status: 500 })
   }
-
-  return ALWAYS_OK
 }
