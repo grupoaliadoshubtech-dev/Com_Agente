@@ -1,0 +1,144 @@
+
+<!-- saved from url=(0138)file:///C:/Users/DEVROG~1/AppData/Local/Temp/claude/d-%2DDev-%2D2025-ca/e27b91f8-696d-46fc-a3e0-4b9ac5ec284b/scratchpad/avatar-vazado.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>ComAgente — Avatar Noite vs Dia</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #0e1012; color: #e8eaed;
+    padding: 32px 20px 60px;
+  }
+
+  .header { max-width: 780px; margin: 0 auto 28px; display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid rgba(163,230,53,.15); padding-bottom: 18px; }
+  .logo { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #A3E635; }
+  .ttl  { font-size: 16px; font-weight: 600; color: #f0f2f5; }
+
+  .grid { max-width: 780px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .col-hdr { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; text-align: center; padding-bottom: 10px; color: #555; }
+
+  /* cards */
+  .ws { border-radius: 12px; overflow: hidden; border: 1px solid; display: flex; flex-direction: column; }
+  .ws.dark  { background: #111214; border-color: rgba(255,255,255,.08); }
+  .ws.light { background: #EBF2EF; border-color: rgba(0,0,0,.1); }
+
+  .list-hdr { padding: 10px 12px 6px; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+  .dark  .list-hdr { color: #444; }
+  .light .list-hdr { color: #9CA3AF; }
+
+  .row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+  .row.sel.dark  { background: rgba(163,230,53,.06); }
+  .row.sel.light { background: rgba(163,230,53,.08); }
+
+  /* Avatar base */
+  .av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+  /* Noite — sólido, sem mudança */
+  .av-noite { background: rgba(163,230,53,.15); color: #A3E635; border: 1px solid rgba(163,230,53,.3); }
+
+  /* Dia — sem borda, sombra fina, contorno na fonte */
+  .av-dia { background: #A3E635; color: #1B3D2F; border: none; box-shadow: 0 1px 5px rgba(0,0,0,.18); -webkit-text-stroke: 0.5px #1B3D2F; }
+
+  .info { flex: 1; min-width: 0; }
+  .nm  { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dark  .nm  { color: #f0f2f5; }
+  .light .nm  { color: #111827; }
+  .prv { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .dark  .prv { color: #444; }
+  .light .prv { color: #9CA3AF; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Showcase close-up */
+  .showcase { max-width: 780px; margin: 28px auto 0; display: flex; gap: 32px; align-items: center; justify-content: center; padding: 24px 20px; background: rgba(255,255,255,.02); border-radius: 12px; border: 1px solid rgba(255,255,255,.05); }
+  .show-item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .show-av { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; }
+  .show-lbl { font-size: 10px; color: #555; text-align: center; line-height: 1.5; }
+  .divider-v { width: 1px; height: 56px; background: rgba(255,255,255,.07); }
+</style>
+
+</head><body><div class="header">
+  <span class="logo">ComAgente</span>
+  <span class="ttl">Avatar — Noite vs Dia (sombra, sem borda)</span>
+</div>
+
+<div class="grid">
+
+  <div class="col-hdr">🌑 Noite (como está)</div>
+  <div class="col-hdr">☀️ Dia — sem borda + sombra fina</div>
+
+  <!-- NOITE -->
+  <div class="ws dark">
+    <div class="list-hdr">Conversas</div>
+    <div class="row sel dark">
+      <div class="av av-noite">HM</div>
+      <div class="info"><div class="nm">Hebert Meneses</div><div class="prv">Mandei mensagem...</div></div>
+      <div class="dot" style="background:#A3E635"></div>
+    </div>
+    <div class="row dark">
+      <div class="av av-noite">AC</div>
+      <div class="info"><div class="nm">Atend. Canecas</div><div class="prv">Olá! Como posso...</div></div>
+      <div class="dot" style="background:#EF4444"></div>
+    </div>
+    <div class="row dark">
+      <div class="av av-noite">MF</div>
+      <div class="info"><div class="nm">Maria Figueiredo</div><div class="prv">Preciso de ajuda...</div></div>
+      <div class="dot" style="background:#A3E635"></div>
+    </div>
+    <div class="row dark">
+      <div class="av av-noite">JS</div>
+      <div class="info"><div class="nm">João Santos</div><div class="prv">Quero cancelar...</div></div>
+      <div class="dot" style="background:#EF4444"></div>
+    </div>
+    <div class="row dark">
+      <div class="av av-noite">RL</div>
+      <div class="info"><div class="nm">Radija Lucena</div><div class="prv">Boa tarde!</div></div>
+      <div class="dot" style="background:#A3E635"></div>
+    </div>
+  </div>
+
+  <!-- DIA -->
+  <div class="ws light">
+    <div class="list-hdr">Conversas</div>
+    <div class="row sel light">
+      <div class="av av-dia">HM</div>
+      <div class="info"><div class="nm">Hebert Meneses</div><div class="prv">Mandei mensagem...</div></div>
+      <div class="dot" style="background:#A3E635"></div>
+    </div>
+    <div class="row light">
+      <div class="av av-dia">AC</div>
+      <div class="info"><div class="nm">Atend. Canecas</div><div class="prv">Olá! Como posso...</div></div>
+      <div class="dot" style="background:#EF4444"></div>
+    </div>
+    <div class="row light">
+      <div class="av av-dia">MF</div>
+      <div class="info"><div class="nm">Maria Figueiredo</div><div class="prv">Preciso de ajuda...</div></div>
+      <div class="dot" style="background:#A3E635"></div>
+    </div>
+    <div class="row light">
+      <div class="av av-dia">JS</div>
+      <div class="info"><div class="nm">João Santos</div><div class="prv">Quero cancelar...</div></div>
+      <div class="dot" style="background:#EF4444"></div>
+    </div>
+    <div class="row light">
+      <div class="av av-dia">RL</div>
+      <div class="info"><div class="nm">Radija Lucena</div><div class="prv">Boa tarde!</div></div>
+      <div class="dot" style="background:#A3E635"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Close-up -->
+<div class="showcase">
+  <div class="show-item">
+    <div class="show-av" style="background:rgba(163,230,53,.15);color:#A3E635;border:1px solid rgba(163,230,53,.3)">HM</div>
+    <div class="show-lbl">Noite<br>borda sutil</div>
+  </div>
+  <div class="divider-v"></div>
+  <div class="show-item">
+    <div class="show-av" style="background:#A3E635;color:#1B3D2F;border:none;box-shadow:0 1px 5px rgba(0,0,0,.18);-webkit-text-stroke:0.5px #1B3D2F">HM</div>
+    <div class="show-lbl">Dia<br>sem borda · sombra · contorno na fonte</div>
+  </div>
+</div>
+</body></html>
