@@ -55,7 +55,6 @@ export default function EmpresasPage(){
 
   // Webhook
   const [webhookOf,   setWebhookOf]  =useState<Tenant|null>(null)
-  const [webhookUrl,  setWebhookUrl] =useState('')
   const [webhookBusy, setWebhookBusy]=useState(false)
 
   function F(k:string,v:string){setForm(f=>({...f,[k]:v}))}
@@ -78,18 +77,13 @@ export default function EmpresasPage(){
     else setEditErr(d.error??'Erro ao salvar')
   }
 
-  function openWebhook(t:Tenant){
-    setWebhookOf(t)
-    setWebhookUrl(t.webhookUrl??'')
-  }
-
   async function doWebhook(){
     if(!webhookOf)return
     setWebhookBusy(true)
-    const r=await fetch('/api/evolution/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instanceName:webhookOf.evolutionInstance,webhookUrl:webhookUrl||undefined,tenantId:webhookOf.id})})
+    const r=await fetch('/api/evolution/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instanceName:webhookOf.evolutionInstance})})
     const d=await r.json();setWebhookBusy(false)
-    if(d.success){setWebhookOf(null);load();showToast('✓ Webhook configurado!')}
-    else showToast(`Erro: ${d.error}`)
+    setWebhookOf(null)
+    showToast(d.success?'✓ Webhook configurado':`Erro: ${d.error}`)
   }
 
   async function load(){
@@ -190,7 +184,7 @@ export default function EmpresasPage(){
                   <td style={td}>
                     <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                       <button onClick={()=>openEdit(t)} className="btn-neon" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Editar</button>
-                      <button onClick={()=>openWebhook(t)} className="btn-outline" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Webhook</button>
+                      <button onClick={()=>setWebhookOf(t)} className="btn-outline" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Webhook</button>
                     </div>
                   </td>
                 </tr>
@@ -340,38 +334,21 @@ export default function EmpresasPage(){
 
       {/* Modal webhook */}
       {webhookOf&&(
-        <Modal title={`Webhook — ${webhookOf.name}`} onClose={()=>setWebhookOf(null)}>
-          {/* Instância */}
-          <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:8,background:'var(--bg-input)',border:'1px solid var(--border)',marginBottom:20}}>
-            <span style={{fontSize:11,color:'var(--txt-3)'}}>Instância:</span>
-            <span style={{fontSize:12,fontFamily:'monospace',color:'var(--neon)',flex:1}}>{webhookOf.evolutionInstance||'—'}</span>
+        <Modal title="Configurar Webhook" onClose={()=>setWebhookOf(null)}>
+          <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:16}}>
+            Deseja configurar o webhook da Evolution API para a empresa <strong style={{color:'var(--txt)'}}>{webhookOf.name}</strong>?
+          </p>
+          <div style={{padding:'10px 14px',borderRadius:8,background:'var(--bg-input)',border:'1px solid var(--border)',marginBottom:20}}>
+            <span style={{fontSize:11,color:'var(--txt-3)'}}>Instância: </span>
+            <span style={{fontSize:12,fontFamily:'monospace',color:'var(--neon)'}}>{webhookOf.evolutionInstance||'—'}</span>
           </div>
-
           {!webhookOf.evolutionInstance&&(
             <p style={{fontSize:12,color:'var(--danger)',marginBottom:16}}>⚠ Esta empresa não tem instância Evolution configurada.</p>
           )}
-
-          {/* URL do n8n */}
-          <div style={{marginBottom:20}}>
-            <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:6}}>
-              URL do Webhook (n8n)
-            </label>
-            <input
-              type="url"
-              value={webhookUrl}
-              onChange={e=>setWebhookUrl(e.target.value)}
-              placeholder="https://n8n.seudominio.com/webhook/xxxxx"
-              style={{width:'100%',padding:'9px 12px',fontSize:13}}
-            />
-            <p style={{fontSize:11,color:'var(--txt-3)',marginTop:6,lineHeight:1.5}}>
-              Cole aqui o link do workflow do n8n. Ao confirmar, a Evolution API desta instância passará a enviar os eventos para essa URL.
-            </p>
-          </div>
-
           <div style={{display:'flex',gap:10}}>
             <button onClick={()=>setWebhookOf(null)} className="btn-outline" style={{flex:1,padding:'10px',fontSize:13}}>Cancelar</button>
-            <button onClick={doWebhook} disabled={webhookBusy||!webhookOf.evolutionInstance||!webhookUrl.trim()} className="btn-neon" style={{flex:1,padding:'10px',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
-              {webhookBusy?<><span className="spinner" style={{width:14,height:14}}/>Configurando...</>:'Configurar Webhook →'}
+            <button onClick={doWebhook} disabled={webhookBusy||!webhookOf.evolutionInstance} className="btn-neon" style={{flex:1,padding:'10px',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+              {webhookBusy?<><span className="spinner" style={{width:14,height:14}}/>Configurando...</>:'Confirmar →'}
             </button>
           </div>
         </Modal>

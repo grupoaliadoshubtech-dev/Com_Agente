@@ -87,12 +87,11 @@ export class TenantsRepository {
       createdAt:         raw.createdAt,
       evolutionInstance: raw.evolutionInstance ?? '',
       spreadsheetId:     raw.spreadsheetId ?? '',
-      webhookUrl:        raw.webhookUrl ?? '',
     }
   }
 
   async findAll(): Promise<Tenant[]> {
-    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:J`)
+    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
     return rowsToObjects<Record<string, string>>(rows).map(this.parse)
   }
 
@@ -108,7 +107,7 @@ export class TenantsRepository {
       createdAt: new Date().toISOString(),
       ...rest,
     }
-    await appendRows(this.spreadsheetId, `${this.sheet}!A:J`, [[
+    await appendRows(this.spreadsheetId, `${this.sheet}!A:I`, [[
       tenant.id,
       tenant.name,
       tenant.email,
@@ -118,7 +117,6 @@ export class TenantsRepository {
       tenant.createdAt,
       tenant.evolutionInstance ?? '',
       tenant.spreadsheetId    ?? '',
-      tenant.webhookUrl        ?? '',
     ]])
     return tenant
   }
@@ -134,8 +132,8 @@ export class TenantsRepository {
     await updateRange(this.spreadsheetId, `${this.sheet}!F${sheetRow}`, [[status]])
   }
 
-  async updateTenant(id: string, data: Partial<Pick<Tenant, 'name' | 'email' | 'phone' | 'planId' | 'evolutionInstance' | 'status' | 'spreadsheetId' | 'webhookUrl'>>): Promise<boolean> {
-    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:J`)
+  async updateTenant(id: string, data: Partial<Pick<Tenant, 'name' | 'email' | 'phone' | 'planId' | 'evolutionInstance' | 'status' | 'spreadsheetId'>>): Promise<boolean> {
+    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
     if (rows.length < 2) return false
     const headers  = rows[0]
     const idCol    = headers.indexOf('id')
@@ -151,7 +149,6 @@ export class TenantsRepository {
     if (data.status            !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('status')}${sheetRow}`,            [[data.status]]))
     if (data.evolutionInstance !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('evolutionInstance')}${sheetRow}`, [[data.evolutionInstance]]))
     if (data.spreadsheetId     !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('spreadsheetId')}${sheetRow}`,     [[data.spreadsheetId]]))
-    if (data.webhookUrl        !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('webhookUrl')}${sheetRow}`,        [[data.webhookUrl]]))
     await Promise.all(updates)
     return true
   }

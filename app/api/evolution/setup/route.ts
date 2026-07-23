@@ -27,8 +27,7 @@ const usersRepo = new UsersRepository()
 
 const SetupSchema = z.object({
   instanceName: z.string().min(1),
-  webhookUrl:   z.string().url().optional(),
-  tenantId:     z.string().optional(),
+  appUrl:       z.string().url().optional(),
 })
 
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
@@ -47,11 +46,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     return NextResponse.json({ success: false, error: 'Dados inválidos' }, { status: 422 })
   }
 
-  const { instanceName, webhookUrl: customUrl, tenantId } = parsed.data
+  const { instanceName, appUrl } = parsed.data
 
   try {
     const client     = EvolutionClient.fromEnv(instanceName)
-    const webhookUrl = customUrl ?? `${process.env.NEXTAUTH_URL}/api/evolution/webhook`
+    const webhookUrl = appUrl
+      ? `${appUrl}/api/evolution/webhook`
+      : `${process.env.NEXTAUTH_URL}/api/evolution/webhook`
 
     await client.setWebhook({
       url:     webhookUrl,
@@ -63,12 +64,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         'PRESENCE_UPDATE',
       ],
     })
-
-    // Se veio um tenantId e uma URL customizada, persiste na planilha
-    if (tenantId && customUrl) {
-      const { TenantsRepository } = await import('@/lib/repositories/plans-tenants-leads.repository')
-      await new TenantsRepository().updateTenant(tenantId, { webhookUrl: customUrl })
-    }
 
     invalidateTenantCache()
 

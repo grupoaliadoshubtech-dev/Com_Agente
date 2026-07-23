@@ -30,7 +30,6 @@ export interface Tenant {
   createdAt: string
   evolutionInstance?: string
   spreadsheetId?: string
-  webhookUrl?: string
 }
 
 // ── PLANO ─────────────────────────────────────────────────────
