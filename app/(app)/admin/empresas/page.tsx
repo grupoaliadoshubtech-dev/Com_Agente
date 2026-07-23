@@ -31,22 +31,60 @@ function Field({label,value,onChange,type='text',placeholder=''}:{label:string;v
 }
 
 export default function EmpresasPage(){
-  const [tenants,setTenants]=useState<Tenant[]>([])
-  const [plans,  setPlans]  =useState<Plan[]>([])
-  const [loading,setLoading]=useState(true)
-  const [search, setSearch] =useState('')
-  const [showNew,setShowNew]=useState(false)
-  const [statusOf,setStatusOf]=useState<Tenant|null>(null)
+  const [tenants,   setTenants]   =useState<Tenant[]>([])
+  const [plans,     setPlans]     =useState<Plan[]>([])
+  const [loading,   setLoading]   =useState(true)
+  const [search,    setSearch]    =useState('')
+  const [showNew,   setShowNew]   =useState(false)
+  const [statusOf,  setStatusOf]  =useState<Tenant|null>(null)
   const [resetModal,setResetModal]=useState(false)
   const [resetEmail,setResetEmail]=useState('')
-  const [resetting,setResetting]=useState(false)
-  const [toast,  setToast]  =useState('')
-  const [form,   setForm]   =useState({name:'',email:'',phone:'',planId:'',supervisorName:'',supervisorEmail:'',supervisorPassword:'',spreadsheetId:'',evolutionInstance:''})
-  const [saving, setSaving] =useState(false)
-  const [newStatus,setNewStatus]=useState<Tenant['status']>('trial')
+  const [resetting, setResetting] =useState(false)
+  const [toast,     setToast]     =useState('')
+  const [form,      setForm]      =useState({name:'',email:'',phone:'',planId:'',supervisorName:'',supervisorEmail:'',supervisorPassword:'',spreadsheetId:'',evolutionInstance:''})
+  const [saving,    setSaving]    =useState(false)
+  const [newStatus, setNewStatus] =useState<Tenant['status']>('trial')
+
+  // Edição
+  const [editOf,    setEditOf]    =useState<Tenant|null>(null)
+  const [editForm,  setEditForm]  =useState({name:'',email:'',phone:'',planId:'',status:'trial' as Tenant['status'],evolutionInstance:''})
+  const [editStep,  setEditStep]  =useState<'form'|'confirm'>('form')
+  const [masterPwd, setMasterPwd] =useState('')
+  const [editSaving,setEditSaving]=useState(false)
+  const [editErr,   setEditErr]   =useState('')
+
+  // Webhook
+  const [webhookOf, setWebhookOf] =useState<Tenant|null>(null)
+  const [webhookBusy,setWebhookBusy]=useState(false)
 
   function F(k:string,v:string){setForm(f=>({...f,[k]:v}))}
+  function EF(k:string,v:string){setEditForm(f=>({...f,[k]:v}))}
   function showToast(m:string){setToast(m);setTimeout(()=>setToast(''),3500)}
+
+  function openEdit(t:Tenant){
+    setEditOf(t)
+    setEditForm({name:t.name,email:t.email,phone:t.phone,planId:t.planId,status:t.status,evolutionInstance:t.evolutionInstance??''})
+    setEditStep('form')
+    setMasterPwd('')
+    setEditErr('')
+  }
+
+  async function saveEdit(){
+    setEditSaving(true);setEditErr('')
+    const r=await fetch(`/api/tenants/${editOf!.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'edit',...editForm,masterPassword:masterPwd})})
+    const d=await r.json();setEditSaving(false)
+    if(d.success){setEditOf(null);load();showToast('✓ Empresa atualizada!')}
+    else setEditErr(d.error??'Erro ao salvar')
+  }
+
+  async function doWebhook(){
+    if(!webhookOf)return
+    setWebhookBusy(true)
+    const r=await fetch('/api/evolution/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instanceName:webhookOf.evolutionInstance})})
+    const d=await r.json();setWebhookBusy(false)
+    setWebhookOf(null)
+    showToast(d.success?'✓ Webhook configurado':`Erro: ${d.error}`)
+  }
 
   async function load(){
     setLoading(true)
@@ -134,14 +172,10 @@ export default function EmpresasPage(){
                   <td style={{...td,fontFamily:'monospace',fontSize:11}}>{t.evolutionInstance||'—'}</td>
                   <td style={{...td,fontSize:12}}>{fmtDate(t.createdAt)}</td>
                   <td style={td}>
-                    <div style={{display:'flex',gap:6}}>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                      <button onClick={()=>openEdit(t)} className="btn-neon" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Editar</button>
                       <button onClick={()=>{setStatusOf(t);setNewStatus(t.status)}} className="btn-outline" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Status</button>
-                      <button onClick={async()=>{
-                        if(!confirm(`Configurar webhook para ${t.name}?`))return
-                        const r=await fetch('/api/evolution/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instanceName:t.evolutionInstance})})
-                        const d=await r.json()
-                        showToast(d.success?'✓ Webhook configurado':`Erro: ${d.error}`)
-                      }} className="btn-outline" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Webhook</button>
+                      <button onClick={()=>setWebhookOf(t)} className="btn-outline" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Webhook</button>
                     </div>
                   </td>
                 </tr>
@@ -219,6 +253,80 @@ export default function EmpresasPage(){
             <button onClick={()=>{setResetModal(false);setResetEmail('')}} className="btn-outline" style={{flex:1,padding:'10px',fontSize:13}}>Cancelar</button>
             <button onClick={doReset} disabled={resetting||!resetEmail.trim()} className="btn-danger" style={{flex:1,padding:'10px',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
               {resetting?<><span className="spinner" style={{width:14,height:14}}/>Redefinindo...</>:'Redefinir Senha'}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal editar empresa */}
+      {editOf&&(
+        <Modal title={`Editar — ${editOf.name}`} onClose={()=>setEditOf(null)}>
+          {editStep==='form'&&(
+            <>
+              <p style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',color:'var(--txt-3)',marginBottom:12,display:'flex',alignItems:'center',gap:6}}><IcoBuilding size={13}/> Dados da empresa</p>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <Field label="Nome" value={editForm.name} onChange={v=>EF('name',v)}/>
+                <div style={{marginBottom:14}}>
+                  <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Plano</label>
+                  <select value={editForm.planId} onChange={e=>EF('planId',e.target.value)} style={{width:'100%',padding:'9px 12px',borderRadius:8}}>
+                    <option value="">Selecione...</option>
+                    {plans.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <Field label="E-mail" value={editForm.email} onChange={v=>EF('email',v)} type="email"/>
+                <Field label="Telefone" value={editForm.phone} onChange={v=>EF('phone',v)}/>
+              </div>
+              <div style={{marginBottom:14}}>
+                <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Status</label>
+                <select value={editForm.status} onChange={e=>EF('status',e.target.value)} style={{width:'100%',padding:'9px 12px',borderRadius:8}}>
+                  <option value="active">Ativo</option>
+                  <option value="trial">Trial</option>
+                  <option value="inactive">Inativo</option>
+                </select>
+              </div>
+              <Field label="Instância Evolution API" value={editForm.evolutionInstance} onChange={v=>EF('evolutionInstance',v)} placeholder="empresa-nome"/>
+              <div style={{display:'flex',gap:10,marginTop:4}}>
+                <button onClick={()=>setEditOf(null)} className="btn-outline" style={{flex:1,padding:'10px',fontSize:13}}>Cancelar</button>
+                <button onClick={()=>{setEditStep('confirm');setEditErr('')}} className="btn-neon" style={{flex:1,padding:'10px',fontSize:13}}>Continuar →</button>
+              </div>
+            </>
+          )}
+          {editStep==='confirm'&&(
+            <>
+              <div style={{padding:'12px 16px',borderRadius:10,background:'var(--neon-dim)',border:'1px solid var(--neon-border)',marginBottom:20}}>
+                <p style={{fontSize:13,color:'var(--txt)',fontWeight:600,marginBottom:4}}>Confirme sua identidade</p>
+                <p style={{fontSize:12,color:'var(--txt-2)'}}>Por segurança, insira a senha do Master Admin para salvar as alterações.</p>
+              </div>
+              <Field label="Senha do Master Admin" value={masterPwd} onChange={setMasterPwd} type="password" placeholder="••••••••"/>
+              {editErr&&<p style={{fontSize:12,color:'var(--danger)',background:'var(--danger-dim)',border:'1px solid rgba(220,38,38,.2)',borderRadius:8,padding:'8px 12px',marginBottom:12}}>{editErr}</p>}
+              <div style={{display:'flex',gap:10,marginTop:4}}>
+                <button onClick={()=>setEditStep('form')} className="btn-outline" style={{flex:1,padding:'10px',fontSize:13}}>← Voltar</button>
+                <button onClick={saveEdit} disabled={editSaving||!masterPwd} className="btn-neon" style={{flex:1,padding:'10px',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                  {editSaving?<><span className="spinner" style={{width:14,height:14}}/>Salvando...</>:'Salvar alterações'}
+                </button>
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
+
+      {/* Modal webhook */}
+      {webhookOf&&(
+        <Modal title="Configurar Webhook" onClose={()=>setWebhookOf(null)}>
+          <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:16}}>
+            Deseja configurar o webhook da Evolution API para a empresa <strong style={{color:'var(--txt)'}}>{webhookOf.name}</strong>?
+          </p>
+          <div style={{padding:'10px 14px',borderRadius:8,background:'var(--bg-input)',border:'1px solid var(--border)',marginBottom:20}}>
+            <span style={{fontSize:11,color:'var(--txt-3)'}}>Instância: </span>
+            <span style={{fontSize:12,fontFamily:'monospace',color:'var(--neon)'}}>{webhookOf.evolutionInstance||'—'}</span>
+          </div>
+          {!webhookOf.evolutionInstance&&(
+            <p style={{fontSize:12,color:'var(--danger)',marginBottom:16}}>⚠ Esta empresa não tem instância Evolution configurada.</p>
+          )}
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={()=>setWebhookOf(null)} className="btn-outline" style={{flex:1,padding:'10px',fontSize:13}}>Cancelar</button>
+            <button onClick={doWebhook} disabled={webhookBusy||!webhookOf.evolutionInstance} className="btn-neon" style={{flex:1,padding:'10px',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+              {webhookBusy?<><span className="spinner" style={{width:14,height:14}}/>Configurando...</>:'Confirmar →'}
             </button>
           </div>
         </Modal>

@@ -129,6 +129,26 @@ export class TenantsRepository {
     const sheetRow = rowIndex + 1
     await updateRange(this.spreadsheetId, `${this.sheet}!F${sheetRow}`, [[status]])
   }
+
+  async updateTenant(id: string, data: Partial<Pick<Tenant, 'name' | 'email' | 'phone' | 'planId' | 'evolutionInstance' | 'status'>>): Promise<boolean> {
+    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:H`)
+    if (rows.length < 2) return false
+    const headers  = rows[0]
+    const idCol    = headers.indexOf('id')
+    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === id)
+    if (rowIndex === -1) return false
+    const sheetRow = rowIndex + 1
+    const updates: Promise<void>[] = []
+    const col = (name: string) => String.fromCharCode(65 + headers.indexOf(name))
+    if (data.name              !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('name')}${sheetRow}`,              [[data.name]]))
+    if (data.email             !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('email')}${sheetRow}`,             [[data.email]]))
+    if (data.phone             !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('phone')}${sheetRow}`,             [[data.phone]]))
+    if (data.planId            !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('planId')}${sheetRow}`,            [[data.planId]]))
+    if (data.status            !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('status')}${sheetRow}`,            [[data.status]]))
+    if (data.evolutionInstance !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('evolutionInstance')}${sheetRow}`, [[data.evolutionInstance]]))
+    await Promise.all(updates)
+    return true
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
