@@ -19,14 +19,15 @@ import {
 import { appendRows } from '@/lib/sheets/client'
 import { saveReceivedMessage } from '@/lib/evolution/db-client'
 
-const WEBHOOK_SECRET = process.env.EVOLUTION_WEBHOOK_SECRET
-if (!WEBHOOK_SECRET) {
-  throw new Error('[Webhook] EVOLUTION_WEBHOOK_SECRET não configurado — defina a variável de ambiente.')
-}
 const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── 1. Autenticação do webhook ──────────────────────────────
+  const WEBHOOK_SECRET = process.env.EVOLUTION_WEBHOOK_SECRET
+  if (!WEBHOOK_SECRET) {
+    console.error('[Webhook] EVOLUTION_WEBHOOK_SECRET não configurado.')
+    return NextResponse.json({ error: 'Webhook não configurado no servidor' }, { status: 500 })
+  }
   const token = req.headers.get('x-evolution-token') ??
                 req.headers.get('apikey') ?? ''
   if (token !== WEBHOOK_SECRET) {
