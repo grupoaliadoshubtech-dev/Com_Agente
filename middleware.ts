@@ -37,7 +37,7 @@ const ROLE_MAP: Record<string, UserRole[]> = {
 }
 
 // ── Rotas públicas (sem autenticação) ─────────────────────────
-const PUBLIC_PATHS = ['/login', '/cadastro', '/recuperar-senha', '/redefinir-senha', '/api/auth', '/api/leads', '/api/plans']
+const PUBLIC_PATHS = ['/login', '/cadastro', '/recuperar-senha', '/redefinir-senha', '/api/auth', '/api/leads', '/api/plans', '/api/evolution/webhook']
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some(p => pathname.startsWith(p))
