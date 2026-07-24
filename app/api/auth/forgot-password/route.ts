@@ -18,6 +18,7 @@ import { z } from 'zod'
 import { UsersRepository }      from '@/lib/repositories/users.repository'
 import { ResetTokenRepository } from '@/lib/repositories/reset-token.repository'
 import { sendMail, resetPasswordTemplate } from '@/lib/email/mailer'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 const Schema = z.object({ email: z.string().email() })
 
@@ -34,6 +35,12 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // 5 tentativas por IP a cada 15 min
+  const rl = await rateLimit(`forgot:${getClientIp(req)}`, 5, 15 * 60)
+  if (!rl.allowed) {
+    return NextResponse.json({ success: false, error: 'Muitas tentativas. Tente novamente em alguns minutos.' }, { status: 429 })
+  }
+
   let body: unknown
   try { body = await req.json() } catch {
     return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })

@@ -9,6 +9,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { encode as nextAuthEncode, decode as nextAuthDecode } from 'next-auth/jwt'
 import bcrypt from 'bcryptjs'
 import { UsersRepository } from '@/lib/repositories/users.repository'
+import { rateLimit } from '@/lib/rate-limit'
 import type { UserRole } from '@/types'
 
 // ── Augmentação de tipos do NextAuth ─────────────────────────
@@ -85,7 +86,16 @@ export const authOptions: NextAuthOptions = {
         demo:     { label: 'Demo',                type: 'text' },
       },
 
-      async authorize(credentials) {
+      async authorize(credentials, req) {
+        // ── Rate limiting — 10 tentativas por IP a cada 15 min ──
+        const ip = (
+          (req?.headers?.['x-forwarded-for'] as string | undefined)?.split(',')[0].trim() ??
+          (req?.headers?.['x-real-ip'] as string | undefined) ??
+          'unknown'
+        )
+        const rl = await rateLimit(`login:${ip}`, 10, 15 * 60)
+        if (!rl.allowed) return null
+
         const repo = new UsersRepository(process.env.GOOGLE_MASTER_SHEET_ID)
 
         // ── Login demo — credenciais ficam só no servidor ────────

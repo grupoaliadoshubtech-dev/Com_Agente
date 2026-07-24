@@ -18,6 +18,7 @@ import bcrypt from 'bcryptjs'
 import { ResetTokenRepository } from '@/lib/repositories/reset-token.repository'
 import { UsersRepository }      from '@/lib/repositories/users.repository'
 import { readRange, updateRange } from '@/lib/sheets/client'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
@@ -27,6 +28,12 @@ const Schema = z.object({
 })
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // 10 tentativas por IP a cada hora
+  const rl = await rateLimit(`reset:${getClientIp(req)}`, 10, 60 * 60)
+  if (!rl.allowed) {
+    return NextResponse.json({ success: false, error: 'Muitas tentativas. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
   let body: unknown
   try { body = await req.json() } catch {
     return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })
