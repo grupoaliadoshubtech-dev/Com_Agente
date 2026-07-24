@@ -94,12 +94,9 @@ export default withAuth(
   },
   {
     callbacks: {
-      // Só executa o middleware se houver token (já autenticado)
-      // ou se a rota for pública
-      authorized: ({ token, req }) => {
-        if (isPublic(req.nextUrl.pathname)) return true
-        return !!token
-      },
+      // Sempre true: o withAuth não redireciona com callbackUrl automaticamente.
+      // O controle de acesso (redirect sem callbackUrl) é feito no middleware acima.
+      authorized: () => true,
     },
   }
 )
