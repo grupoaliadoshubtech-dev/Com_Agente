@@ -10,7 +10,7 @@ type Tab = 'login' | 'demo'
 export default function LoginClient() {
   const router       = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl  = searchParams.get('callbackUrl') ?? '/workspace'
+  const callbackUrl  = '/workspace'
 
   const [tab,         setTab]      = useState<Tab>('login')
   const [email,       setEmail]    = useState('')

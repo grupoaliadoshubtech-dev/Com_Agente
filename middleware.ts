@@ -62,9 +62,7 @@ export default withAuth(
     const userRole = token?.role
 
     if (!userRole) {
-      const loginUrl = new URL('/login', req.url)
-      loginUrl.searchParams.set('callbackUrl', pathname)
-      return NextResponse.redirect(loginUrl)
+      return NextResponse.redirect(new URL('/login', req.url))
     }
 
     // Toggle check para atendentes em rotas restritas
