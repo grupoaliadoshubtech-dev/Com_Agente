@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>23 de julho de 2026</strong> (v2.3)<br>
+    Documento consolidado e atualizado — <strong>23 de julho de 2026</strong> (v2.4)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -185,6 +185,7 @@
       <tr><td>21/07/2026</td><td>2.1</td><td>Avatares modo claro/escuro, ajuste cor vermelha danger, formatação WhatsApp nas instruções do agente IA</td></tr>
       <tr><td>23/07/2026</td><td>2.2</td><td>Manter-me conectado (30 dias), Esqueci minha senha funcional, branding ComAgente nas páginas de auth, e-mail de recuperação simplificado, edição de empresas com confirmação de senha Master, redesign tabela Empresas, campo spreadsheetId editável</td></tr>
       <tr><td>23/07/2026</td><td>2.3</td><td>E-mail Master atualizado para comagente@gaht.com.br, coluna spreadsheetId (I) e avatarUrl (N) adicionadas nas planilhas</td></tr>
+      <tr><td>23/07/2026</td><td>2.4</td><td>Rename Workspace → Conversas, auditoria de segurança completa (29 vulnerabilidades), 8 fixes de segurança implementados e verificados em produção, conta demo funcional, rate limiting Redis</td></tr>
     </tbody>
   </table>
 </div>
@@ -1081,11 +1082,105 @@ curl -I http://localhost:3001</pre>
   </table>
 </div>
 
+<div class="pend-card done">
+  <h4>6.44 Rename "Workspace" → "Conversas" na UI — 23/07/2026</h4>
+  <p>O termo "Workspace" foi substituído por "Conversas" em todos os textos visíveis ao usuário, sem alterar rotas, classes CSS ou variáveis internas (rota <code>/workspace</code> permanece).</p>
+  <ul>
+    <li><code>app/(app)/layout.tsx</code> — label do menu e título da página</li>
+    <li><code>app/(app)/workspace/page.tsx</code> — texto do estado vazio</li>
+    <li><code>app/(app)/crm/page.tsx</code> — botão "Abrir em Conversas"</li>
+  </ul>
+</div>
+
+<div class="pend-card done">
+  <h4>6.45 Auditoria de Segurança Completa — 23/07/2026</h4>
+  <p>Realizada auditoria completa do codebase identificando <strong>29 vulnerabilidades</strong>: 2 críticas, 8 altas, 10+ médias/baixas.</p>
+  <table>
+    <thead><tr><th>Severidade</th><th>Tipo</th><th>Arquivo</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge" style="background:#7f1d1d;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">CRÍTICO</span></td><td>Endpoints de debug expostos publicamente — enumeração de usuários + troca de e-mail master</td><td><code>app/api/debug/</code> (deletados)</td></tr>
+      <tr><td><span class="badge" style="background:#7f1d1d;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">CRÍTICO</span></td><td><code>/api/debug</code> em PUBLIC_PATHS do middleware</td><td><code>middleware.ts</code></td></tr>
+      <tr><td><span class="badge" style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">ALTO</span></td><td>Formula Injection via Google Sheets (<code>USER_ENTERED</code>)</td><td><code>lib/sheets/client.ts</code></td></tr>
+      <tr><td><span class="badge" style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">ALTO</span></td><td>User Enumeration no forgot-password</td><td><code>app/api/auth/forgot-password/route.ts</code></td></tr>
+      <tr><td><span class="badge" style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">ALTO</span></td><td>Webhook secret condicional (bypassável se env ausente)</td><td><code>app/api/evolution/webhook/route.ts</code></td></tr>
+      <tr><td><span class="badge" style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">ALTO</span></td><td>Credenciais demo hardcoded no bundle JS do cliente</td><td><code>app/(auth)/login/login-client.tsx</code></td></tr>
+      <tr><td><span class="badge" style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">ALTO</span></td><td>Senha de reset hardcoded (<code>098765</code>) visível no GitHub</td><td><code>app/api/admin/reset-password/route.ts</code></td></tr>
+      <tr><td><span class="badge" style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">ALTO</span></td><td>SSRF via parâmetro <code>appUrl</code> controlado pelo cliente</td><td><code>app/api/evolution/setup/route.ts</code></td></tr>
+      <tr><td><span class="badge" style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">ALTO</span></td><td>IDOR — qualquer usuário autenticado consultava status de qualquer instância</td><td><code>app/api/evolution/setup/route.ts</code> (GET)</td></tr>
+      <tr><td><span class="badge" style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">ALTO</span></td><td>Ausência de rate limiting em endpoints de autenticação</td><td><code>login</code>, <code>forgot-password</code>, <code>reset-password</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="pend-card done">
+  <h4>6.46 Fix 1 — Formula Injection via Google Sheets — 23/07/2026</h4>
+  <p>A opção <code>valueInputOption: 'USER_ENTERED'</code> permitia que nomes de contato começando com <code>=</code> (ex: <code>=IMPORTDATA(...)</code>) fossem interpretados como fórmulas pelo Google Sheets, podendo exfiltrar dados.</p>
+  <p><strong>Correção:</strong> alterado para <code>'RAW'</code> nas funções <code>appendRows</code> e <code>updateRange</code> em <code>lib/sheets/client.ts</code>. Todo dado gravado é tratado como texto literal.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.47 Fix 2 — User Enumeration no forgot-password — 23/07/2026</h4>
+  <p>O endpoint retornava <code>{ success: false, notFound: true }</code> para e-mails não cadastrados, permitindo mapear quais e-mails existem no sistema.</p>
+  <p><strong>Correção:</strong> <code>app/api/auth/forgot-password/route.ts</code> — agora retorna sempre <code>{ success: true }</code> independente de o e-mail existir ou não. O frontend exibe a mesma mensagem genérica em ambos os casos.</p>
+  <p><strong>Verificado em produção:</strong> POST com e-mail inexistente → <code>{"success":true}</code> ✓</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.48 Fix 3 — Webhook secret obrigatório + correção do middleware — 23/07/2026</h4>
+  <p>O check do <code>EVOLUTION_WEBHOOK_SECRET</code> era condicional (<code>if (WEBHOOK_SECRET) { ... }</code>): se a variável não estivesse configurada, qualquer requisição era aceita sem autenticação.</p>
+  <p><strong>Correção no handler:</strong> validação sempre executada; se a env var não estiver configurada, retorna 500 com log de erro. Check movido para dentro do handler (não no escopo do módulo) para não quebrar o build Docker.</p>
+  <p><strong>Correção no middleware:</strong> <code>/api/evolution/webhook</code> adicionado ao <code>PUBLIC_PATHS</code> — o endpoint usa autenticação própria via <code>x-evolution-token</code>, não sessão NextAuth. O middleware bloqueava as chamadas da Evolution API antes de chegarem ao handler.</p>
+  <p><strong>Verificado em produção:</strong> sem token → 401 ✓ | token errado → 401 ✓</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.49 Fix 4 — Credenciais demo removidas do bundle JS — 23/07/2026</h4>
+  <p>O botão "Demonstração" chamava <code>signIn('credentials', { email: 'demo@aad.com.br', password: 'demo1234' })</code> diretamente no código cliente — credenciais visíveis em qualquer <code>view-source</code>.</p>
+  <p><strong>Correção:</strong> o botão agora envia apenas <code>{ demo: 'true' }</code>. O <code>authorize</code> em <code>lib/auth.ts</code> detecta esse flag e lê <code>DEMO_EMAIL</code> e <code>DEMO_PASSWORD</code> das variáveis de ambiente (server-side), autentica o usuário demo internamente sem expor nenhuma credencial.</p>
+  <p><strong>Conta demo criada:</strong> <code>demo@comagente.com.br</code>, role <code>atendente</code>, senha segura armazenada apenas no EasyPanel (env vars) e na planilha como hash bcrypt.</p>
+  <p><strong>Variáveis necessárias no EasyPanel:</strong> <code>DEMO_EMAIL</code> e <code>DEMO_PASSWORD</code>.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.50 Fix 5 — Senha de reset aleatória — 23/07/2026</h4>
+  <p>A senha de reset do admin era <code>098765</code> hardcoded no código-fonte — visível no GitHub, fraca e igual para todos os usuários.</p>
+  <p><strong>Correção:</strong> função <code>generateResetPassword()</code> em <code>app/api/admin/reset-password/route.ts</code> gera senha aleatória de 8 caracteres alfanuméricos via <code>crypto.randomBytes</code>. A senha é retornada na resposta da API para o master copiar e repassar ao usuário. Cada reset gera uma senha única.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.51 Fix 6 — SSRF via parâmetro appUrl removido — 23/07/2026</h4>
+  <p>O endpoint <code>POST /api/evolution/setup</code> aceitava um parâmetro <code>appUrl</code> do cliente para definir a URL do webhook. Um usuário malicioso poderia apontar para endpoints internos da VPS.</p>
+  <p><strong>Correção:</strong> parâmetro <code>appUrl</code> removido do schema Zod. A URL do webhook é sempre derivada de <code>process.env.NEXTAUTH_URL</code> — valor fixo do servidor, não controlável pelo cliente.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.52 Fix 7 — IDOR no status da instância — 23/07/2026</h4>
+  <p>O endpoint <code>GET /api/evolution/status?instance=xxx</code> aceitava qualquer nome de instância via query string. Qualquer usuário autenticado podia consultar o status de WhatsApp de instâncias de outros tenants.</p>
+  <p><strong>Correção:</strong> parâmetro <code>?instance=</code> ignorado. O endpoint agora usa exclusivamente <code>session.user.tenantId</code> para identificar a instância — cada usuário só vê o status da sua própria empresa.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.53 Fix 8 — Rate limiting via Redis (ioredis) — 23/07/2026</h4>
+  <p>Ausência de limite de tentativas nos endpoints de autenticação permitia ataques de força bruta e enumeração em escala.</p>
+  <p><strong>Implementação:</strong> <code>lib/rate-limit.ts</code> com janela fixa usando o Redis já existente no EasyPanel (compartilhado com o n8n). Chaves prefixadas com <code>comagente:rl:</code> para não interferir com dados do n8n.</p>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Limite</th><th>Janela</th></tr></thead>
+    <tbody>
+      <tr><td>Login (<code>/api/auth</code>)</td><td>10 tentativas / IP</td><td>15 minutos</td></tr>
+      <tr><td>Recuperar senha (<code>/api/auth/forgot-password</code>)</td><td>5 tentativas / IP</td><td>15 minutos</td></tr>
+      <tr><td>Redefinir senha (<code>/api/auth/reset-password</code>)</td><td>10 tentativas / IP</td><td>1 hora</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Comportamento fail-open:</strong> se o Redis estiver indisponível, o sistema permite a requisição normalmente (não bloqueia usuários por falha de infra).</p>
+  <p><strong>Variável necessária no EasyPanel:</strong> <code>REDIS_URL=redis://default:&lt;senha&gt;@agenciadia_redis:6379</code></p>
+  <p><strong>Verificado em produção:</strong> bloqueio 429 após limite de tentativas ✓</p>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 2.3 | 23 de julho de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 2.4 | 23 de julho de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
