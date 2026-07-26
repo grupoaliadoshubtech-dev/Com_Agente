@@ -18,9 +18,12 @@ const spaceGrotesk = Space_Grotesk({
   display: 'swap',
 })
 
+const BASE_URL = 'https://comagente.gaht.com.br'
+
 export const metadata: Metadata = {
   title: 'ComAgente',
   description: 'Agência de Atendimento Digital',
+  metadataBase: new URL(BASE_URL),
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -33,6 +36,22 @@ export const metadata: Metadata = {
       { url: '/icons/icon-192.png',   sizes: '192x192', type: 'image/png' },
     ],
     apple: '/icons/icon-192.png',
+  },
+  openGraph: {
+    title: 'ComAgente — Agência de Atendimento Digital',
+    description: 'Plataforma de atendimento digital via WhatsApp com inteligência artificial.',
+    url: BASE_URL,
+    siteName: 'ComAgente',
+    images: [
+      {
+        url: `${BASE_URL}/opengraph-image`,
+        width: 1200,
+        height: 630,
+        alt: 'ComAgente — Agência de Atendimento Digital',
+      },
+    ],
+    locale: 'pt_BR',
+    type: 'website',
   },
 }
 
