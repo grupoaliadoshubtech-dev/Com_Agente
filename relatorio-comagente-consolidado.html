@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>23 de julho de 2026</strong> (v2.4)<br>
+    Documento consolidado e atualizado — <strong>26 de julho de 2026</strong> (v2.5)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -186,6 +186,7 @@
       <tr><td>23/07/2026</td><td>2.2</td><td>Manter-me conectado (30 dias), Esqueci minha senha funcional, branding ComAgente nas páginas de auth, e-mail de recuperação simplificado, edição de empresas com confirmação de senha Master, redesign tabela Empresas, campo spreadsheetId editável</td></tr>
       <tr><td>23/07/2026</td><td>2.3</td><td>E-mail Master atualizado para comagente@gaht.com.br, coluna spreadsheetId (I) e avatarUrl (N) adicionadas nas planilhas</td></tr>
       <tr><td>23/07/2026</td><td>2.4</td><td>Rename Workspace → Conversas, auditoria de segurança completa (29 vulnerabilidades), 8 fixes de segurança implementados e verificados em produção, conta demo funcional, rate limiting Redis</td></tr>
+      <tr><td>26/07/2026</td><td>2.5</td><td>Preview WhatsApp (OG image, URL limpa), 2ª auditoria de segurança — 6 novas vulnerabilidades corrigidas, 3 pendências de segurança catalogadas</td></tr>
     </tbody>
   </table>
 </div>
@@ -1177,10 +1178,88 @@ curl -I http://localhost:3001</pre>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
+     6.54–6.62 — AUDITORIA DE SEGURANÇA (2ª rodada) + PREVIEW WHATSAPP
+══════════════════════════════════════════════════════════ -->
+
+<div class="pend-card done">
+  <h4>6.54 Preview WhatsApp — OG Image e URL limpa — 26/07/2026</h4>
+  <p>Ao compartilhar o link no WhatsApp, a URL exibia <code>?callbackUrl=...</code> e nenhuma imagem de capa era exibida.</p>
+  <p><strong>Correções:</strong></p>
+  <ul>
+    <li><code>middleware.ts</code>: <code>authorized</code> passou a retornar sempre <code>true</code> — o NextAuth parou de adicionar <code>callbackUrl</code> automaticamente. Todo controle de autenticação ficou no corpo do middleware.</li>
+    <li><code>app/layout.tsx</code>: adicionados <code>metadataBase</code> e bloco <code>openGraph</code> com título, descrição, URL canônica e imagem (<code>/icons/icon-512.png</code> — arquivo estático que bypassa o middleware).</li>
+    <li><code>middleware.ts</code>: <code>/opengraph-image</code> adicionado às rotas públicas (rota dinâmica removida, substituída por imagem estática).</li>
+  </ul>
+  <p><strong>Resultado:</strong> URL limpa <code>comagente.gaht.com.br</code>, preview com título/descrição/logo corretos no WhatsApp. Cache do WhatsApp atualizado via Facebook Sharing Debugger.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.55 IDOR cross-tenant em /api/team PATCH — 26/07/2026</h4>
+  <p><strong>Vulnerabilidade (CRÍTICA):</strong> O endpoint de atualização de permissões de atendentes (<code>PATCH /api/team</code>) não verificava se o <code>userId</code> passado pertencia ao mesmo tenant do supervisor logado. Um supervisor podia alterar permissões de usuários de outras empresas.</p>
+  <p><strong>Correção:</strong> Adicionada consulta ao repositório antes de atualizar: verifica que <code>target.tenantId === session.user.tenantId</code>. Se diferente, retorna 404.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.56 IDOR de instância WhatsApp em /api/evolution/send — 26/07/2026</h4>
+  <p><strong>Vulnerabilidade (ALTA):</strong> O campo <code>instanceName</code> era aceito de qualquer usuário autenticado, permitindo que um atendente enviasse mensagens pelo WhatsApp de outra empresa passando o nome da instância desejada.</p>
+  <p><strong>Correção:</strong> Override de <code>instanceName</code> restrito exclusivamente ao role <code>master</code>. Demais roles sempre usam a instância do próprio tenant.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.57 avatarUrl sem validação de protocolo — 26/07/2026</h4>
+  <p><strong>Vulnerabilidade (MÉDIA):</strong> O campo <code>avatarUrl</code> em <code>PATCH /api/user/profile</code> aceitava qualquer string, incluindo <code>javascript:</code> URIs que poderiam executar código se renderizados sem escape.</p>
+  <p><strong>Correção:</strong> Validação Zod com <code>refine</code> exigindo prefixo <code>https://</code>. Adicionado também <code>max(128)</code> na senha.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.58 Information disclosure em /api/admin/reset-password — 26/07/2026</h4>
+  <p><strong>Vulnerabilidade (MÉDIA):</strong> A mensagem de erro ao não encontrar usuário incluía o e-mail: <code>"Usuário não encontrado: fulano@email.com"</code>, confirmando a existência ou não de um e-mail no sistema para o admin.</p>
+  <p><strong>Correção:</strong> Mensagem genérica: <code>"Usuário não encontrado"</code> (sem o e-mail).</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.59 Limites ausentes em send e send-media — 26/07/2026</h4>
+  <p><strong>Vulnerabilidades (BAIXAS):</strong></p>
+  <ul>
+    <li><code>text</code> em <code>/api/evolution/send</code> sem limite de tamanho — usuário autenticado podia enviar payload gigante para a Evolution API.</li>
+    <li><code>mimetype</code> em <code>/api/evolution/send-media</code> aceitava qualquer string sem validação de tipo.</li>
+  </ul>
+  <p><strong>Correção:</strong> <code>text.max(4096)</code>; allowlist de mimetypes permitidos (jpeg, png, webp, gif, ogg, mpeg, mp4, webm, pdf, docx, xlsx); <code>media.max(20MB)</code>; <code>caption.max(1024)</code>; <code>fileName.max(255)</code>.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.60 /api/leads sem rate limiting — 26/07/2026</h4>
+  <p><strong>Vulnerabilidade (ALTA):</strong> Endpoint público <code>POST /api/leads</code> sem nenhum controle de frequência. Um atacante podia inundar o endpoint com leads falsos, preenchendo a planilha de leads e esgotando a cota da API do Google Sheets — o que derrubaria o sistema inteiro (todas as funcionalidades dependem do Sheets).</p>
+  <p><strong>Correção:</strong> Rate limiting de 5 submissões por IP por hora via Redis. Campos com <code>.max()</code> adicionados (name 100, email 200, phone 20, company 100).</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.61 Formula Injection no Google Sheets — PENDENTE</h4>
+  <p><strong>Vulnerabilidade (MÉDIA):</strong> Dados de texto fornecidos pelos usuários (nome, empresa, mensagem, etc.) são gravados diretamente no Google Sheets sem sanitização de fórmulas. Se um campo contiver <code>=IMPORTXML(...)</code>, <code>=HYPERLINK(...)</code> ou similar, a fórmula pode executar quando a planilha for aberta pelo administrador.</p>
+  <p><strong>Impacto:</strong> Exfiltração de dados da planilha, redirecionamentos maliciosos no navegador do admin.</p>
+  <p><strong>Correção necessária:</strong> Sanitizar campos de texto antes de gravar no Sheets — prefixar com apóstrofo (<code>'</code>) ou verificar se o valor começa com <code>=</code>, <code>+</code>, <code>-</code>, <code>@</code>.</p>
+  <p><strong>Arquivos afetados:</strong> <code>lib/sheets/client.ts</code> (função <code>appendRows</code>) e todos os repositórios que chamam <code>appendRows</code>.</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.62 String(err) exposto nas respostas de erro — PENDENTE</h4>
+  <p><strong>Vulnerabilidade (BAIXA):</strong> Vários endpoints retornam <code>String(err)</code> diretamente no corpo da resposta HTTP em caso de erro interno. Isso pode vazar nomes de variáveis internas, caminhos de arquivos, mensagens de conexão com banco de dados ou chaves de configuração.</p>
+  <p><strong>Exemplos:</strong> <code>/api/admin/blacklist</code>, <code>/api/tenants/[id]</code> e outros retornam <code>{ error: String(err) }</code>.</p>
+  <p><strong>Correção necessária:</strong> Substituir por mensagem genérica em produção: <code>{ error: 'Erro interno. Tente novamente.' }</code>. Manter o <code>console.error(err)</code> para debug nos logs do servidor.</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.63 Content-Security-Policy (CSP) ausente — PENDENTE</h4>
+  <p><strong>Vulnerabilidade (BAIXA):</strong> O <code>next.config.js</code> define <code>X-Frame-Options</code>, <code>X-Content-Type-Options</code> e <code>Referrer-Policy</code>, mas não define <code>Content-Security-Policy</code>. Sem CSP, qualquer XSS que apareça no futuro teria impacto máximo (execução de scripts arbitrários).</p>
+  <p><strong>Correção necessária:</strong> Adicionar header CSP em <code>next.config.js</code> com diretivas <code>default-src 'self'</code>, <code>script-src</code> e <code>style-src</code> configuradas para os recursos usados pelo sistema.</p>
+  <p><strong>Atenção:</strong> Requer teste cuidadoso — CSP restritivo pode quebrar funcionalidades existentes (fonts, scripts inline, etc.).</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 2.4 | 23 de julho de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 2.5 | 26 de julho de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 

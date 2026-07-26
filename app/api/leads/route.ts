@@ -8,18 +8,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { LeadsRepository, PlansRepository } from '@/lib/repositories/plans-tenants-leads.repository'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { z } from 'zod'
 import type { ApiResponse } from '@/types'
 
 const LeadSchema = z.object({
-  name:    z.string().min(2),
-  email:   z.string().email(),
-  phone:   z.string().min(8),
-  company: z.string().min(1),
-  planId:  z.string().min(1),
+  name:    z.string().min(2).max(100),
+  email:   z.string().email().max(200),
+  phone:   z.string().min(8).max(20),
+  company: z.string().min(1).max(100),
+  planId:  z.string().min(1).max(100),
 })
 
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
+  // 5 leads por IP a cada hora — evita spam e esgotamento de cota do Sheets
+  const rl = await rateLimit(`leads:${getClientIp(req)}`, 5, 60 * 60)
+  if (!rl.allowed) {
+    return NextResponse.json({ success: false, error: 'Muitas tentativas. Tente novamente mais tarde.' }, { status: 429 })
+  }
+
   let body: unknown
   try { body = await req.json() } catch {
     return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })
