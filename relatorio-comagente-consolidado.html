@@ -1233,12 +1233,11 @@ curl -I http://localhost:3001</pre>
   <p><strong>Correção:</strong> Rate limiting de 5 submissões por IP por hora via Redis. Campos com <code>.max()</code> adicionados (name 100, email 200, phone 20, company 100).</p>
 </div>
 
-<div class="pend-card open">
-  <h4>6.61 Formula Injection no Google Sheets — PENDENTE</h4>
-  <p><strong>Vulnerabilidade (MÉDIA):</strong> Dados de texto fornecidos pelos usuários (nome, empresa, mensagem, etc.) são gravados diretamente no Google Sheets sem sanitização de fórmulas. Se um campo contiver <code>=IMPORTXML(...)</code>, <code>=HYPERLINK(...)</code> ou similar, a fórmula pode executar quando a planilha for aberta pelo administrador.</p>
-  <p><strong>Impacto:</strong> Exfiltração de dados da planilha, redirecionamentos maliciosos no navegador do admin.</p>
-  <p><strong>Correção necessária:</strong> Sanitizar campos de texto antes de gravar no Sheets — prefixar com apóstrofo (<code>'</code>) ou verificar se o valor começa com <code>=</code>, <code>+</code>, <code>-</code>, <code>@</code>.</p>
-  <p><strong>Arquivos afetados:</strong> <code>lib/sheets/client.ts</code> (função <code>appendRows</code>) e todos os repositórios que chamam <code>appendRows</code>.</p>
+<div class="pend-card done">
+  <h4>6.61 Formula Injection no Google Sheets — NÃO APLICÁVEL</h4>
+  <p><strong>Análise:</strong> Inicialmente catalogada como vulnerabilidade média, a investigação do código revelou que <code>lib/sheets/client.ts</code> usa <code>valueInputOption: 'RAW'</code> em todas as operações de escrita (<code>appendRows</code> e <code>updateRange</code>).</p>
+  <p>Com <code>RAW</code>, o Google Sheets armazena o valor exatamente como recebido — <code>=IMPORTXML(...)</code> é gravado como texto puro e nunca é executado como fórmula. O ataque só é possível com <code>valueInputOption: 'USER_ENTERED'</code>.</p>
+  <p><strong>Conclusão:</strong> Vulnerabilidade não existe neste sistema. Aplicar a correção do apóstrofo seria prejudicial — com <code>RAW</code>, o apóstrofo seria gravado literalmente, corrompendo dados como nomes de empresa começando com <code>@</code> ou telefones com <code>+</code> ao retornar da leitura.</p>
 </div>
 
 <div class="pend-card open">
