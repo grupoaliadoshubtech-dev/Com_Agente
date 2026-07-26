@@ -1,4 +1,4 @@
-// app/api/evolution/messages/route.ts
+﻿// app/api/evolution/messages/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -164,6 +164,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     return NextResponse.json({ success: true, data: rawMessages })
   } catch (err) {
     console.error('[/api/evolution/messages]', err)
-    return NextResponse.json({ success: false, error: `Erro ao buscar mensagens: ${String(err)}` }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Erro ao buscar mensagens." }, { status: 500 })
   }
 }

@@ -1,4 +1,4 @@
-// app/api/evolution/send-media/route.ts
+﻿// app/api/evolution/send-media/route.ts
 // POST /api/evolution/send-media
 // Envia mídia (imagem, áudio, documento, vídeo) pelo atendente.
 // Aceita base64 no body.
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     console.error('[/api/evolution/send-media]', err)
     return NextResponse.json({
       success: false,
-      error: `Erro ao enviar mídia: ${String(err)}`,
+      error: "Erro ao enviar mídia.",
     }, { status: 500 })
   }
 }

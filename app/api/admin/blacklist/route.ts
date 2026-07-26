@@ -1,4 +1,4 @@
-// app/api/admin/blacklist/route.ts
+﻿// app/api/admin/blacklist/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -15,7 +15,7 @@ export async function GET() {
     const data = await repo.findAll()
     return NextResponse.json({ success: true, data })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -36,6 +36,6 @@ export async function POST(req: NextRequest) {
     await repo.addGlobal(parsed.data.telefone, parsed.data.motivo, session.user.id)
     return NextResponse.json({ success: true, message: `${parsed.data.telefone} bloqueado globalmente` }, { status: 201 })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

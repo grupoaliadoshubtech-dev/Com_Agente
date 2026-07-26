@@ -1,4 +1,4 @@
-// app/api/dashboard/export/route.ts
+﻿// app/api/dashboard/export/route.ts
 // FASE 7 — Exporta relatório de atendimentos como CSV
 // GET /api/dashboard/export?periodo=7d|30d|all
 
@@ -68,6 +68,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     })
   } catch (err) {
     console.error('[/api/dashboard/export]', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

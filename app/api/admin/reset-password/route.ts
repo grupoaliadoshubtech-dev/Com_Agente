@@ -1,4 +1,4 @@
-// app/api/admin/reset-password/route.ts
+﻿// app/api/admin/reset-password/route.ts
 // POST { email } — redefine senha para senha aleatória de 8 caracteres
 // Apenas master admin pode usar.
 import { NextResponse } from 'next/server'
@@ -40,6 +40,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, message: `Senha redefinida para ${email}`, tempPassword })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

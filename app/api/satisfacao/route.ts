@@ -1,4 +1,4 @@
-// app/api/satisfacao/route.ts
+﻿// app/api/satisfacao/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -16,6 +16,6 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     const [all, metrics] = await Promise.all([repo.findAll(), repo.getMetrics()])
     return NextResponse.json({ success: true, data: { records: all, metrics } })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

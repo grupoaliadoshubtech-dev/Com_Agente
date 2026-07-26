@@ -1,4 +1,4 @@
-// ─────────────────────────────────────────────────────────────
+﻿// ─────────────────────────────────────────────────────────────
 // app/api/evolution/qrcode/route.ts
 //
 // GET /api/evolution/qrcode?instance=xxx
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     console.error('[/api/evolution/qrcode]', err)
     return NextResponse.json({
       success: false,
-      error:   `Erro ao obter QR Code: ${String(err)}`,
+      error:   "Erro ao obter QR Code.",
     }, { status: 500 })
   }
 }

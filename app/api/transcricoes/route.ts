@@ -1,4 +1,4 @@
-// app/api/transcricoes/route.ts
+﻿// app/api/transcricoes/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -17,6 +17,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const data  = phone ? await repo.findByPhone(phone) : await repo.findAll()
     return NextResponse.json({ success: true, data })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

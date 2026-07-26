@@ -1,4 +1,4 @@
-// app/api/templates/route.ts
+﻿// app/api/templates/route.ts
 // FASE 5 — CRUD de respostas rápidas/templates
 // GET: lista todos | POST: cria novo | PUT: atualiza | DELETE: remove
 
@@ -24,7 +24,7 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     return NextResponse.json({ success: true, data: templates })
   } catch (err) {
     console.error('[/api/templates GET]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     return NextResponse.json({ success: true, data: template, message: 'Template criado' })
   } catch (err) {
     console.error('[/api/templates POST]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -111,7 +111,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     return NextResponse.json({ success: true, message: 'Template atualizado' })
   } catch (err) {
     console.error('[/api/templates PUT]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -136,6 +136,6 @@ export async function DELETE(req: NextRequest): Promise<NextResponse<ApiResponse
     return NextResponse.json({ success: true, message: 'Template removido' })
   } catch (err) {
     console.error('[/api/templates DELETE]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

@@ -1,4 +1,4 @@
-// app/api/crm/route.ts
+﻿// app/api/crm/route.ts
 // FASE 4: GET (lista/filtros), PUT (update de cliente), POST (disparo em lote)
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const data = await repo.findAll()
     return NextResponse.json({ success: true, data })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -99,7 +99,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     })
   } catch (err) {
     console.error('[/api/crm PUT]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -164,6 +164,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     })
   } catch (err) {
     console.error('[/api/crm POST]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

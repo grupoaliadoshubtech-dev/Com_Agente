@@ -1,4 +1,4 @@
-// ─────────────────────────────────────────────────────────────
+﻿// ─────────────────────────────────────────────────────────────
 // app/api/evolution/setup/route.ts
 //
 // POST /api/evolution/setup
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     console.error('[/api/evolution/setup]', err)
     return NextResponse.json({
       success: false,
-      error:   String(err),
+      error: 'Erro interno. Tente novamente.',
     }, { status: 500 })
   }
 }
@@ -103,7 +103,7 @@ export async function DELETE(): Promise<NextResponse<ApiResponse>> {
     return NextResponse.json({ success: true, message: 'WhatsApp desconectado' })
   } catch (err) {
     console.error('[DELETE /api/evolution/setup]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -128,7 +128,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
   } catch (err) {
     return NextResponse.json({
       success: false,
-      error:   String(err),
+      error: 'Erro interno. Tente novamente.',
     }, { status: 500 })
   }
 }

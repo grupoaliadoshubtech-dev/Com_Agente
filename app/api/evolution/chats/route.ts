@@ -1,4 +1,4 @@
-// app/api/evolution/chats/route.ts
+﻿// app/api/evolution/chats/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -160,6 +160,6 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     return NextResponse.json({ success: true, data: formatted })
   } catch (err) {
     console.error('[/api/evolution/chats]', err)
-    return NextResponse.json({ success: false, error: `Erro ao buscar chats: ${String(err)}` }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Erro ao buscar chats." }, { status: 500 })
   }
 }

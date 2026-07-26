@@ -1,4 +1,4 @@
-// ─────────────────────────────────────────────────────────────
+﻿// ─────────────────────────────────────────────────────────────
 // app/api/evolution/send/route.ts
 //
 // POST /api/evolution/send
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     console.error('[/api/evolution/send]', err)
     return NextResponse.json({
       success: false,
-      error:   `Erro ao enviar mensagem: ${String(err)}`,
+      error:   "Erro ao enviar mensagem.",
     }, { status: 500 })
   }
 }

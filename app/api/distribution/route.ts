@@ -1,4 +1,4 @@
-// app/api/distribution/route.ts
+﻿// app/api/distribution/route.ts
 // FASE 6 — API de distribuição automática
 // GET: métricas e lista | PUT: toggle online/config | POST: sync com usuarios
 
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     return NextResponse.json({ success: true, data: all })
   } catch (err) {
     console.error('[/api/distribution GET]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -100,7 +100,7 @@ export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     }
   } catch (err) {
     console.error('[/api/distribution PUT]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -125,6 +125,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     })
   } catch (err) {
     console.error('[/api/distribution POST]', err)
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

@@ -1,4 +1,4 @@
-// app/api/evolution/qrcode/connect/route.ts
+﻿// app/api/evolution/qrcode/connect/route.ts
 // POST — força geração de QR Code chamando /instance/connect na Evolution API
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -36,6 +36,6 @@ export async function POST() {
 
     return NextResponse.json({ success: true, data: qr })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

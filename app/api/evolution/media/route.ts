@@ -1,4 +1,4 @@
-// app/api/evolution/media/route.ts
+﻿// app/api/evolution/media/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     console.error('[/api/evolution/media]', err)
     return NextResponse.json({
       success: false,
-      error: `Erro ao baixar mídia: ${String(err)}`,
+      error: "Erro ao baixar mídia.",
     }, { status: 500 })
   }
 }

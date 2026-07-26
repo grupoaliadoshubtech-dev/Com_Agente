@@ -40,6 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await updateRange(MASTER_ID, `${SHEET}!A${sheetRow}:H${sheetRow}`, [updated])
     return NextResponse.json({ success: true })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    console.error('[/api/plans PATCH]', err)
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

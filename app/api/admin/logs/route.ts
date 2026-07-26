@@ -1,4 +1,4 @@
-// app/api/admin/logs/route.ts
+﻿// app/api/admin/logs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -19,6 +19,6 @@ export async function GET(req: NextRequest) {
     ])
     return NextResponse.json({ success: true, data: { records: data, stats } })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }

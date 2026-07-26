@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await repo.updateTenant(params.id, fields)
     return NextResponse.json({ success: true })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
 
@@ -68,6 +68,6 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     if (!tenant) return NextResponse.json({ success: false, error: 'Tenant não encontrado' }, { status: 404 })
     return NextResponse.json({ success: true, data: tenant })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
