@@ -122,6 +122,12 @@ export async function PATCH(req: NextRequest): Promise<NextResponse<ApiResponse>
 
   const repo = new UsersRepository() // sempre master
   try {
+    // Garante que o usuário alvo pertence ao mesmo tenant — previne IDOR cross-tenant
+    const target = await repo.findById(parsed.data.userId)
+    if (!target || target.tenantId !== session.user.tenantId) {
+      return NextResponse.json({ success: false, error: 'Usuário não encontrado' }, { status: 404 })
+    }
+
     await repo.updateToggles(parsed.data.userId, {
       canViewDashboard:    parsed.data.canViewDashboard,
       canViewCRM:          parsed.data.canViewCRM,

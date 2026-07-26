@@ -11,13 +11,23 @@ import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.reposi
 import { z } from 'zod'
 import type { ApiResponse } from '@/types'
 
+const ALLOWED_MIMETYPES = [
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/webm',
+  'video/mp4', 'video/webm',
+  'application/pdf', 'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+]
+
 const SendMediaSchema = z.object({
   to:        z.string().min(8),
-  media:     z.string().min(10),        // base64 ou URL
+  media:     z.string().min(10).max(20 * 1024 * 1024), // base64 ou URL, max ~15 MB
   mediatype: z.enum(['image', 'document', 'audio', 'video']),
-  mimetype:  z.string().min(3),
-  caption:   z.string().optional(),
-  fileName:  z.string().optional(),
+  mimetype:  z.string().refine(v => ALLOWED_MIMETYPES.includes(v), { message: 'Tipo de arquivo não permitido' }),
+  caption:   z.string().max(1024).optional(),
+  fileName:  z.string().max(255).optional(),
 })
 
 const tenantsRepo = new TenantsRepository()

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     const found = await repo.resetPassword(email, hash)
 
     if (!found) {
-      return NextResponse.json({ success: false, error: `Usuário não encontrado: ${email}` }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Usuário não encontrado' }, { status: 404 })
     }
 
     return NextResponse.json({ success: true, message: `Senha redefinida para ${email}`, tempPassword })

@@ -39,9 +39,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 const PatchSchema = z.object({
   name:            z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').max(60).optional(),
   currentPassword: z.string().optional(),
-  newPassword:     z.string().min(6, 'A senha deve ter no mínimo 6 caracteres').max(20).optional(),
+  newPassword:     z.string().min(6, 'A senha deve ter no mínimo 6 caracteres').max(128).optional(),
   confirmPassword: z.string().optional(),
-  avatarUrl:       z.string().optional(),
+  avatarUrl:       z.string().refine(
+    v => !v || /^https:\/\//.test(v),
+    { message: 'Avatar deve ser uma URL HTTPS válida' }
+  ).optional(),
 }).refine(d => !d.newPassword || !!d.currentPassword, {
   message: 'Informe a senha atual para definir uma nova',
   path: ['currentPassword'],

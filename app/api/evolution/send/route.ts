@@ -16,10 +16,10 @@ import { z } from 'zod'
 import type { ApiResponse } from '@/types'
 
 const SendSchema = z.object({
-  to:           z.string().min(8),   // número do destinatário
-  text:         z.string().min(1),
+  to:           z.string().min(8),
+  text:         z.string().min(1).max(4096),
   withTyping:   z.boolean().default(true),
-  // Opcional: especificar instância (master pode enviar por qualquer tenant)
+  // Apenas master pode sobrescrever a instância
   instanceName: z.string().optional(),
 })
 
@@ -44,11 +44,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
 
   const { to, text, withTyping, instanceName: overrideInstance } = parsed.data
 
-  // ── Resolve instância ───────────────────────────────────────
-  let instanceName = overrideInstance
-
-  if (!instanceName) {
-    // Busca a instância do tenant do usuário logado
+  // ── Resolve instância — apenas master pode sobrescrever ─────
+  let instanceName: string | undefined
+  if (session.user.role === 'master' && overrideInstance) {
+    instanceName = overrideInstance
+  } else {
     const tenant = await tenantsRepo.findById(session.user.tenantId)
     instanceName = tenant?.evolutionInstance
   }
