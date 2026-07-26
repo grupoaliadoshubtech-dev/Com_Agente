@@ -44,9 +44,9 @@ export const metadata: Metadata = {
     siteName: 'ComAgente',
     images: [
       {
-        url: `${BASE_URL}/opengraph-image`,
-        width: 1200,
-        height: 630,
+        url: `${BASE_URL}/icons/icon-512.png`,
+        width: 512,
+        height: 512,
         alt: 'ComAgente — Agência de Atendimento Digital',
       },
     ],
