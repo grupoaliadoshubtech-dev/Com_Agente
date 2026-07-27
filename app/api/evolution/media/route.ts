@@ -1,4 +1,4 @@
-﻿// app/api/evolution/media/route.ts
+// app/api/evolution/media/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'

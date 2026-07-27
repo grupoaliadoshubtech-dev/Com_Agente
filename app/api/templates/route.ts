@@ -1,4 +1,4 @@
-﻿// app/api/templates/route.ts
+// app/api/templates/route.ts
 // FASE 5 — CRUD de respostas rápidas/templates
 // GET: lista todos | POST: cria novo | PUT: atualiza | DELETE: remove
 

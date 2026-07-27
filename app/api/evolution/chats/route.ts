@@ -1,4 +1,4 @@
-﻿// app/api/evolution/chats/route.ts
+// app/api/evolution/chats/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'

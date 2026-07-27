@@ -1,4 +1,4 @@
-﻿// app/api/satisfacao/route.ts
+// app/api/satisfacao/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'

@@ -1,4 +1,4 @@
-﻿// app/api/distribution/route.ts
+// app/api/distribution/route.ts
 // FASE 6 — API de distribuição automática
 // GET: métricas e lista | PUT: toggle online/config | POST: sync com usuarios
 

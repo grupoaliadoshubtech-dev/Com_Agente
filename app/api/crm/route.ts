@@ -1,4 +1,4 @@
-﻿// app/api/crm/route.ts
+// app/api/crm/route.ts
 // FASE 4: GET (lista/filtros), PUT (update de cliente), POST (disparo em lote)
 
 import { NextRequest, NextResponse } from 'next/server'

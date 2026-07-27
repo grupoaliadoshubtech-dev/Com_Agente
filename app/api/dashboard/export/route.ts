@@ -1,4 +1,4 @@
-﻿// app/api/dashboard/export/route.ts
+// app/api/dashboard/export/route.ts
 // FASE 7 — Exporta relatório de atendimentos como CSV
 // GET /api/dashboard/export?periodo=7d|30d|all
 
