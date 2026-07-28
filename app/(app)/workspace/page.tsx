@@ -340,6 +340,7 @@ export default function WorkspacePage() {
 
   useEffect(() => {
     if (!isAtBottom.current) return
+    if (messages.length === 0) return  // aguarda mensagens chegarem antes de consumir o flag
     if (instantScroll.current) {
       // Abertura de chat: posiciona direto no final, sem animação
       if (msgContainerRef.current) {
