@@ -259,6 +259,7 @@ export default function WorkspacePage() {
   const endRef          = useRef<HTMLDivElement>(null)
   const msgContainerRef = useRef<HTMLDivElement>(null)
   const isAtBottom      = useRef(true)
+  const instantScroll   = useRef(false)
   const selectedRef     = useRef<ChatContact | null>(null)
   const fileInputRef    = useRef<HTMLInputElement>(null)
   const lastBackMs  = useRef(0)
@@ -338,13 +339,21 @@ export default function WorkspacePage() {
   }, [selected, fetchMessages])
 
   useEffect(() => {
-    if (isAtBottom.current) {
+    if (!isAtBottom.current) return
+    if (instantScroll.current) {
+      // Abertura de chat: posiciona direto no final, sem animação
+      if (msgContainerRef.current) {
+        msgContainerRef.current.scrollTop = msgContainerRef.current.scrollHeight
+      }
+      instantScroll.current = false
+    } else {
       endRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
 
   function openChat(c: ChatContact) {
-    isAtBottom.current = true  // novo chat sempre começa no final
+    isAtBottom.current = true
+    instantScroll.current = true  // próximo render posiciona direto no final, sem animação
     setSelected(c)
     setMessages([])
     setLoadingMsg(true)
