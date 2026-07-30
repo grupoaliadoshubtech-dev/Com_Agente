@@ -591,13 +591,13 @@ export default function WorkspacePage() {
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {c.unreadCount > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--neon)', color: '#0a0a0a' }}>{c.unreadCount}</span>}
                       <div className="w-2 h-2 rounded-full" style={{
-                        background: c.lastFromMe
-                          ? 'transparent'          // bot respondeu por último — sem cor
-                          : c.iaStatus === 'pausado'
-                            ? 'var(--neon)'        // aguardando atendimento humano — verde
-                            : '#6B7280'            // cliente aguardando IA responder — cinza
+                        background: c.iaStatus === 'pausado'
+                          ? 'var(--neon)'    // aguardando humano — verde até IA ser reativada
+                          : c.lastFromMe
+                            ? 'transparent' // bot respondeu por último — sem cor
+                            : '#6B7280'     // cliente aguardando IA responder — cinza
                       }} title={
-                        c.lastFromMe ? 'Bot respondeu' : c.iaStatus === 'pausado' ? 'Aguardando humano' : 'Aguardando IA'
+                        c.iaStatus === 'pausado' ? 'Aguardando humano' : c.lastFromMe ? 'Bot respondeu' : 'Aguardando IA'
                       } />
                     </div>
                   </div>
