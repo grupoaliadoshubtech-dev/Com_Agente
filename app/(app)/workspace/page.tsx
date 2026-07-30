@@ -16,6 +16,7 @@ import { TemplateMenu } from '@/components/template-menu'
 interface ChatContact {
   telefone: string; remoteJid: string; lidJid: string | null; nome: string; preview: string
   timestamp: string; iaStatus: string; unreadCount: number; profilePicUrl: string | null
+  lastFromMe: boolean
 }
 
 interface ChatMessage {
@@ -589,7 +590,15 @@ export default function WorkspacePage() {
                     <p className="text-[11px] truncate pr-2" style={{ color: 'var(--txt-2)' }}>{c.preview || 'Sem mensagens'}</p>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {c.unreadCount > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--neon)', color: '#0a0a0a' }}>{c.unreadCount}</span>}
-                      <div className="w-2 h-2 rounded-full" style={{ background: iaOn(c) ? 'var(--neon)' : '#EF4444' }} title={iaOn(c) ? 'IA Ativa' : 'IA Pausada'} />
+                      <div className="w-2 h-2 rounded-full" style={{
+                        background: c.lastFromMe
+                          ? 'transparent'          // bot respondeu por último — sem cor
+                          : c.iaStatus === 'pausado'
+                            ? 'var(--neon)'        // aguardando atendimento humano — verde
+                            : '#6B7280'            // cliente aguardando IA responder — cinza
+                      }} title={
+                        c.lastFromMe ? 'Bot respondeu' : c.iaStatus === 'pausado' ? 'Aguardando humano' : 'Aguardando IA'
+                      } />
                     </div>
                   </div>
                 </div>
@@ -760,9 +769,10 @@ export default function WorkspacePage() {
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(163,230,53,0.08)', border: '1px solid rgba(163,230,53,0.15)', color: 'var(--neon)' }}><IcoMessageCircle size={32}/></div>
             <p className="text-[14px] font-medium" style={{ color: 'var(--txt)' }}>ComAgente Conversas</p>
             <p className="text-[12px] text-center max-w-[280px]">Selecione uma conversa para começar. As conversas atualizam automaticamente.</p>
-            <div className="flex items-center gap-1.5 mt-2">
-              <span className="w-2 h-2 rounded-full" style={{ background: 'var(--neon)' }} /><span className="text-[11px]">IA Ativa</span>
-              <span className="w-2 h-2 rounded-full ml-3" style={{ background: '#EF4444' }} /><span className="text-[11px]">Humano</span>
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              <span className="w-2 h-2 rounded-full border border-muted" style={{ background: 'transparent' }} /><span className="text-[11px]">Bot respondeu</span>
+              <span className="w-2 h-2 rounded-full ml-2" style={{ background: '#6B7280' }} /><span className="text-[11px]">Aguardando IA</span>
+              <span className="w-2 h-2 rounded-full ml-2" style={{ background: 'var(--neon)' }} /><span className="text-[11px]">Aguardando humano</span>
             </div>
           </div>
         )}

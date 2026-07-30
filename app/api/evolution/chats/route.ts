@@ -97,6 +97,7 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       iaStatus: string
       unreadCount: number
       profilePicUrl: string | null
+      lastFromMe: boolean
     }>()
 
     for (const chat of chats) {
@@ -146,6 +147,7 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
           iaStatus,
           unreadCount: (existing?.unreadCount ?? 0) + (chat.unreadCount ?? 0),
           profilePicUrl: chat.profilePicUrl ?? existing?.profilePicUrl ?? null,
+          lastFromMe: fromMe,
         })
       } else if (lidJid && !existing.lidJid) {
         existing.lidJid = lidJid
