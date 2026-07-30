@@ -35,7 +35,7 @@ const IC = {
 }
 
 const MAIN_NAV    = [
-  { label:'Conversas',     href:'/workspace',    icon:'workspace',    badge:'5', toggle:'' },
+  { label:'Conversas',     href:'/workspace',    icon:'workspace',    badge:'', toggle:'' },
   { label:'Dashboard',     href:'/dashboard',    icon:'dashboard',    badge:'',  toggle:'canViewDashboard' },
   { label:'CRM / Clientes',href:'/crm',          icon:'crm',          badge:'',  toggle:'canViewCRM' },
   { label:'Transcrições',  href:'/transcricoes', icon:'transcricoes', badge:'',  toggle:'canViewTranscricoes' },
@@ -107,6 +107,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [killModal,        setKillModal]        = useState(false)
   const [toast,            setToast]            = useState('')
   const [pausaGlobalAtiva, setPausaGlobalAtiva] = useState(false)
+  const [aguardandoCount,  setAguardandoCount]  = useState(0)
 
   // ── Modal: perfil do usuário ─────────────────────────────────
   const [profileOpen,    setProfileOpen]    = useState(false)
@@ -141,6 +142,23 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       .then(r => r.json())
       .then(d => { if (d.success) setPausaGlobalAtiva(d.data.status === 'pausado') })
       .catch(() => {})
+  }, [])
+
+  // Contagem de chats aguardando atendimento humano (iaStatus === 'pausado')
+  useEffect(() => {
+    const fetchAguardando = () => {
+      fetch('/api/evolution/chats', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && d.data) {
+            setAguardandoCount(d.data.filter((c: { iaStatus: string }) => c.iaStatus === 'pausado').length)
+          }
+        })
+        .catch(() => {})
+    }
+    fetchAguardando()
+    const i = setInterval(fetchAguardando, 10000)
+    return () => clearInterval(i)
   }, [])
 
   // Carrega dados do perfil ao abrir o modal
@@ -264,6 +282,10 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       if (!isVisible(toggle)) return null
       const active = pathname.startsWith(href)
       const Icon   = (IC as Record<string, React.ReactNode>)[icon]
+      // Badge dinâmico: Conversas mostra chats aguardando atendimento humano
+      const displayBadge = href === '/workspace'
+        ? (aguardandoCount > 0 ? String(aguardandoCount) : '')
+        : badge
       return (
         <button onClick={()=>nav(href)} title={collapsed ? label : undefined} style={{
           display:'flex', alignItems:'center', gap:10, width:'100%',
@@ -278,7 +300,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           {active && <span style={{position:'absolute',left:-8,top:'50%',transform:'translateY(-50%)',width:3,height:20,background:'var(--neon)',borderRadius:'0 3px 3px 0'}}/>}
           <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:active?'rgba(163,230,53,.12)':'transparent'}}>{Icon}</span>
           <span style={{opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s',flex:1}}>{label}</span>
-          {badge && !collapsed && <span className="badge-neon">{badge}</span>}
+          {displayBadge && !collapsed && <span className="badge-neon">{displayBadge}</span>}
         </button>
       )
     }
