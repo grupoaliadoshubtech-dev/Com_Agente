@@ -25,10 +25,17 @@ export class HandoffRepository {
    * Grava: telefone | "pausado" | ISO timestamp | atendenteId
    */
   async pausar(telefone: string, atendenteId: string): Promise<void> {
+    const now = new Date()
+    const brTimestamp = now.toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4')
     const record: (string)[] = [
       telefone,
       'pausado',
-      new Date().toISOString(),
+      brTimestamp,
       atendenteId,
     ]
     await appendRows(this.spreadsheetId, RANGE, [record])
@@ -74,11 +81,9 @@ export class HandoffRepository {
 
     if (relevant.length === 0) return 'ativo'
 
-    // O mais recente determina o status
-    const sorted = relevant.sort(
-      (a, b) =>
-        new Date(b.Timestamp).getTime() - new Date(a.Timestamp).getTime()
-    )
+    // O mais recente determina o status (suporta formato "YYYY-MM-DD HH:MM:SS" e ISO)
+    const toMs = (ts: string) => new Date(ts.replace(' ', 'T')).getTime()
+    const sorted = relevant.sort((a, b) => toMs(b.Timestamp) - toMs(a.Timestamp))
 
     return sorted[0].Status === 'pausado' ? 'pausado' : 'ativo'
   }

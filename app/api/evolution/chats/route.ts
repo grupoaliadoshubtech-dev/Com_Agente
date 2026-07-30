@@ -124,9 +124,10 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       const phone = jidToNumber(phoneJid)
       const clienteNome = clienteNames.get(phone) ?? null
       const lastMsg = chat.lastMessage
+      const toMs = (ts: string) => new Date(ts.replace(' ', 'T')).getTime()
       const handoffEntry = handoffRecords
         .filter(h => h.telefone === phone || h.telefone === 'ALL')
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
+        .sort((a, b) => toMs(b.timestamp) - toMs(a.timestamp))[0]
       const iaStatus = handoffEntry?.status === 'pausado' ? 'pausado' : 'ativo'
       const preview = lastMsg?.message
         ? extractText(lastMsg.message as Record<string, unknown>)
