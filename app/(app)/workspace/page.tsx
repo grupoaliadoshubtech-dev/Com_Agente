@@ -533,7 +533,11 @@ export default function WorkspacePage() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-[13px] font-semibold">Conversas</span>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--neon)', color: '#0a0a0a' }}>{chats.length}</span>
+              {chats.filter(c => c.iaStatus === 'pausado').length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--neon)', color: '#0a0a0a' }}>
+                  {chats.filter(c => c.iaStatus === 'pausado').length}
+                </span>
+              )}
               <button onClick={fetchChats} className="text-[11px] px-2 py-0.5 rounded border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
             </div>
           </div>
