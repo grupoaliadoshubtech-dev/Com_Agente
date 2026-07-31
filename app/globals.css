@@ -125,10 +125,15 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 .btn-kill:hover { background: #B91C1C; }
 .btn-kill.active {
   background: #166534; border-color: #14532D;
-  box-shadow: 0 2px 10px rgba(22,101,52,.35);
-  animation: none;
+  animation: pulse-kill-active 2.4s ease-out infinite;
 }
 .btn-kill.active:hover { background: #14532D; }
+
+@keyframes pulse-kill-active {
+  0%   { box-shadow: 0 0 0 0   rgba(22,101,52,.65), 0 2px 10px rgba(22,101,52,.4); }
+  65%  { box-shadow: 0 0 0 8px rgba(22,101,52,0),   0 2px 10px rgba(22,101,52,.4); }
+  100% { box-shadow: 0 0 0 0   rgba(22,101,52,0),   0 2px 10px rgba(22,101,52,.4); }
+}
 
 @keyframes pulse-kill {
   0%   { box-shadow: 0 0 0 0   rgba(220,38,38,.65), 0 2px 10px rgba(220,38,38,.4); }
@@ -144,13 +149,19 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
     justify-content: center;
     animation: pulse-kill-mob 2.4s ease-out infinite;
   }
-  .btn-kill.active { animation: none; }
+  .btn-kill.active { animation: pulse-kill-mob-active 2.4s ease-out infinite; }
 }
 
 @keyframes pulse-kill-mob {
   0%   { box-shadow: 0 0 0 0    rgba(220,38,38,.7),  0 2px 12px rgba(220,38,38,.45); }
   65%  { box-shadow: 0 0 0 10px rgba(220,38,38,0),   0 2px 12px rgba(220,38,38,.45); }
   100% { box-shadow: 0 0 0 0    rgba(220,38,38,0),   0 2px 12px rgba(220,38,38,.45); }
+}
+
+@keyframes pulse-kill-mob-active {
+  0%   { box-shadow: 0 0 0 0    rgba(22,101,52,.7),  0 2px 12px rgba(22,101,52,.45); }
+  65%  { box-shadow: 0 0 0 10px rgba(22,101,52,0),   0 2px 12px rgba(22,101,52,.45); }
+  100% { box-shadow: 0 0 0 0    rgba(22,101,52,0),   0 2px 12px rgba(22,101,52,.45); }
 }
 
 .btn-icon {
