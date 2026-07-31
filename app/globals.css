@@ -124,7 +124,7 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 }
 .btn-kill:hover { background: #B91C1C; }
 .btn-kill.active {
-  background: #166534; border-color: #14532D;
+  background: #166534; border: 1px solid #14532D;
   animation: pulse-kill-active 2.4s ease-out infinite;
 }
 .btn-kill.active:hover { background: #14532D; }

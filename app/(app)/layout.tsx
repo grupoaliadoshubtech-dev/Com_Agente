@@ -109,6 +109,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [toast,            setToast]            = useState('')
   const [pausaGlobalAtiva, setPausaGlobalAtiva] = useState(false)
   const [aguardandoCount,  setAguardandoCount]  = useState(0)
+  const [pausaWarningDismissed, setPausaWarningDismissed] = useState(false)
 
   // ── Modal: perfil do usuário ─────────────────────────────────
   const [profileOpen,    setProfileOpen]    = useState(false)
@@ -449,6 +450,60 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       )}
 
       {toast && <div className="toast-base">{toast}</div>}
+
+      {/* ── Modal: Aviso de IA Pausada Globalmente ─────────── */}
+      {pausaGlobalAtiva && !pausaWarningDismissed && !mustChangePw && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.72)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9000,padding:'16px'}}>
+          <div className="card animate-slide-up" style={{width:'min(400px, calc(100vw - 32px))',padding:'28px 24px',textAlign:'center',position:'relative'}}>
+            <button
+              onClick={()=>setPausaWarningDismissed(true)}
+              style={{position:'absolute',top:14,right:14,width:28,height:28,borderRadius:7,background:'var(--bg-input)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'var(--txt-2)',fontSize:17,lineHeight:1}}>
+              ×
+            </button>
+
+            {/* ícone de pausa */}
+            <div style={{width:52,height:52,borderRadius:'50%',background:'rgba(220,38,38,.12)',border:'1px solid rgba(220,38,38,.3)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:24}}>
+              {IC.stop}
+            </div>
+
+            <div className="font-display" style={{fontSize:17,fontWeight:700,color:'var(--txt)',marginBottom:8}}>
+              ⏸ IA pausada
+            </div>
+            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.65,marginBottom:20}}>
+              Seus clientes não estão recebendo respostas automáticas do sistema ComAgente no momento.
+            </p>
+            <p style={{fontSize:12,color:'var(--txt-3)',lineHeight:1.5,marginBottom:18}}>
+              Pressione o botão abaixo para reativar o atendimento:
+            </p>
+
+            {/* Ícone referência — mobile: círculo verde ▶ */}
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
+              {/* Mobile */}
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+                <span style={{fontSize:10,fontWeight:600,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em'}}>No celular</span>
+                <div style={{width:36,height:36,borderRadius:'50%',background:'#166534',border:'1px solid #14532D',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',boxShadow:'0 2px 10px rgba(22,101,52,.4)'}}>
+                  {IC.play}
+                </div>
+              </div>
+              {/* Desktop */}
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+                <span style={{fontSize:10,fontWeight:600,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em'}}>No computador</span>
+                <div style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:100,background:'#166534',border:'1px solid #14532D',color:'#fff',fontSize:12,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:'0 2px 10px rgba(22,101,52,.4)'}}>
+                  {IC.play}
+                  <span>Retornar Global</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={()=>setPausaWarningDismissed(true)}
+              className="btn-outline"
+              style={{width:'100%',marginTop:22,padding:'10px',fontSize:13,fontWeight:600}}>
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: Primeiro Acesso ─────────────────────────── */}
       {mustChangePw && (

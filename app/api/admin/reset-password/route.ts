@@ -1,10 +1,12 @@
 ﻿// app/api/admin/reset-password/route.ts
 // POST { email } — redefine senha para senha aleatória de 8 caracteres
 // Apenas master admin pode usar.
+// Aciona Pausar Global automaticamente por segurança.
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { UsersRepository } from '@/lib/repositories/users.repository'
+import { HandoffRepository } from '@/lib/repositories/handoff.repository'
 import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 
@@ -29,13 +31,24 @@ export async function POST(req: Request) {
   }
 
   try {
+    const repo = new UsersRepository()
+
+    // Busca o usuário antes para obter o tenantId
+    const user = await repo.findByEmail(email)
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Usuário não encontrado' }, { status: 404 })
+    }
+
     const tempPassword = generateResetPassword()
     const hash = await bcrypt.hash(tempPassword, 10)
-    const repo = new UsersRepository()
-    const found = await repo.resetPassword(email, hash)
+    await repo.resetPassword(email, hash)
 
-    if (!found) {
-      return NextResponse.json({ success: false, error: 'Usuário não encontrado' }, { status: 404 })
+    // Aciona Pausar Global no tenant do usuário — segurança obrigatória
+    if (user.tenantId) {
+      try {
+        const handoff = new HandoffRepository(user.tenantId)
+        await handoff.pausaGlobal(`master:${session.user.email}`)
+      } catch { /* não bloqueia o reset se handoff falhar */ }
     }
 
     return NextResponse.json({ success: true, message: `Senha redefinida para ${email}`, tempPassword })
