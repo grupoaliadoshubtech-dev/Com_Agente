@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>26 de julho de 2026</strong> (v2.5)<br>
+    Documento consolidado e atualizado — <strong>31 de julho de 2026</strong> (v2.7)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -187,6 +187,8 @@
       <tr><td>23/07/2026</td><td>2.3</td><td>E-mail Master atualizado para comagente@gaht.com.br, coluna spreadsheetId (I) e avatarUrl (N) adicionadas nas planilhas</td></tr>
       <tr><td>23/07/2026</td><td>2.4</td><td>Rename Workspace → Conversas, auditoria de segurança completa (29 vulnerabilidades), 8 fixes de segurança implementados e verificados em produção, conta demo funcional, rate limiting Redis</td></tr>
       <tr><td>26/07/2026</td><td>2.5</td><td>Preview WhatsApp (OG image, URL limpa), 2ª auditoria de segurança — 6 novas vulnerabilidades corrigidas, 3 pendências de segurança catalogadas</td></tr>
+      <tr><td>30/07/2026</td><td>2.6</td><td>Scroll instantâneo ao abrir conversa, badge dinâmico (chats pausados), indicador colorido de estado na lista, sync de badges, timestamps handoff no fuso de Brasília</td></tr>
+      <tr><td>31/07/2026</td><td>2.7</td><td>Botão Pausar/Retornar Global redesenhado (sólido + pulse animation, 4 modos), pausa automática ao redefinir senha do cliente, modal de aviso ao logar com IA pausada</td></tr>
     </tbody>
   </table>
 </div>
@@ -385,6 +387,11 @@
     <tr><td>Toast e modal de confirmação centralizados</td><td><span class="ok">✓ 02/07/2026 — position: fixed; inset: 0; display: flex; align-items/justify-content: center</span></td></tr>
     <tr><td>Scroll do chat — não interrompe leitura do histórico</td><td><span class="ok">✓ 02/07/2026 — isAtBottom ref: auto-scroll só ocorre se usuário já está no fim da conversa</span></td></tr>
     <tr><td>Sistema de tema Dia/Noite funcional</td><td><span class="ok">✓ 02/07/2026 — CSS variables temáticas, Tailwind config atualizado, text-white removido do body</span></td></tr>
+    <tr><td>Scroll instantâneo ao abrir conversa</td><td><span class="ok">✓ 30/07/2026 — instantScroll ref: scrollTop = scrollHeight sem animação (comportamento WhatsApp)</span></td></tr>
+    <tr><td>Badge dinâmico na sidebar (chats aguardando humano)</td><td><span class="ok">✓ 30/07/2026 — polling 10s filtrando iaStatus === 'pausado'; some quando 0</span></td></tr>
+    <tr><td>Indicador colorido de estado na lista de chats</td><td><span class="ok">✓ 30/07/2026 — verde = pausado, cinza = aguardando IA, transparente = bot respondeu</span></td></tr>
+    <tr><td>Badge dentro do workspace sincronizado com sidebar</td><td><span class="ok">✓ 30/07/2026 — ambos contam iaStatus === 'pausado'</span></td></tr>
+    <tr><td>Timestamps de handoff no fuso de Brasília (UTC-3)</td><td><span class="ok">✓ 30/07/2026 — toLocaleString America/Sao_Paulo substituindo toISOString</span></td></tr>
   </tbody>
 </table>
 
@@ -1240,6 +1247,76 @@ curl -I http://localhost:3001</pre>
   <p><strong>Conclusão:</strong> Vulnerabilidade não existe neste sistema. Aplicar a correção do apóstrofo seria prejudicial — com <code>RAW</code>, o apóstrofo seria gravado literalmente, corrompendo dados como nomes de empresa começando com <code>@</code> ou telefones com <code>+</code> ao retornar da leitura.</p>
 </div>
 
+<div class="pend-card done">
+  <h4>6.64 Scroll instantâneo ao abrir conversa — 30/07/2026</h4>
+  <p>Ao clicar em um contato na lista, o chat abria rolando do início ao fim do histórico visualmente. Experiência ruim para conversas longas.</p>
+  <p><strong>Solução:</strong> <code>instantScroll = useRef(false)</code> em <code>app/(app)/workspace/page.tsx</code>. A função <code>openChat()</code> seta a flag para <code>true</code>. O <code>useEffect([messages])</code> detecta flag ativa e aplica <code>msgContainerRef.current.scrollTop = scrollHeight</code> (instantâneo) em vez de <code>scrollIntoView({ behavior: 'smooth' })</code>. Guard <code>if (messages.length === 0) return</code> impede consumo prematuro da flag no render intermediário com array vazio.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.65 Badge dinâmico na sidebar — chats aguardando humano — 30/07/2026</h4>
+  <p>O badge "5" fixo no ícone Conversas da sidebar foi substituído por contagem dinâmica real.</p>
+  <p><strong>Implementação</strong> em <code>app/(app)/layout.tsx</code>: <code>useState(aguardandoCount)</code> + <code>useEffect</code> com polling <code>GET /api/evolution/chats</code> a cada 10 s, filtrando <code>iaStatus === 'pausado'</code>. <code>NavBtn</code> calcula <code>displayBadge</code> dinamicamente para o href <code>/workspace</code>. Badge oculto quando 0.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.66 Indicador colorido de estado na lista de chats — 30/07/2026</h4>
+  <p>Campo <code>lastFromMe: boolean</code> adicionado ao tipo <code>ChatContact</code> e ao retorno de <code>GET /api/evolution/chats</code> (já existia a variável <code>fromMe</code>, apenas exposta no mapa <code>unified.set</code>).</p>
+  <p><strong>Lógica de cor</strong> em <code>workspace/page.tsx</code>:</p>
+  <ul>
+    <li><strong>Verde</strong> (<code>var(--neon)</code>): <code>iaStatus === 'pausado'</code> — persiste até IA ser reativada, independente de quem respondeu</li>
+    <li><strong>Cinza</strong> (<code>#6B7280</code>): cliente aguardando IA (<code>iaStatus</code> ativo + <code>lastFromMe === false</code>)</li>
+    <li><strong>Transparente</strong>: bot respondeu por último (<code>iaStatus</code> ativo + <code>lastFromMe === true</code>)</li>
+  </ul>
+  <p><strong>Arquivos:</strong> <code>app/api/evolution/chats/route.ts</code> (campo lastFromMe) + <code>app/(app)/workspace/page.tsx</code> (lógica de cor).</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.67 Badge interno do workspace sincronizado com a sidebar — 30/07/2026</h4>
+  <p>O badge dentro do workspace exibia <code>chats.length</code> (total de chats) enquanto a sidebar exibia apenas os pausados. Números sempre divergentes.</p>
+  <p><strong>Correção</strong> em <code>workspace/page.tsx</code>: badge alterado para <code>chats.filter(c =&gt; c.iaStatus === 'pausado').length</code>, espelhando exatamente a mesma métrica da sidebar.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.68 Timestamps de handoff no fuso de Brasília (UTC-3) — 30/07/2026</h4>
+  <p>Os registros de pausa/retomada da IA eram gravados em UTC (<code>2026-07-30T05:34:21.980Z</code>), exibindo o horário errado na planilha para os operadores brasileiros.</p>
+  <p><strong>Correção</strong> em <code>lib/repositories/handoff.repository.ts</code>: substituído <code>new Date().toISOString()</code> por <code>toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })</code> formatado como <code>YYYY-MM-DD HH:MM:SS</code>.</p>
+  <p>Ajuste de parse em dois pontos que comparavam timestamps por <code>new Date(ts).getTime()</code>: helper <code>toMs = (ts) =&gt; new Date(ts.replace(' ', 'T')).getTime()</code> suporta ambos os formatos (antigo com <code>Z</code> e novo sem).</p>
+  <p><strong>Arquivos:</strong> <code>lib/repositories/handoff.repository.ts</code> + <code>app/api/evolution/chats/route.ts</code>.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.69 Botão Pausar/Retornar Global redesenhado — 31/07/2026</h4>
+  <p>O botão de emergência da topbar tinha transparência excessiva e não comunicava urgência visual. Redesenhado completamente para quatro modos: pausa (vermelho) e retorno (verde), cada um com variante desktop (pill) e mobile (círculo 36×36px), em tema claro e escuro.</p>
+  <p><strong>Visual:</strong> fundo sólido com animação <code>@keyframes pulse</code> — anel expansivo com <code>box-shadow</code> que se expande e desaparece a cada 2,4 s, referência de botão de emergência.</p>
+  <p><strong>Ícones:</strong> ⏸ (dois retângulos SVG) para pausa e ▶ (triângulo SVG) para retorno — substituição de texto genérico.</p>
+  <p><strong>Mobile:</strong> classe <code>.hide-mobile</code> oculta o label; o botão vira círculo via <code>@media (max-width: 768px)</code> com animações próprias (<code>pulse-kill-mob</code> / <code>pulse-kill-mob-active</code>).</p>
+  <p><strong>Fix do estado ativo:</strong> <code>border-color: #14532D</code> substituído por <code>border: 1px solid #14532D</code> no <code>.btn-kill.active</code> para garantir renderização correta.</p>
+  <p><strong>Arquivo:</strong> <code>app/globals.css</code> + <code>app/(app)/layout.tsx</code>.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.70 Pausa global automática ao redefinir senha do cliente — 31/07/2026</h4>
+  <p>Ao admin master redefinir a senha de um cliente via <code>POST /api/admin/reset-password</code>, o sistema agora aciona automaticamente a pausa global de IA para o tenant daquele usuário, gravando <code>telefone:ALL | status:pausado</code> na aba <code>Fila_Humana</code> do Google Sheets.</p>
+  <p><strong>Fluxo:</strong> <code>UsersRepository.findByEmail(email)</code> retorna o <code>tenantId</code> → <code>new HandoffRepository(tenantId).pausaGlobal(`master:${email}`)</code> é chamado após o reset bem-sucedido. Falha no handoff não bloqueia o reset (bloco try/catch isolado).</p>
+  <p><strong>Segurança:</strong> Garante que após troca de senha o cliente precise manualmente reativar a IA, evitando que atendimentos recomecem de forma inadvertida com configurações antigas.</p>
+  <p><strong>Arquivo:</strong> <code>app/api/admin/reset-password/route.ts</code>.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.71 Modal de aviso ao logar com IA pausada globalmente — 31/07/2026</h4>
+  <p>Quando o cliente loga e a IA está pausada globalmente (<code>pausaGlobalAtiva === true</code>), um overlay aparece automaticamente informando o estado e mostrando como reativar.</p>
+  <p><strong>Conteúdo do modal:</strong></p>
+  <ul>
+    <li>Título: <strong>⏸ IA pausada</strong></li>
+    <li>Ícones de referência lado a lado: círculo ▶ (celular) e pill "▶ Retornar Global" (computador)</li>
+    <li>Texto único: "Seus clientes não estão recebendo respostas automáticas do sistema ComAgente no momento. Pressione o botão <strong>▶</strong> acima para reativar o atendimento." — com ícone ▶ inline na frase</li>
+    <li>Botão <strong>Entendi</strong> e botão <strong>×</strong> — apenas dispensam o aviso, não reativam a IA</li>
+  </ul>
+  <p><strong>Comportamento:</strong> Não sobrepõe o modal de primeiro acesso (<code>mustChangePw</code>). Após o cliente definir a nova senha, o aviso aparece na sequência. Dispensado por <code>useState(pausaWarningDismissed)</code>, persiste apenas na sessão atual.</p>
+  <p><strong>Arquivo:</strong> <code>app/(app)/layout.tsx</code>.</p>
+</div>
+
 <div class="pend-card open">
   <h4>6.62 String(err) exposto nas respostas de erro — PENDENTE</h4>
   <p><strong>Vulnerabilidade (BAIXA):</strong> Vários endpoints retornam <code>String(err)</code> diretamente no corpo da resposta HTTP em caso de erro interno. Isso pode vazar nomes de variáveis internas, caminhos de arquivos, mensagens de conexão com banco de dados ou chaves de configuração.</p>
@@ -1258,7 +1335,7 @@ curl -I http://localhost:3001</pre>
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 2.5 | 26 de julho de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 2.7 | 31 de julho de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
