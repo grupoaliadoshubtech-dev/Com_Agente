@@ -466,34 +466,37 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               {IC.stop}
             </div>
 
-            <div className="font-display" style={{fontSize:17,fontWeight:700,color:'var(--txt)',marginBottom:8}}>
+            <div className="font-display" style={{fontSize:17,fontWeight:700,color:'var(--txt)',marginBottom:16}}>
               ⏸ IA pausada
             </div>
-            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.65,marginBottom:20}}>
-              Seus clientes não estão recebendo respostas automáticas do sistema ComAgente no momento.
-            </p>
-            <p style={{fontSize:12,color:'var(--txt-3)',lineHeight:1.5,marginBottom:18}}>
-              Pressione o botão abaixo para reativar o atendimento:
-            </p>
 
-            {/* Ícone referência — mobile: círculo verde ▶ */}
-            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
+            {/* Ícones de referência — mostrados ANTES do texto */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:24,marginBottom:18}}>
               {/* Mobile */}
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
-                <span style={{fontSize:10,fontWeight:600,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em'}}>No celular</span>
+                <span style={{fontSize:10,fontWeight:600,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em'}}>Celular</span>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'#166534',border:'1px solid #14532D',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',boxShadow:'0 2px 10px rgba(22,101,52,.4)'}}>
                   {IC.play}
                 </div>
               </div>
               {/* Desktop */}
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
-                <span style={{fontSize:10,fontWeight:600,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em'}}>No computador</span>
+                <span style={{fontSize:10,fontWeight:600,color:'var(--txt-3)',textTransform:'uppercase',letterSpacing:'.08em'}}>Computador</span>
                 <div style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:100,background:'#166534',border:'1px solid #14532D',color:'#fff',fontSize:12,fontWeight:700,fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:'0 2px 10px rgba(22,101,52,.4)'}}>
                   {IC.play}
                   <span>Retornar Global</span>
                 </div>
               </div>
             </div>
+
+            {/* Texto único com ícone inline */}
+            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.7}}>
+              Seus clientes não estão recebendo respostas automáticas do sistema ComAgente no momento. Pressione o botão{' '}
+              <span style={{display:'inline-flex',alignItems:'center',verticalAlign:'middle',width:22,height:22,borderRadius:'50%',background:'#166534',border:'1px solid #14532D',justifyContent:'center',color:'#fff',margin:'0 2px'}}>
+                {IC.play}
+              </span>
+              {' '}acima para reativar o atendimento.
+            </p>
 
             <button
               onClick={()=>setPausaWarningDismissed(true)}
