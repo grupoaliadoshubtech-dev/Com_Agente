@@ -116,12 +116,42 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 .btn-kill {
   display: flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 100px;
-  background: var(--danger-dim); border: 1px solid rgba(220,38,38,.25);
-  color: #FCA5A5; font-size: 12px; font-weight: 600;
+  background: #DC2626; border: 1px solid #B91C1C;
+  color: #fff; font-size: 12px; font-weight: 700;
   cursor: pointer; white-space: nowrap;
   font-family: 'Plus Jakarta Sans', sans-serif;
+  animation: pulse-kill 2.4s ease-out infinite;
 }
-.btn-kill:hover { background: rgba(220,38,38,.2); }
+.btn-kill:hover { background: #B91C1C; }
+.btn-kill.active {
+  background: #166534; border-color: #14532D;
+  box-shadow: 0 2px 10px rgba(22,101,52,.35);
+  animation: none;
+}
+.btn-kill.active:hover { background: #14532D; }
+
+@keyframes pulse-kill {
+  0%   { box-shadow: 0 0 0 0   rgba(220,38,38,.65), 0 2px 10px rgba(220,38,38,.4); }
+  65%  { box-shadow: 0 0 0 8px rgba(220,38,38,0),   0 2px 10px rgba(220,38,38,.4); }
+  100% { box-shadow: 0 0 0 0   rgba(220,38,38,0),   0 2px 10px rgba(220,38,38,.4); }
+}
+
+/* Mobile: sem texto → botão circular */
+@media (max-width: 768px) {
+  .btn-kill {
+    width: 36px; height: 36px;
+    padding: 0; border-radius: 50%;
+    justify-content: center;
+    animation: pulse-kill-mob 2.4s ease-out infinite;
+  }
+  .btn-kill.active { animation: none; }
+}
+
+@keyframes pulse-kill-mob {
+  0%   { box-shadow: 0 0 0 0    rgba(220,38,38,.7),  0 2px 12px rgba(220,38,38,.45); }
+  65%  { box-shadow: 0 0 0 10px rgba(220,38,38,0),   0 2px 12px rgba(220,38,38,.45); }
+  100% { box-shadow: 0 0 0 0    rgba(220,38,38,0),   0 2px 12px rgba(220,38,38,.45); }
+}
 
 .btn-icon {
   width: 36px; height: 36px; border-radius: 10px;
