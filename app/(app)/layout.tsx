@@ -461,18 +461,22 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               ×
             </button>
 
-            {/* ícone de pausa */}
-            <div style={{width:52,height:52,borderRadius:'50%',background:'rgba(220,38,38,.12)',border:'1px solid rgba(220,38,38,.3)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:24}}>
-              {IC.stop}
+            {/* ícone de pausa — mesmo visual do btn-kill (vermelho + pulse) */}
+            <div className="btn-kill" style={{width:52,height:52,padding:0,borderRadius:'50%',justifyContent:'center',margin:'0 auto 16px',cursor:'default',pointerEvents:'none'}}>
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>
             </div>
 
             <div className="font-display" style={{fontSize:17,fontWeight:700,color:'var(--txt)',marginBottom:16}}>
-              ⏸ IA pausada
+              Atendimento pausado
             </div>
 
             {/* Texto único com ícone inline pulsante */}
             <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.7}}>
-              Seus clientes não estão recebendo respostas automáticas do sistema ComAgente no momento. Pressione o botão{' '}
+              Seus clientes não estão recebendo respostas automáticas do sistema{' '}
+              <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,color:'var(--txt)'}}>
+                Com<span style={{color:'var(--neon)'}}>Agente</span>
+              </span>
+              {' '}no momento. Pressione o botão{' '}
               <span className="play-inline-pulse" style={{display:'inline-flex',alignItems:'center',verticalAlign:'middle',width:22,height:22,borderRadius:'50%',background:'#166534',border:'1px solid #14532D',justifyContent:'center',color:'#fff',margin:'0 2px'}}>
                 {IC.play}
               </span>
