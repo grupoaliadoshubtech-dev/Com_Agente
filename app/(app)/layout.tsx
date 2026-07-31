@@ -467,16 +467,18 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="font-display" style={{fontSize:17,fontWeight:700,color:'var(--txt)',marginBottom:16}}>
-              Atendimento pausado
+              Atendimento pausado!
             </div>
 
-            {/* Texto único com ícone inline pulsante */}
-            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.7}}>
+            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.7,marginBottom:12}}>
               Seus clientes não estão recebendo respostas automáticas do sistema{' '}
               <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,color:'var(--txt)'}}>
                 Com<span style={{color:'var(--neon)'}}>Agente</span>
               </span>
-              {' '}no momento. Pressione o botão{' '}
+              {' '}no momento.
+            </p>
+            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.7}}>
+              Pressione o botão{' '}
               <span className="play-inline-pulse" style={{display:'inline-flex',alignItems:'center',verticalAlign:'middle',width:22,height:22,borderRadius:'50%',background:'#166534',border:'1px solid #14532D',justifyContent:'center',color:'#fff',margin:'0 2px'}}>
                 {IC.play}
               </span>
