@@ -164,6 +164,13 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
   100% { box-shadow: 0 0 0 0    rgba(22,101,52,0),   0 2px 12px rgba(22,101,52,.45); }
 }
 
+@keyframes pulse-play-inline {
+  0%   { box-shadow: 0 0 0 0   rgba(22,101,52,.7); }
+  65%  { box-shadow: 0 0 0 6px rgba(22,101,52,0); }
+  100% { box-shadow: 0 0 0 0   rgba(22,101,52,0); }
+}
+.play-inline-pulse { animation: pulse-play-inline 2.4s ease-out infinite; }
+
 .btn-icon {
   width: 36px; height: 36px; border-radius: 10px;
   background: var(--bg-input); border: 1px solid var(--border);
