@@ -202,4 +202,25 @@ export class LeadsRepository {
       createdAt: r.createdAt,
     }))
   }
+
+  async updateById(id: string, data: Partial<Pick<LeadRecord, 'name' | 'email' | 'phone' | 'company' | 'planId' | 'planName' | 'status'>>): Promise<boolean> {
+    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
+    if (rows.length < 2) return false
+    const headers  = rows[0]
+    const idCol    = headers.indexOf('id')
+    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === id)
+    if (rowIndex === -1) return false
+    const sheetRow = rowIndex + 1
+    const col      = (name: string) => String.fromCharCode(65 + headers.indexOf(name))
+    const updates: Promise<void>[] = []
+    if (data.name     !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('name')}${sheetRow}`,     [[data.name]]))
+    if (data.email    !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('email')}${sheetRow}`,    [[data.email]]))
+    if (data.phone    !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('phone')}${sheetRow}`,    [[data.phone]]))
+    if (data.company  !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('company')}${sheetRow}`,  [[data.company]]))
+    if (data.planId   !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('planId')}${sheetRow}`,   [[data.planId]]))
+    if (data.planName !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('planName')}${sheetRow}`, [[data.planName]]))
+    if (data.status   !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('status')}${sheetRow}`,   [[data.status]]))
+    await Promise.all(updates)
+    return true
+  }
 }

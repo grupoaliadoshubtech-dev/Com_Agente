@@ -53,6 +53,47 @@ export async function sendMail(opts: SendMailOptions): Promise<void> {
 
 // ── Templates ─────────────────────────────────────────────────
 
+export function diagnosticoTemplate(name: string, company: string, url: string): string {
+  const firstName = name.split(' ')[0]
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#0f1117;font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:28px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;">Com</span><span style="font-size:28px;font-weight:900;color:#a3e635;">Agente</span>
+    </div>
+    <div style="background:#1a1d27;border-radius:16px;padding:32px 28px;border:1px solid rgba(255,255,255,.08);">
+      <p style="color:#f0f0f0;font-size:15px;margin:0 0 16px;">Olá, ${firstName}!</p>
+      <p style="color:#9ca3af;font-size:14px;line-height:1.7;margin:0 0 12px;">
+        Recebemos o cadastro da <strong style="color:#f0f0f0;">${company}</strong> e estamos animados para começar.
+      </p>
+      <p style="color:#9ca3af;font-size:14px;line-height:1.7;margin:0 0 28px;">
+        Para que possamos personalizar sua IA de atendimento com precisão, preparamos um breve diagnóstico sobre o seu negócio. Leva apenas alguns minutos e faz toda a diferença na qualidade do seu agente.
+      </p>
+      <div style="text-align:center;margin-bottom:28px;">
+        <a href="${url}" style="display:inline-block;background:#a3e635;color:#0a0a0a;text-decoration:none;font-size:15px;font-weight:700;padding:14px 32px;border-radius:10px;">
+          Responder Diagnóstico →
+        </a>
+      </div>
+      <p style="color:#6b7280;font-size:12px;line-height:1.6;margin:0;border-top:1px solid rgba(255,255,255,.06);padding-top:20px;">
+        Se o botão não funcionar, copie e cole este link no seu navegador:<br>
+        <a href="${url}" style="color:#a3e635;word-break:break-all;">${url}</a>
+      </p>
+    </div>
+    <p style="text-align:center;color:#4b5563;font-size:11px;margin-top:24px;">
+      © ${new Date().getFullYear()} ComAgente · Todos os direitos reservados
+    </p>
+  </div>
+</body>
+</html>
+  `.trim()
+}
+
 export function resetPasswordTemplate(name: string, resetUrl: string): string {
   const firstName = name.split(' ')[0]
   return `

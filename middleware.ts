@@ -13,6 +13,8 @@ import type { UserRole } from '@/types'
 const ROLE_MAP: Record<string, UserRole[]> = {
   // Master exclusivo
   '/admin':                      ['master'],
+  '/admin/solicitacoes':         ['master'],
+  '/admin/diagnosticos':         ['master'],
   '/admin/empresas':             ['master'],
   '/admin/planos':               ['master'],
   '/admin/blacklist':            ['master'],
@@ -37,7 +39,7 @@ const ROLE_MAP: Record<string, UserRole[]> = {
 }
 
 // ── Rotas públicas (sem autenticação) ─────────────────────────
-const PUBLIC_PATHS = ['/login', '/cadastro', '/recuperar-senha', '/redefinir-senha', '/api/auth', '/api/leads', '/api/plans', '/api/evolution/webhook', '/opengraph-image']
+const PUBLIC_PATHS = ['/login', '/cadastro', '/recuperar-senha', '/redefinir-senha', '/api/auth', '/api/leads', '/api/plans', '/api/evolution/webhook', '/opengraph-image', '/diagnostico', '/api/diagnostico']
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some(p => pathname.startsWith(p))

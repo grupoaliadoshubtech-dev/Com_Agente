@@ -58,9 +58,9 @@ export default function CadastroPage(){
           Plano {selPlan?.name}
         </div>
         <div style={{background:'var(--bg-card)',border:'1px solid var(--neon-border)',borderRadius:14,padding:24,marginBottom:20,textAlign:'left'}}>
-          <strong style={{color:'var(--neon)'}}>O seu atendimento personalizado está sendo construído.</strong>
+          <strong style={{color:'var(--neon)'}}>Recebemos o seu cadastro.</strong>
           <br/><br/>
-          <span style={{color:'var(--txt-2)',fontSize:14,lineHeight:1.7}}>Em breve entraremos em contato para te passar mais informações e definirmos juntos os próximos passos da sua operação digital.</span>
+          <span style={{color:'var(--txt-2)',fontSize:14,lineHeight:1.7}}>Para personalizar seu atendimento, enviamos um link de diagnóstico para o seu e-mail. Preencha o formulário para que possamos configurar sua IA com precisão.</span>
         </div>
         <button onClick={()=>router.push('/login')} className="btn-outline" style={{padding:'10px 24px',fontSize:14}}>← Voltar ao início</button>
       </div>

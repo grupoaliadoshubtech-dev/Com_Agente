@@ -131,6 +131,17 @@ export interface SatisfacaoRecord {
   atendente: string
 }
 
+// ── DIAGNÓSTICO ───────────────────────────────────────────────
+export interface DiagnosticoRecord {
+  id: string
+  leadId: string
+  token: string
+  status: 'pending' | 'answered'
+  responses: string // JSON stringificado { "1.1": "...", ... }
+  createdAt: string
+  respondedAt: string
+}
+
 // ── API RESPONSE WRAPPER ──────────────────────────────────────
 export interface ApiResponse<T = unknown> {
   success: boolean

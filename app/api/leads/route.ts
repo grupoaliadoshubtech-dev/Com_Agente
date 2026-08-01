@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { LeadsRepository, PlansRepository } from '@/lib/repositories/plans-tenants-leads.repository'
+import { DiagnosticoRepository } from '@/lib/repositories/diagnostico.repository'
+import { sendMail, diagnosticoTemplate } from '@/lib/email/mailer'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { z } from 'zod'
 import type { ApiResponse } from '@/types'
@@ -47,6 +49,21 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
 
     const leadsRepo = new LeadsRepository()
     const lead = await leadsRepo.create({ ...parsed.data, planName })
+
+    // Diagnóstico: cria registro e envia e-mail (falha não bloqueia cadastro)
+    try {
+      const diagRepo   = new DiagnosticoRepository()
+      const diag       = await diagRepo.create(lead.id)
+      const baseUrl    = process.env.NEXTAUTH_URL ?? 'https://app.comagente.gaht.com.br'
+      const diagUrl    = `${baseUrl}/diagnostico/${diag.token}`
+      await sendMail({
+        to:      lead.email,
+        subject: 'Diagnóstico do seu Atendimento — ComAgente',
+        html:    diagnosticoTemplate(lead.name, lead.company, diagUrl),
+      })
+    } catch (diagErr) {
+      console.error('[/api/leads POST] erro ao criar diagnóstico/enviar email:', diagErr)
+    }
 
     return NextResponse.json({
       success: true,
