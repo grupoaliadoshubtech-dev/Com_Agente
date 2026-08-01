@@ -60,7 +60,8 @@ export async function POST(_req: NextRequest, { params }: Ctx): Promise<NextResp
 
     return NextResponse.json({ success: true, message: 'E-mail de diagnóstico reenviado.' })
   } catch (err) {
-    console.error('[POST /api/admin/leads/[id]]', err)
-    return NextResponse.json({ success: false, error: 'Erro ao reenviar e-mail' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[POST /api/admin/leads/[id]]', msg)
+    return NextResponse.json({ success: false, error: msg }, { status: 500 })
   }
 }
