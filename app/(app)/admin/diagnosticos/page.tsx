@@ -26,9 +26,7 @@ export default function DiagnosticosPage() {
   async function fetchAll() {
     setLoading(true)
     try {
-      const [dr, lr] = await Promise.all([
-        fetch('/api/admin/leads-com-diagnostico').then(r => r.json()),
-      ])
+      const dr = await fetch('/api/admin/leads-com-diagnostico').then(r => r.json())
       if (dr.success) {
         const diags: DiagItem[] = dr.data
           .filter((l: any) => l.diagnostico)
