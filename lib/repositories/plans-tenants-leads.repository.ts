@@ -206,6 +206,11 @@ export class LeadsRepository {
     }))
   }
 
+  async findById(id: string): Promise<LeadRecord | null> {
+    const all = await this.findAll()
+    return all.find(l => l.id === id) ?? null
+  }
+
   async updateById(id: string, data: Partial<Pick<LeadRecord, 'name' | 'email' | 'phone' | 'company' | 'planId' | 'planName' | 'status'>>): Promise<boolean> {
     const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
     if (rows.length < 2) return false
