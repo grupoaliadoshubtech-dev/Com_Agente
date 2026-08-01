@@ -355,32 +355,25 @@ export default function SolicitacoesPage() {
       {/* Modal: Enviar Diagnóstico por e-mail */}
       {modal === 'enviar-diag' && selected && (
         <Modal title="↗ Enviar Diagnóstico" onClose={() => setModal(null)}>
-          {!selected.diagnostico ? (
-            <p style={{ fontSize:13, color:'var(--txt-3)', textAlign:'center', padding:'12px 0' }}>
-              Nenhum diagnóstico gerado para este lead ainda.
-            </p>
-          ) : (
-            <>
-              <p style={{ fontSize:13, color:'var(--txt-2)', lineHeight:1.6, marginBottom:20 }}>
-                Reenviar o link do diagnóstico por e-mail para{' '}
-                <strong style={{ color:'var(--txt)' }}>{selected.name || selected.company}</strong>
-                {' '}(<span style={{ color:'var(--txt-3)' }}>{selected.email}</span>)?
-              </p>
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={() => setModal(null)} className="btn-outline" style={{ flex:1, padding:'10px', fontSize:13 }}>Cancelar</button>
-                <button disabled={saving} className="btn-neon" style={{ flex:1, padding:'10px', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
-                  onClick={async () => {
-                    setSaving(true)
-                    const r = await fetch(`/api/admin/leads/${selected.id}`, { method: 'POST' })
-                    const d = await r.json(); setSaving(false)
-                    if (d.success) { setModal(null); showToast('✓ E-mail enviado!') }
-                    else showToast(`Erro: ${d.error}`)
-                  }}>
-                  {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Enviando...</> : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><polygon points="10,7 18,12 10,17" fill="currentColor"/></svg>Enviar e-mail</>}
-                </button>
-              </div>
-            </>
-          )}
+          <p style={{ fontSize:13, color:'var(--txt-2)', lineHeight:1.6, marginBottom:20 }}>
+            Enviar o link do diagnóstico por e-mail para{' '}
+            <strong style={{ color:'var(--txt)' }}>{selected.name || selected.company}</strong>
+            {' '}(<span style={{ color:'var(--txt-3)' }}>{selected.email}</span>)?
+            {!selected.diagnostico && <><br/><span style={{ fontSize:11, color:'var(--txt-3)' }}>Um diagnóstico será gerado automaticamente.</span></>}
+          </p>
+          <div style={{ display:'flex', gap:10 }}>
+            <button onClick={() => setModal(null)} className="btn-outline" style={{ flex:1, padding:'10px', fontSize:13 }}>Cancelar</button>
+            <button disabled={saving} className="btn-neon" style={{ flex:1, padding:'10px', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
+              onClick={async () => {
+                setSaving(true)
+                const r = await fetch(`/api/admin/leads/${selected.id}`, { method: 'POST' })
+                const d = await r.json(); setSaving(false)
+                if (d.success) { setModal(null); load(); showToast('✓ E-mail enviado!') }
+                else showToast(`Erro: ${d.error}`)
+              }}>
+              {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Enviando...</> : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><polygon points="10,7 18,12 10,17" fill="currentColor"/></svg>Enviar e-mail</>}
+            </button>
+          </div>
         </Modal>
       )}
 

@@ -45,8 +45,9 @@ export async function POST(_req: NextRequest, { params }: Ctx): Promise<NextResp
     const lead = await new LeadsRepository().findById(params.id)
     if (!lead) return NextResponse.json({ success: false, error: 'Lead não encontrado' }, { status: 404 })
 
-    const diag = await new DiagnosticoRepository().findByLeadId(params.id)
-    if (!diag) return NextResponse.json({ success: false, error: 'Diagnóstico não encontrado para este lead' }, { status: 404 })
+    const diagRepo = new DiagnosticoRepository()
+    let diag = await diagRepo.findByLeadId(params.id)
+    if (!diag) diag = await diagRepo.create(params.id)
 
     const origin  = process.env.NEXTAUTH_URL ?? 'https://comagente.gaht.com.br'
     const diagUrl = `${origin}/diagnostico/${diag.token}`
