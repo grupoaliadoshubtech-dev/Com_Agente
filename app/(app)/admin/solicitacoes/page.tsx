@@ -348,14 +348,25 @@ export default function SolicitacoesPage() {
       {/* Modal: Aprovar */}
       {modal === 'aprovar' && selected && (
         <Modal title="Aprovar solicitação" onClose={() => setModal(null)}>
-          <p style={{ fontSize:13, color:'var(--txt-2)', lineHeight:1.6, marginBottom:20 }}>
+          <p style={{ fontSize:13, color:'var(--txt-2)', lineHeight:1.6, marginBottom:8 }}>
             Confirmar aprovação de <strong style={{ color:'var(--txt)' }}>{selected.company}</strong>?
-            O status será atualizado para <strong style={{ color:'#10B981' }}>Aprovado</strong>.
           </p>
+          <div style={{ background:'var(--bg-input)', borderRadius:8, padding:'12px 14px', marginBottom:20, fontSize:12, color:'var(--txt-3)', lineHeight:1.7 }}>
+            ✓ Cria conta da empresa na plataforma<br/>
+            ✓ Gera senha provisória para o gestor<br/>
+            ✓ Envia e-mail de boas-vindas com as credenciais
+          </div>
           <div style={{ display:'flex', gap:10 }}>
             <button onClick={() => setModal(null)} className="btn-outline" style={{ flex:1, padding:'10px', fontSize:13 }}>Cancelar</button>
-            <button onClick={() => changeStatus(selected, 'converted')} disabled={saving} style={{ flex:1, padding:'10px', fontSize:13, fontWeight:700, borderRadius:8, cursor:'pointer', background:'#10B981', border:'1px solid #059669', color:'#fff', fontFamily:"'Plus Jakarta Sans',sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-              {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Aprovando...</> : 'Confirmar Aprovação'}
+            <button disabled={saving} style={{ flex:1, padding:'10px', fontSize:13, fontWeight:700, borderRadius:8, cursor:'pointer', background:'#10B981', border:'1px solid #059669', color:'#fff', fontFamily:"'Plus Jakarta Sans',sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
+              onClick={async () => {
+                setSaving(true)
+                const r = await fetch(`/api/admin/leads/${selected.id}/aprovar`, { method: 'POST' })
+                const d = await r.json(); setSaving(false)
+                if (d.success) { setModal(null); load(); showToast('✓ Empresa aprovada e e-mail enviado!') }
+                else showToast(`Erro: ${d.error}`)
+              }}>
+              {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Aprovando...</> : '✓ Confirmar Aprovação'}
             </button>
           </div>
         </Modal>
