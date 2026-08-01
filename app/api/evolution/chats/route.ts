@@ -139,10 +139,16 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
 
       const existing = unified.get(phoneJid)
       if (!existing || new Date(timestamp) > new Date(existing.timestamp)) {
+        const invalidNames = new Set(['você', 'you', ''])
+        const candidateName = (n?: string | null) =>
+          n && !invalidNames.has(n.toLowerCase().trim()) ? n : null
         unified.set(phoneJid, {
           telefone: phone,
           lidJid: lidJid ?? existing?.lidJid ?? null,
-          nome: clienteNome ?? chat.pushName ?? lastMsg?.pushName ?? phone,
+          nome: clienteNome
+            ?? candidateName(chat.pushName)
+            ?? (!fromMe ? candidateName(lastMsg?.pushName) : null)
+            ?? phone,
           preview: fromMe ? `Você: ${preview}` : preview,
           timestamp,
           iaStatus,
