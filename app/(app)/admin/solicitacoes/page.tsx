@@ -6,71 +6,76 @@ const SECTIONS_LABELS = [
   'Área e Capacidade','Regras da IA','Transição','Autonomia da IA','Pós-Venda','Tom de Voz','Visão de Futuro',
 ]
 
-type DiagInfo = {
-  id: string
-  token: string
-  status: 'pending' | 'answered'
-  respondedAt: string
-} | null
+type DiagInfo = { id: string; token: string; status: 'pending' | 'answered'; respondedAt: string } | null
 
 type Lead = {
-  id: string
-  name: string
-  email: string
-  phone: string
-  company: string
-  planId: string
-  planName: string
+  id: string; name: string; email: string; phone: string
+  company: string; planId: string; planName: string
   status: 'new' | 'contacted' | 'converted' | 'lost'
-  createdAt: string
-  diagnostico: DiagInfo
+  createdAt: string; diagnostico: DiagInfo
 }
 
-type ModalType = 'detalhes' | 'diagnostico' | 'aprovar' | 'recusar' | null
+const ST_CLR: Record<Lead['status'], string> = { new:'#a3e635', contacted:'#60a5fa', converted:'#10B981', lost:'#EF4444' }
+const ST_LBL: Record<Lead['status'], string> = { new:'Novo', contacted:'Contatado', converted:'Aprovado', lost:'Recusado' }
 
-const STATUS_LABEL: Record<Lead['status'], string> = {
-  new:       'Novo',
-  contacted: 'Contatado',
-  converted: 'Aprovado',
-  lost:      'Recusado',
+function fmtDate(iso: string) { try { return new Date(iso).toLocaleDateString('pt-BR') } catch { return '—' } }
+
+function Modal({ title, children, onClose, wide }: { title: string; children: React.ReactNode; onClose: () => void; wide?: boolean }) {
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', backdropFilter:'blur(4px)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="card animate-slide-up" style={{ maxWidth: wide ? 700 : 520, width:'100%', maxHeight:'90vh', overflowY:'auto', padding:0 }}>
+        <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, background:'var(--bg-card)', zIndex:1 }}>
+          <h2 className="font-display" style={{ fontSize:15, fontWeight:700, color:'var(--txt)' }}>{title}</h2>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'var(--txt-2)', lineHeight:1 }}>×</button>
+        </div>
+        <div style={{ padding:20 }}>{children}</div>
+      </div>
+    </div>
+  )
 }
-const STATUS_COLOR: Record<Lead['status'], string> = {
-  new:       'rgba(163,230,53,.15)',
-  contacted: 'rgba(59,130,246,.15)',
-  converted: 'rgba(16,185,129,.15)',
-  lost:      'rgba(220,38,38,.12)',
-}
-const STATUS_TXT: Record<Lead['status'], string> = {
-  new:       '#a3e635',
-  contacted: '#60a5fa',
-  converted: '#10b981',
-  lost:      '#f87171',
+
+function Field({ label, value, onChange, type='text', placeholder='' }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <label style={{ display:'block', fontSize:12, fontWeight:600, color:'var(--txt-2)', marginBottom:5 }}>{label}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{ width:'100%', padding:'9px 12px' }} />
+    </div>
+  )
 }
 
 export default function SolicitacoesPage() {
   const [leads,      setLeads]      = useState<Lead[]>([])
   const [loading,    setLoading]    = useState(true)
   const [filter,     setFilter]     = useState<'all' | Lead['status']>('all')
-  const [modal,      setModal]      = useState<ModalType>(null)
+  const [search,     setSearch]     = useState('')
+  const [toast,      setToast]      = useState('')
+  const [openDrop,   setOpenDrop]   = useState<string | null>(null)
+  const [saving,     setSaving]     = useState(false)
+  const [modal,      setModal]      = useState<'detalhes' | 'diagnostico' | 'aprovar' | 'recusar' | null>(null)
   const [selected,   setSelected]   = useState<Lead | null>(null)
   const [diagData,   setDiagData]   = useState<Record<string, string>>({})
   const [diagLoad,   setDiagLoad]   = useState(false)
-  const [openDrop,   setOpenDrop]   = useState<string | null>(null)
-  const [saving,     setSaving]     = useState(false)
-  const [err,        setErr]        = useState('')
-
-  // Detalhes/edição
-  const [editName,    setEditName]    = useState('')
-  const [editEmail,   setEditEmail]   = useState('')
-  const [editPhone,   setEditPhone]   = useState('')
-  const [editCompany, setEditCompany] = useState('')
-  const [editPlan,    setEditPlan]    = useState('')
-
+  const [editName,   setEditName]   = useState('')
+  const [editEmail,  setEditEmail]  = useState('')
+  const [editPhone,  setEditPhone]  = useState('')
+  const [editCompany,setEditCompany]= useState('')
+  const [editPlan,   setEditPlan]   = useState('')
+  const [editErr,    setEditErr]    = useState('')
   const dropRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    fetchLeads()
-  }, [])
+  function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
+
+  async function load() {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/admin/leads-com-diagnostico')
+      const d = await r.json()
+      if (d.success) setLeads(d.data as Lead[])
+    } catch {}
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [])
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -80,353 +85,274 @@ export default function SolicitacoesPage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  async function fetchLeads() {
-    setLoading(true)
-    try {
-      const r = await fetch('/api/admin/leads-com-diagnostico')
-      const d = await r.json()
-      if (d.success) setLeads(d.data as Lead[])
-    } catch {}
-    finally { setLoading(false) }
-  }
-
-  function openModal(type: ModalType, lead: Lead) {
-    setSelected(lead)
-    setModal(type)
-    setErr('')
-    setOpenDrop(null)
+  function openModal(type: typeof modal, lead: Lead) {
+    setSelected(lead); setModal(type); setEditErr(''); setOpenDrop(null)
     if (type === 'detalhes') {
-      setEditName(lead.name)
-      setEditEmail(lead.email)
-      setEditPhone(lead.phone)
-      setEditCompany(lead.company)
-      setEditPlan(lead.planName)
+      setEditName(lead.name); setEditEmail(lead.email)
+      setEditPhone(lead.phone); setEditCompany(lead.company); setEditPlan(lead.planName)
     }
-    if (type === 'diagnostico' && lead.diagnostico?.status === 'answered') {
-      loadDiag(lead.diagnostico.id)
-    }
+    if (type === 'diagnostico' && lead.diagnostico?.status === 'answered') loadDiag(lead.diagnostico.id)
   }
 
   async function loadDiag(diagId: string) {
-    setDiagLoad(true)
+    setDiagLoad(true); setDiagData({})
     try {
       const r = await fetch(`/api/admin/diagnostico/${diagId}`)
       const d = await r.json()
-      if (d.success) {
-        try { setDiagData(JSON.parse(d.data.responses)) } catch {}
-      }
+      if (d.success) { try { setDiagData(JSON.parse(d.data.responses)) } catch {} }
     } catch {}
     finally { setDiagLoad(false) }
   }
 
   async function saveDetalhes() {
     if (!selected) return
-    setSaving(true); setErr('')
-    try {
-      const r = await fetch(`/api/admin/leads/${selected.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, email: editEmail, phone: editPhone, company: editCompany, planName: editPlan }),
-      })
-      const d = await r.json()
-      if (!d.success) { setErr(d.error ?? 'Erro ao salvar'); return }
-      setModal(null)
-      fetchLeads()
-    } catch { setErr('Erro de conexão') }
-    finally { setSaving(false) }
+    setSaving(true); setEditErr('')
+    const r = await fetch(`/api/admin/leads/${selected.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editName, email: editEmail, phone: editPhone, company: editCompany, planName: editPlan }),
+    })
+    const d = await r.json(); setSaving(false)
+    if (d.success) { setModal(null); load(); showToast('✓ Lead atualizado!') }
+    else setEditErr(d.error ?? 'Erro ao salvar')
   }
 
   async function changeStatus(lead: Lead, status: Lead['status']) {
-    setSaving(true); setErr('')
-    try {
-      const r = await fetch(`/api/admin/leads/${lead.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      })
-      const d = await r.json()
-      if (!d.success) { setErr(d.error ?? 'Erro'); return }
-      setModal(null)
-      fetchLeads()
-    } catch { setErr('Erro de conexão') }
-    finally { setSaving(false) }
+    setSaving(true)
+    const r = await fetch(`/api/admin/leads/${lead.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    const d = await r.json(); setSaving(false)
+    if (d.success) {
+      setModal(null); load()
+      showToast(status === 'converted' ? '✓ Solicitação aprovada!' : '✓ Solicitação recusada.')
+    } else showToast(`Erro: ${d.error}`)
   }
 
-  function printDiag() { window.print() }
+  const filtered = leads
+    .filter(l => filter === 'all' || l.status === filter)
+    .filter(l => !search || l.company.toLowerCase().includes(search.toLowerCase()) || l.name.toLowerCase().includes(search.toLowerCase()) || l.email.toLowerCase().includes(search.toLowerCase()))
 
-  const filtered = filter === 'all' ? leads : leads.filter(l => l.status === filter)
-  const counts   = {
+  const counts = {
+    total:     leads.length,
     new:       leads.filter(l => l.status === 'new').length,
     contacted: leads.filter(l => l.status === 'contacted').length,
     converted: leads.filter(l => l.status === 'converted').length,
     lost:      leads.filter(l => l.status === 'lost').length,
   }
 
-  const inputSt: React.CSSProperties = {
-    width: '100%', padding: '9px 12px', borderRadius: 8,
-    border: '1px solid var(--border-md)', background: 'var(--bg-input)',
-    color: 'var(--txt)', fontSize: 13, boxSizing: 'border-box',
-    fontFamily: "'Plus Jakarta Sans',sans-serif",
-  }
-  const labelSt: React.CSSProperties = {
-    display: 'block', fontSize: 11, fontWeight: 700,
-    color: 'var(--txt-2)', marginBottom: 5,
-    textTransform: 'uppercase', letterSpacing: '.07em',
-  }
+  const th: React.CSSProperties = { padding:'10px 16px', fontSize:11, fontWeight:600, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--txt-3)', textAlign:'left', background:'var(--bg-card)', position:'sticky', top:0, zIndex:5, borderBottom:'1px solid var(--border)' }
+  const td: React.CSSProperties = { padding:'12px 16px', fontSize:13, color:'var(--txt-2)', verticalAlign:'middle' }
 
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
 
-      {/* Cards de resumo */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12, marginBottom: 24 }}>
-        {([
-          ['Novos',       counts.new,       '#a3e635', 'rgba(163,230,53,.1)'],
-          ['Contatados',  counts.contacted,  '#60a5fa', 'rgba(59,130,246,.08)'],
-          ['Aprovados',   counts.converted, '#10b981', 'rgba(16,185,129,.08)'],
-          ['Recusados',   counts.lost,      '#f87171', 'rgba(220,38,38,.08)'],
-        ] as const).map(([label, count, color, bg]) => (
-          <div key={label} className="card" style={{ padding: '16px 18px', background: bg, border: `1px solid ${color}22` }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color, fontFamily: "'Syne',sans-serif" }}>{count}</div>
-            <div style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 2 }}>{label}</div>
+      {/* Toolbar */}
+      <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:10, flexShrink:0, background:'var(--bg-card)', flexWrap:'wrap' }}>
+        <div style={{ flex:1 }}>
+          <div className="font-display" style={{ fontSize:16, fontWeight:700, color:'var(--txt)' }}>Solicitações</div>
+          <div style={{ fontSize:11, color:'var(--txt-2)', marginTop:2 }}>{counts.total} solicitações · {counts.new} novas</div>
+        </div>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar empresa ou nome..." style={{ padding:'8px 12px', borderRadius:8, fontSize:13, width:220 }} />
+        <select value={filter} onChange={e => setFilter(e.target.value as any)} style={{ padding:'8px 12px', borderRadius:8, fontSize:13, background:'var(--bg-input)', border:'1px solid var(--border)', color:'var(--txt)', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+          <option value="all">Todos</option>
+          <option value="new">Novos</option>
+          <option value="contacted">Contatados</option>
+          <option value="converted">Aprovados</option>
+          <option value="lost">Recusados</option>
+        </select>
+        <button onClick={load} style={{ padding:'8px 12px', borderRadius:8, fontSize:12, cursor:'pointer', background:'var(--bg-input)', border:'1px solid var(--border)', color:'var(--txt-2)', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>↻</button>
+      </div>
+
+      {/* Stats */}
+      <div style={{ padding:'10px 20px', borderBottom:'1px solid var(--border)', display:'flex', gap:24, flexShrink:0, background:'var(--bg-card)', flexWrap:'wrap' }}>
+        {([['Total', counts.total, 'var(--txt)'], ['Novos', counts.new, '#a3e635'], ['Contatados', counts.contacted, '#60a5fa'], ['Aprovados', counts.converted, '#10B981'], ['Recusados', counts.lost, '#EF4444']] as const).map(([l, v, c]) => (
+          <div key={l} style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span className="font-display" style={{ fontSize:22, fontWeight:700, color:c }}>{v}</span>
+            <span style={{ fontSize:12, color:'var(--txt-3)' }}>{l}</span>
           </div>
         ))}
       </div>
 
-      {/* Filtros */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {(['all', 'new', 'contacted', 'converted', 'lost'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            border: `1px solid ${filter === f ? 'var(--neon-border)' : 'var(--border)'}`,
-            background: filter === f ? 'var(--neon-dim)' : 'transparent',
-            color: filter === f ? 'var(--neon)' : 'var(--txt-2)',
-          }}>
-            {f === 'all' ? 'Todos' : STATUS_LABEL[f]}
-          </button>
-        ))}
-      </div>
-
       {/* Tabela */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ flex:1, overflowY:'auto' }}>
+        {loading ? (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:200, gap:10, color:'var(--txt-2)' }}>
+            <span className="spinner" style={{ width:18, height:18 }} /><span style={{ fontSize:13 }}>Carregando...</span>
+          </div>
+        ) : (
+          <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {['Empresa / Gestor', 'E-mail / Telefone', 'Diagnóstico', 'Plano', 'Status', 'Ações'].map(h => (
-                  <th key={h} style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--txt-3)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
+              <tr>{['Empresa / Gestor', 'E-mail / Telefone', 'Diagnóstico', 'Plano', 'Cadastro', 'Status', 'Ações'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: 'var(--txt-2)', fontSize: 13 }}>
-                  <span className="spinner" style={{ width: 18, height: 18, display: 'inline-block', marginRight: 8, verticalAlign: 'middle' }} />
-                  Carregando...
-                </td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: 'var(--txt-3)', fontSize: 13 }}>Nenhuma solicitação encontrada.</td></tr>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={7} style={{ ...td, textAlign:'center', padding:40, color:'var(--txt-3)' }}>Nenhuma solicitação encontrada.</td></tr>
               ) : filtered.map(lead => {
                 const diag = lead.diagnostico
+                const clr  = ST_CLR[lead.status]
                 return (
-                  <tr key={lead.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background .1s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--nav-active-bg)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <tr key={lead.id} style={{ borderBottom:'1px solid var(--border)', transition:'background .12s' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--bg-hover)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}>
 
-                    {/* Empresa / Gestor */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)' }}>{lead.company}</div>
-                      <div style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 2 }}>{lead.name}</div>
+                    <td style={td}>
+                      <div style={{ fontWeight:600, color:'var(--txt)', fontSize:13 }}>{lead.company}</div>
+                      <div style={{ fontSize:12, color:'var(--txt-2)', marginTop:1 }}>{lead.name}</div>
                     </td>
 
-                    {/* E-mail / Telefone */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontSize: 12, color: 'var(--txt)' }}>{lead.email}</div>
-                      <div style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 2 }}>{lead.phone}</div>
+                    <td style={td}>
+                      <div style={{ fontSize:12, color:'var(--txt)' }}>{lead.email}</div>
+                      <div style={{ fontSize:11, color:'var(--txt-3)', marginTop:1 }}>{lead.phone}</div>
                     </td>
 
-                    {/* Diagnóstico */}
-                    <td style={{ padding: '14px 16px' }}>
+                    <td style={td}>
                       {!diag ? (
-                        <span style={{ fontSize: 11, color: 'var(--txt-3)' }}>—</span>
+                        <span style={{ color:'var(--txt-3)', fontSize:12 }}>—</span>
                       ) : diag.status === 'answered' ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(16,185,129,.12)', color: '#10b981' }}>
-                            Respondido
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, padding:'3px 9px', borderRadius:100, background:'#10B98118', border:'1px solid #10B98140', color:'#10B981' }}>
+                            <span style={{ width:5, height:5, borderRadius:'50%', background:'#10B981' }} />Respondido
                           </span>
-                          <button
-                            onClick={() => openModal('diagnostico', lead)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt-3)', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
-                            title="Ver diagnóstico">
-                            ···
-                          </button>
+                          <button onClick={() => openModal('diagnostico', lead)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--txt-3)', fontSize:15, padding:'0 2px', lineHeight:1 }} title="Ver diagnóstico">···</button>
                         </div>
                       ) : (
-                        <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(245,158,11,.1)', color: '#f59e0b' }}>
-                          Pendente
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, padding:'3px 9px', borderRadius:100, background:'#F59E0B18', border:'1px solid #F59E0B40', color:'#F59E0B' }}>
+                          <span style={{ width:5, height:5, borderRadius:'50%', background:'#F59E0B' }} />Pendente
                         </span>
                       )}
                     </td>
 
-                    {/* Plano */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ fontSize: 12, color: 'var(--txt)' }}>{lead.planName}</span>
-                    </td>
+                    <td style={{ ...td, fontSize:12 }}>{lead.planName}</td>
+                    <td style={{ ...td, fontSize:12 }}>{fmtDate(lead.createdAt)}</td>
 
-                    {/* Status */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: STATUS_COLOR[lead.status], color: STATUS_TXT[lead.status] }}>
-                        {STATUS_LABEL[lead.status]}
+                    <td style={td}>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, padding:'3px 9px', borderRadius:100, background:`${clr}18`, border:`1px solid ${clr}40`, color:clr }}>
+                        <span style={{ width:5, height:5, borderRadius:'50%', background:clr }} />{ST_LBL[lead.status]}
                       </span>
                     </td>
 
-                    {/* Ações */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ position: 'relative' }} ref={openDrop === lead.id ? dropRef : undefined}>
-                        <button
-                          onClick={() => setOpenDrop(openDrop === lead.id ? null : lead.id)}
-                          style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1px solid var(--border-md)', background: 'var(--bg-input)', color: 'var(--txt)', cursor: 'pointer' }}>
+                    <td style={td}>
+                      <div style={{ position:'relative' }} ref={openDrop === lead.id ? dropRef : undefined}>
+                        <button onClick={() => setOpenDrop(openDrop === lead.id ? null : lead.id)}
+                          style={{ padding:'5px 12px', borderRadius:8, fontSize:12, fontWeight:600, border:'1px solid var(--border-md)', background:'var(--bg-input)', color:'var(--txt)', cursor:'pointer', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
                           Opções ▾
                         </button>
                         {openDrop === lead.id && (
-                          <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '4px 0', zIndex: 50, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,.3)' }}>
-                            <DropItem label="Detalhes / Editar" onClick={() => openModal('detalhes', lead)} />
-                            {lead.diagnostico?.status === 'answered' && (
-                              <DropItem label="Ver Diagnóstico" onClick={() => openModal('diagnostico', lead)} />
-                            )}
-                            {lead.status !== 'converted' && (
-                              <DropItem label="Aprovar" color="#10b981" onClick={() => openModal('aprovar', lead)} />
-                            )}
-                            {lead.status !== 'lost' && (
-                              <DropItem label="Recusar" color="#f87171" onClick={() => openModal('recusar', lead)} />
-                            )}
+                          <div style={{ position:'absolute', right:0, top:'100%', marginTop:4, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:10, padding:'4px 0', zIndex:50, minWidth:160, boxShadow:'0 8px 24px rgba(0,0,0,.3)' }}>
+                            <DropBtn label="Detalhes / Editar" onClick={() => openModal('detalhes', lead)} />
+                            {diag?.status === 'answered' && <DropBtn label="Ver Diagnóstico" onClick={() => openModal('diagnostico', lead)} />}
+                            {lead.status !== 'converted' && <DropBtn label="Aprovar" color="#10B981" onClick={() => openModal('aprovar', lead)} />}
+                            {lead.status !== 'lost'      && <DropBtn label="Recusar"  color="#EF4444" onClick={() => openModal('recusar', lead)} />}
                           </div>
                         )}
                       </div>
                     </td>
-
                   </tr>
                 )
               })}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
 
-      {/* ── Modal: Detalhes / Editar ──────────────────────────────── */}
+      {/* Modal: Detalhes / Editar */}
       {modal === 'detalhes' && selected && (
-        <ModalBg onClose={() => setModal(null)}>
-          <h3 className="font-display" style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)', marginBottom: 20 }}>Detalhes / Editar — {selected.company}</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div><label style={labelSt}>Nome</label><input value={editName} onChange={e => setEditName(e.target.value)} style={inputSt} /></div>
-              <div><label style={labelSt}>Empresa</label><input value={editCompany} onChange={e => setEditCompany(e.target.value)} style={inputSt} /></div>
-              <div><label style={labelSt}>E-mail</label><input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} style={inputSt} /></div>
-              <div><label style={labelSt}>Telefone</label><input value={editPhone} onChange={e => setEditPhone(e.target.value)} style={inputSt} /></div>
-              <div style={{ gridColumn: '1/-1' }}><label style={labelSt}>Plano</label><input value={editPlan} onChange={e => setEditPlan(e.target.value)} style={inputSt} /></div>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--txt-3)' }}>
-              Cadastrado em: {new Date(selected.createdAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
-            </div>
-            {err && <p style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</p>}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setModal(null)} className="btn-outline" style={{ padding: '9px 18px', fontSize: 13 }}>Cancelar</button>
-              <button onClick={saveDetalhes} disabled={saving} className="btn-neon" style={{ padding: '9px 18px', fontSize: 13, fontWeight: 700 }}>
-                {saving ? 'Salvando...' : 'Salvar'}
-              </button>
-            </div>
+        <Modal title={`Detalhes — ${selected.company}`} onClose={() => setModal(null)}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <Field label="Nome" value={editName} onChange={setEditName} />
+            <Field label="Empresa" value={editCompany} onChange={setEditCompany} />
+            <Field label="E-mail" value={editEmail} onChange={setEditEmail} type="email" />
+            <Field label="Telefone" value={editPhone} onChange={setEditPhone} />
           </div>
-        </ModalBg>
+          <Field label="Plano" value={editPlan} onChange={setEditPlan} />
+          <div style={{ fontSize:11, color:'var(--txt-3)', marginBottom:16 }}>
+            Cadastrado em: {new Date(selected.createdAt).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo' })}
+          </div>
+          {editErr && <p style={{ fontSize:12, color:'var(--danger)', background:'var(--danger-dim)', border:'1px solid rgba(220,38,38,.2)', borderRadius:8, padding:'8px 12px', marginBottom:12 }}>{editErr}</p>}
+          <div style={{ display:'flex', gap:10 }}>
+            <button onClick={() => setModal(null)} className="btn-outline" style={{ flex:1, padding:'10px', fontSize:13 }}>Cancelar</button>
+            <button onClick={saveDetalhes} disabled={saving} className="btn-neon" style={{ flex:1, padding:'10px', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Salvando...</> : 'Salvar alterações'}
+            </button>
+          </div>
+        </Modal>
       )}
 
-      {/* ── Modal: Visualizar Diagnóstico ─────────────────────────── */}
+      {/* Modal: Diagnóstico */}
       {modal === 'diagnostico' && selected && (
-        <ModalBg onClose={() => { setModal(null); setDiagData({}) }} wide>
+        <Modal title={`Diagnóstico — ${selected.company}`} onClose={() => { setModal(null); setDiagData({}) }} wide>
           <div id="diag-print-area">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }} className="no-print">
-              <div>
-                <h3 className="font-display" style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)', marginBottom: 4 }}>Diagnóstico — {selected.company}</h3>
-                <p style={{ fontSize: 12, color: 'var(--txt-2)' }}>{selected.name} · {selected.email}</p>
-              </div>
-              <button onClick={printDiag} className="btn-outline" style={{ padding: '7px 16px', fontSize: 12, flexShrink: 0 }}>
-                Baixar PDF
-              </button>
+            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:16 }} className="no-print">
+              <button onClick={() => window.print()} className="btn-outline" style={{ padding:'7px 16px', fontSize:12 }}>Baixar PDF</button>
             </div>
-
-            {/* Cabeçalho de impressão */}
-            <div className="print-only" style={{ display: 'none', marginBottom: 24 }}>
-              <h1 style={{ fontSize: 20, fontWeight: 800 }}>Diagnóstico de Atendimento</h1>
-              <p style={{ fontSize: 14 }}>{selected.company} · {selected.name}</p>
-              <p style={{ fontSize: 12, color: '#666' }}>Impresso em {new Date().toLocaleDateString('pt-BR')}</p>
+            <div className="print-only" style={{ display:'none', marginBottom:24 }}>
+              <h1 style={{ fontSize:20, fontWeight:800 }}>Diagnóstico de Atendimento</h1>
+              <p>{selected.company} · {selected.name}</p>
+              <p style={{ fontSize:12 }}>Impresso em {new Date().toLocaleDateString('pt-BR')}</p>
               <hr />
             </div>
-
             {diagLoad ? (
-              <div style={{ textAlign: 'center', padding: 40, color: 'var(--txt-2)' }}>
-                <span className="spinner" style={{ width: 20, height: 20, display: 'block', margin: '0 auto 12px' }} />
-                Carregando respostas...
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:120, gap:10, color:'var(--txt-2)' }}>
+                <span className="spinner" style={{ width:18, height:18 }} /><span style={{ fontSize:13 }}>Carregando respostas...</span>
               </div>
             ) : (
               SECTIONS_LABELS.map((sLabel, si) => {
-                const hasAnswers = Array.from({ length: 4 }, (_, qi) => diagData[`${si + 1}.${qi + 1}`]).some(Boolean)
-                if (!hasAnswers) return null
+                const answers = Array.from({ length:4 }, (_, qi) => diagData[`${si + 1}.${qi + 1}`])
+                if (answers.every(a => !a)) return null
                 return (
-                  <div key={si} style={{ marginBottom: 20, pageBreakInside: 'avoid' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--neon)', marginBottom: 8 }}>
+                  <div key={si} style={{ marginBottom:20 }}>
+                    <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.1em', color:'var(--neon)', marginBottom:8 }}>
                       Seção {si + 1} · {sLabel}
                     </div>
-                    {Array.from({ length: 4 }, (_, qi) => {
-                      const val = diagData[`${si + 1}.${qi + 1}`]
-                      if (!val) return null
-                      return (
-                        <div key={qi} style={{ marginBottom: 12, paddingLeft: 12, borderLeft: '2px solid var(--border)' }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt-2)', marginBottom: 4 }}>Pergunta {qi + 1}</div>
-                          <div style={{ fontSize: 13, color: 'var(--txt)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{val}</div>
-                        </div>
-                      )
-                    })}
+                    {answers.map((val, qi) => val ? (
+                      <div key={qi} style={{ marginBottom:12, paddingLeft:12, borderLeft:'2px solid var(--border)' }}>
+                        <div style={{ fontSize:12, fontWeight:600, color:'var(--txt-2)', marginBottom:4 }}>Pergunta {qi + 1}</div>
+                        <div style={{ fontSize:13, color:'var(--txt)', lineHeight:1.6, whiteSpace:'pre-wrap' }}>{val}</div>
+                      </div>
+                    ) : null)}
                   </div>
                 )
               })
             )}
           </div>
-        </ModalBg>
+        </Modal>
       )}
 
-      {/* ── Modal: Aprovar ──────────────────────────────────────── */}
+      {/* Modal: Aprovar */}
       {modal === 'aprovar' && selected && (
-        <ModalBg onClose={() => setModal(null)}>
-          <h3 className="font-display" style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)', marginBottom: 12 }}>Aprovar solicitação</h3>
-          <p style={{ fontSize: 13, color: 'var(--txt-2)', lineHeight: 1.6, marginBottom: 20 }}>
-            Confirmar aprovação de <strong style={{ color: 'var(--txt)' }}>{selected.company}</strong>? O status será atualizado para <strong style={{ color: '#10b981' }}>Aprovado</strong>.
+        <Modal title="Aprovar solicitação" onClose={() => setModal(null)}>
+          <p style={{ fontSize:13, color:'var(--txt-2)', lineHeight:1.6, marginBottom:20 }}>
+            Confirmar aprovação de <strong style={{ color:'var(--txt)' }}>{selected.company}</strong>?
+            O status será atualizado para <strong style={{ color:'#10B981' }}>Aprovado</strong>.
           </p>
-          {err && <p style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 12 }}>{err}</p>}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button onClick={() => setModal(null)} className="btn-outline" style={{ padding: '9px 18px', fontSize: 13 }}>Cancelar</button>
-            <button onClick={() => changeStatus(selected, 'converted')} disabled={saving} className="btn-primary" style={{ padding: '9px 18px', fontSize: 13, fontWeight: 700, background: '#10b981', borderColor: '#059669' }}>
-              {saving ? 'Aprovando...' : 'Confirmar Aprovação'}
+          <div style={{ display:'flex', gap:10 }}>
+            <button onClick={() => setModal(null)} className="btn-outline" style={{ flex:1, padding:'10px', fontSize:13 }}>Cancelar</button>
+            <button onClick={() => changeStatus(selected, 'converted')} disabled={saving} style={{ flex:1, padding:'10px', fontSize:13, fontWeight:700, borderRadius:8, cursor:'pointer', background:'#10B981', border:'1px solid #059669', color:'#fff', fontFamily:"'Plus Jakarta Sans',sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Aprovando...</> : 'Confirmar Aprovação'}
             </button>
           </div>
-        </ModalBg>
+        </Modal>
       )}
 
-      {/* ── Modal: Recusar ──────────────────────────────────────── */}
+      {/* Modal: Recusar */}
       {modal === 'recusar' && selected && (
-        <ModalBg onClose={() => setModal(null)}>
-          <h3 className="font-display" style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)', marginBottom: 12 }}>Recusar solicitação</h3>
-          <p style={{ fontSize: 13, color: 'var(--txt-2)', lineHeight: 1.6, marginBottom: 20 }}>
-            Confirmar recusa de <strong style={{ color: 'var(--txt)' }}>{selected.company}</strong>? O status será atualizado para <strong style={{ color: '#f87171' }}>Recusado</strong>.
+        <Modal title="Recusar solicitação" onClose={() => setModal(null)}>
+          <p style={{ fontSize:13, color:'var(--txt-2)', lineHeight:1.6, marginBottom:20 }}>
+            Confirmar recusa de <strong style={{ color:'var(--txt)' }}>{selected.company}</strong>?
+            O status será atualizado para <strong style={{ color:'#EF4444' }}>Recusado</strong>.
           </p>
-          {err && <p style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 12 }}>{err}</p>}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button onClick={() => setModal(null)} className="btn-outline" style={{ padding: '9px 18px', fontSize: 13 }}>Cancelar</button>
-            <button onClick={() => changeStatus(selected, 'lost')} disabled={saving} className="btn-danger" style={{ padding: '9px 18px', fontSize: 13, fontWeight: 700 }}>
-              {saving ? 'Recusando...' : 'Confirmar Recusa'}
+          <div style={{ display:'flex', gap:10 }}>
+            <button onClick={() => setModal(null)} className="btn-outline" style={{ flex:1, padding:'10px', fontSize:13 }}>Cancelar</button>
+            <button onClick={() => changeStatus(selected, 'lost')} disabled={saving} className="btn-danger" style={{ flex:1, padding:'10px', fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Recusando...</> : 'Confirmar Recusa'}
             </button>
           </div>
-        </ModalBg>
+        </Modal>
       )}
 
-      {/* CSS de impressão */}
+      {toast && <div className="toast-base">{toast}</div>}
+
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -440,25 +366,13 @@ export default function SolicitacoesPage() {
   )
 }
 
-function DropItem({ label, onClick, color }: { label: string; onClick: () => void; color?: string }) {
+function DropBtn({ label, onClick, color }: { label: string; onClick: () => void; color?: string }) {
   return (
-    <button
-      onClick={onClick}
-      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: color ?? 'var(--txt)', fontFamily: "'Plus Jakarta Sans',sans-serif", whiteSpace: 'nowrap' }}
+    <button onClick={onClick}
+      style={{ display:'block', width:'100%', textAlign:'left', padding:'8px 14px', fontSize:13, background:'none', border:'none', cursor:'pointer', color: color ?? 'var(--txt)', fontFamily:"'Plus Jakarta Sans',sans-serif", whiteSpace:'nowrap' }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--nav-active-bg)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
       {label}
     </button>
-  )
-}
-
-function ModalBg({ children, onClose, wide }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
-  return (
-    <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="card animate-slide-up" style={{ width: wide ? 'min(700px, calc(100vw - 32px))' : 'min(480px, calc(100vw - 32px))', padding: '24px 22px', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 28, height: 28, borderRadius: 7, background: 'var(--bg-input)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--txt-2)', fontSize: 17, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-        {children}
-      </div>
-    </div>
   )
 }
