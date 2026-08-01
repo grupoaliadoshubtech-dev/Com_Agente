@@ -66,6 +66,31 @@ export default function SolicitacoesPage() {
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
 
+  function printDiag(name: string, company: string, email: string, data: Record<string, string>) {
+    const labels = ['Escopo de Serviços','Diferenciação','Primeiro Contato','Processos','Identidade Visual','Área e Capacidade','Regras da IA','Transição','Autonomia da IA','Pós-Venda','Tom de Voz','Visão de Futuro']
+    const sections = labels.map((label, si) => {
+      const answers = Array.from({ length: 4 }, (_, qi) => data[`${si + 1}.${qi + 1}`]).filter(Boolean)
+      if (!answers.length) return ''
+      return `<div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;margin-bottom:8px">Seção ${si + 1} · ${label}</div>
+        ${answers.map((a, qi) => `<div style="margin-bottom:10px;padding-left:12px;border-left:2px solid #e5e7eb">
+          <div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:3px">Pergunta ${qi + 1}</div>
+          <div style="font-size:13px;color:#111;line-height:1.6;white-space:pre-wrap">${a}</div>
+        </div>`).join('')}
+      </div>`
+    }).join('')
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Diagnóstico — ${company}</title>
+      <style>body{font-family:Arial,sans-serif;padding:40px;color:#111;max-width:760px;margin:0 auto}h1{font-size:20px;font-weight:800;margin:0 0 6px}p{font-size:13px;color:#6b7280;margin:0 0 4px}hr{border:none;border-top:1px solid #e5e7eb;margin:20px 0}</style>
+      </head><body>
+      <h1>Diagnóstico de Atendimento</h1>
+      <p>${company} · ${name}</p><p style="font-size:11px">${email}</p>
+      <p style="font-size:11px">Impresso em ${new Date().toLocaleDateString('pt-BR')}</p><hr>
+      ${sections || '<p style="color:#9ca3af">Nenhuma resposta registrada.</p>'}
+      </body></html>`
+    const w = window.open('', '_blank')
+    if (w) { w.document.write(html); w.document.close(); w.print() }
+  }
+
   async function load() {
     setLoading(true)
     try {
@@ -285,7 +310,7 @@ export default function SolicitacoesPage() {
         <Modal title={`Diagnóstico — ${selected.company}`} onClose={() => { setModal(null); setDiagData({}) }} wide>
           <div id="diag-print-area">
             <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:16 }} className="no-print">
-              <button onClick={() => window.print()} className="btn-outline" style={{ padding:'7px 16px', fontSize:12 }}>Baixar PDF</button>
+              <button onClick={() => printDiag(selected.name, selected.company, selected.email, diagData)} className="btn-outline" style={{ padding:'7px 16px', fontSize:12 }}>Baixar PDF</button>
             </div>
             <div className="print-only" style={{ display:'none', marginBottom:24 }}>
               <h1 style={{ fontSize:20, fontWeight:800 }}>Diagnóstico de Atendimento</h1>
@@ -380,13 +405,7 @@ export default function SolicitacoesPage() {
       {toast && <div className="toast-base">{toast}</div>}
 
       <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          #diag-print-area, #diag-print-area * { visibility: visible !important; }
-          #diag-print-area { position: fixed; inset: 0; padding: 32px; background: #fff !important; color: #000 !important; }
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-        }
+        @media print { body { display: none !important; } }
       `}</style>
     </div>
   )
