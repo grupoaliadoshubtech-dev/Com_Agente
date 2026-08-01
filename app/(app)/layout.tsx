@@ -53,9 +53,9 @@ const CONFIG_NAV  = [
   { label:'Distribuição',      href:'/supervisor/distribuicao', icon:'distribuicao', badge:'', toggle:'' },
 ]
 const MASTER_NAV  = [
+  { label:'Empresas',        href:'/admin/empresas',     icon:'empresas',  badge:'', toggle:'' },
   { label:'Solicitações',    href:'/admin/solicitacoes', icon:'inbox',     badge:'', toggle:'' },
   { label:'Diagnósticos',    href:'/admin/diagnosticos', icon:'clipboard', badge:'', toggle:'' },
-  { label:'Empresas',        href:'/admin/empresas',     icon:'empresas',  badge:'', toggle:'' },
   { label:'Planos Master',   href:'/admin/planos',       icon:'master',    badge:'', toggle:'' },
   { label:'Blacklist Global',href:'/admin/blacklist',    icon:'blacklist', badge:'', toggle:'' },
   { label:'Log de Erros',    href:'/admin/logs',         icon:'logs',      badge:'', toggle:'' },
