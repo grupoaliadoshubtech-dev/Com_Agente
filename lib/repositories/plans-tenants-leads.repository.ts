@@ -190,16 +190,19 @@ export class LeadsRepository {
 
   async findAll(): Promise<LeadRecord[]> {
     const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
-    return rowsToObjects<Record<string, string>>(rows).map(r => ({
-      id:        r.id,
-      name:      r.name,
-      email:     r.email,
-      phone:     r.phone,
-      company:   r.company,
-      planId:    r.planId,
-      planName:  r.planName,
-      status:    (r.status ?? 'new') as LeadRecord['status'],
-      createdAt: r.createdAt,
+    if (rows.length < 2) return []
+    // Leitura posicional: imune a variação nos nomes dos cabeçalhos da planilha
+    // Ordem das colunas: id(A) | name(B) | email(C) | phone(D) | company(E) | planId(F) | planName(G) | status(H) | createdAt(I)
+    return rows.slice(1).map(row => ({
+      id:        row[0] ?? '',
+      name:      row[1] ?? '',
+      email:     row[2] ?? '',
+      phone:     row[3] ?? '',
+      company:   row[4] ?? '',
+      planId:    row[5] ?? '',
+      planName:  row[6] ?? '',
+      status:    (row[7] ?? 'new') as LeadRecord['status'],
+      createdAt: row[8] ?? '',
     }))
   }
 
