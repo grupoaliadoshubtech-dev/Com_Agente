@@ -482,7 +482,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               <span className="play-inline-pulse" style={{display:'inline-flex',alignItems:'center',verticalAlign:'middle',width:22,height:22,borderRadius:'50%',background:'#166534',border:'1px solid #14532D',justifyContent:'center',color:'#fff',margin:'0 2px'}}>
                 {IC.play}
               </span>
-              {' '}para reativar o atendimento.
+              {' '}acima, para reativar o atendimento.
             </p>
 
             <button
