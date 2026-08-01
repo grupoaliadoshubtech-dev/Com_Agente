@@ -23,9 +23,9 @@ const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
 function parseUser(raw: Record<string, string>): UserRecord {
   return {
-    id:                    raw.id,
-    tenantId:              raw.tenantId,
-    email:                 raw.email.toLowerCase().trim(),
+    id:                    raw.id   ?? '',
+    tenantId:              raw.tenantId ?? '',
+    email:                 (raw.email ?? '').toLowerCase().trim(),
     passwordHash:          raw.passwordHash,
     name:                  raw.name,
     role:                  raw.role as UserRecord['role'],
@@ -67,6 +67,7 @@ export class UsersRepository {
   async findAll(): Promise<UserRecord[]> {
     const rows = await readRange(this.spreadsheetId, RANGE)
     return rowsToObjects<Record<string, string>>(rows)
+      .filter(r => r.id && r.email)
       .map(parseUser)
       .filter(u => u.isActive)
   }

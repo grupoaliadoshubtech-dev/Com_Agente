@@ -55,7 +55,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await repo.updateTenant(params.id, fields)
     return NextResponse.json({ success: true })
   } catch (err) {
-    return NextResponse.json({ success: false, error: 'Erro interno. Tente novamente.' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[PATCH /api/tenants/[id]]', msg)
+    return NextResponse.json({ success: false, error: msg }, { status: 500 })
   }
 }
 
