@@ -280,8 +280,8 @@ export default function SolicitacoesPage() {
                     </td>
 
                     {/* Ações */}
-                    <td style={{ padding: '14px 16px' }} ref={openDrop === lead.id ? dropRef : undefined}>
-                      <div style={{ position: 'relative' }}>
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ position: 'relative' }} ref={openDrop === lead.id ? dropRef : undefined}>
                         <button
                           onClick={() => setOpenDrop(openDrop === lead.id ? null : lead.id)}
                           style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1px solid var(--border-md)', background: 'var(--bg-input)', color: 'var(--txt)', cursor: 'pointer' }}>
