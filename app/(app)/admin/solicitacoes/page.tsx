@@ -242,7 +242,7 @@ export default function SolicitacoesPage() {
                           <div style={{ position:'absolute', right:0, top:'100%', marginTop:4, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:10, padding:'4px 0', zIndex:50, minWidth:160, boxShadow:'0 8px 24px rgba(0,0,0,.3)' }}>
                             <DropBtn label="Detalhes / Editar" onClick={() => openModal('detalhes', lead)} />
                             {diag?.status === 'answered' && <DropBtn label="Ver Diagnóstico" onClick={() => openModal('diagnostico', lead)} />}
-                            <DropBtn label="↗ Diagnóstico" onClick={() => openModal('enviar-diag', lead)} />
+                            <DropBtn label="Diagnóstico" icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><polygon points="10,7 18,12 10,17" fill="currentColor"/></svg>} onClick={() => openModal('enviar-diag', lead)} />
                             {lead.status !== 'converted' && <DropBtn label="Aprovar" color="#10B981" onClick={() => openModal('aprovar', lead)} />}
                             {lead.status !== 'lost'      && <DropBtn label="Recusar"  color="#EF4444" onClick={() => openModal('recusar', lead)} />}
                           </div>
@@ -376,7 +376,7 @@ export default function SolicitacoesPage() {
                     if (d.success) { setModal(null); showToast('✓ E-mail enviado!') }
                     else showToast(`Erro: ${d.error}`)
                   }}>
-                  {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Enviando...</> : '↗ Enviar e-mail'}
+                  {saving ? <><span className="spinner" style={{ width:14, height:14 }} />Enviando...</> : <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><polygon points="10,7 18,12 10,17" fill="currentColor"/></svg>Enviar e-mail</>}
                 </button>
               </div>
             </>
@@ -399,13 +399,13 @@ export default function SolicitacoesPage() {
   )
 }
 
-function DropBtn({ label, onClick, color }: { label: string; onClick: () => void; color?: string }) {
+function DropBtn({ label, onClick, color, icon }: { label: string; onClick: () => void; color?: string; icon?: React.ReactNode }) {
   return (
     <button onClick={onClick}
-      style={{ display:'block', width:'100%', textAlign:'left', padding:'8px 14px', fontSize:13, background:'none', border:'none', cursor:'pointer', color: color ?? 'var(--txt)', fontFamily:"'Plus Jakarta Sans',sans-serif", whiteSpace:'nowrap' }}
+      style={{ display:'flex', alignItems:'center', gap:7, width:'100%', textAlign:'left', padding:'8px 14px', fontSize:13, background:'none', border:'none', cursor:'pointer', color: color ?? 'var(--txt)', fontFamily:"'Plus Jakarta Sans',sans-serif", whiteSpace:'nowrap' }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--nav-active-bg)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-      {label}
+      {icon}{label}
     </button>
   )
 }
