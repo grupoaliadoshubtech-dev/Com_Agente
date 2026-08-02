@@ -30,6 +30,7 @@ export async function POST(_req: NextRequest, { params }: Ctx): Promise<NextResp
     const leadsRepo = new LeadsRepository()
     const lead = await leadsRepo.findById(params.id)
     if (!lead) return NextResponse.json({ success: false, error: 'Lead não encontrado' }, { status: 404 })
+    console.log('[aprovar] lead encontrado:', lead.email)
 
     // 1. Criar tenant na aba Empresas
     const tenantsRepo = new TenantsRepository()
@@ -44,6 +45,7 @@ export async function POST(_req: NextRequest, { params }: Ctx): Promise<NextResp
       evolutionInstance: '',
       spreadsheetId:     '',
     })
+    console.log('[aprovar] tenant criado:', tenantId)
 
     // 2. Gerar senha provisória e criar usuário gestor
     const senhaProvisoria = gerarSenha()
@@ -65,18 +67,25 @@ export async function POST(_req: NextRequest, { params }: Ctx): Promise<NextResp
       isActive:            true,
       avatarUrl:           '',
     })
+    console.log('[aprovar] usuário criado:', lead.email)
 
     // 3. Enviar e-mail de boas-vindas com credenciais
     const origin   = process.env.NEXTAUTH_URL ?? 'https://comagente.gaht.com.br'
     const loginUrl = `${origin}/login`
-    await sendMail({
-      to:      lead.email,
-      subject: '✓ Conta aprovada — ComAgente',
-      html:    aprovacaoTemplate(lead.name || lead.company, lead.company, lead.email, senhaProvisoria, loginUrl),
-    })
+    try {
+      await sendMail({
+        to:      lead.email,
+        subject: '✓ Conta aprovada — ComAgente',
+        html:    aprovacaoTemplate(lead.name || lead.company, lead.company, lead.email, senhaProvisoria, loginUrl),
+      })
+      console.log('[aprovar] e-mail enviado para:', lead.email)
+    } catch (mailErr) {
+      console.error('[aprovar] falha no e-mail (não bloqueia):', mailErr instanceof Error ? mailErr.message : mailErr)
+    }
 
     // 4. Atualizar status do lead para converted
     await leadsRepo.updateById(params.id, { status: 'converted' })
+    console.log('[aprovar] lead convertido')
 
     return NextResponse.json({ success: true, message: 'Empresa criada e e-mail enviado.' })
   } catch (err) {
