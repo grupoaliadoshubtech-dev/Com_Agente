@@ -93,9 +93,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         })
     }
   } catch (err) {
-    console.error('[/api/handoff]', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[/api/handoff]', msg)
     return NextResponse.json(
-      { success: false, error: 'Erro interno ao gravar na planilha' },
+      { success: false, error: msg },
       { status: 500 }
     )
   }
