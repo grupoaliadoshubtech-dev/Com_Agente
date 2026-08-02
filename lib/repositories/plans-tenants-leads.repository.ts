@@ -123,11 +123,10 @@ export class TenantsRepository {
   }
 
   async updateStatus(id: string, status: Tenant['status']): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:H`)
+    const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:F`)
     if (rows.length < 2) return
-    const headers  = rows[0]
-    const idCol    = headers.indexOf('id')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === id)
+    // Posicional: id=A(0), status=F(5)
+    const rowIndex = rows.findIndex((r, i) => i > 0 && (r[0] ?? '') === id)
     if (rowIndex === -1) return
     const sheetRow = rowIndex + 1
     await updateRange(this.spreadsheetId, `${this.sheet}!F${sheetRow}`, [[status]])
@@ -221,21 +220,21 @@ export class LeadsRepository {
   async updateById(id: string, data: Partial<Pick<LeadRecord, 'name' | 'email' | 'phone' | 'company' | 'planId' | 'planName' | 'status'>>): Promise<boolean> {
     const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
     if (rows.length < 2) return false
-    const headers  = rows[0]
-    const idCol    = headers.indexOf('id')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === id)
+    // Leitura posicional: id=A(0), name=B(1), email=C(2), phone=D(3),
+    // company=E(4), planId=F(5), planName=G(6), status=H(7), createdAt=I(8)
+    const rowIndex = rows.findIndex((r, i) => i > 0 && (r[0] ?? '') === id)
     if (rowIndex === -1) return false
     const sheetRow = rowIndex + 1
-    const col      = (name: string) => String.fromCharCode(65 + headers.indexOf(name))
-    const updates: Promise<void>[] = []
-    if (data.name     !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('name')}${sheetRow}`,     [[data.name]]))
-    if (data.email    !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('email')}${sheetRow}`,    [[data.email]]))
-    if (data.phone    !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('phone')}${sheetRow}`,    [[data.phone]]))
-    if (data.company  !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('company')}${sheetRow}`,  [[data.company]]))
-    if (data.planId   !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('planId')}${sheetRow}`,   [[data.planId]]))
-    if (data.planName !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('planName')}${sheetRow}`, [[data.planName]]))
-    if (data.status   !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('status')}${sheetRow}`,   [[data.status]]))
-    await Promise.all(updates)
+    const current  = [...(rows[rowIndex] ?? [])]
+    while (current.length < 9) current.push('')
+    if (data.name     !== undefined) current[1] = data.name
+    if (data.email    !== undefined) current[2] = data.email
+    if (data.phone    !== undefined) current[3] = data.phone
+    if (data.company  !== undefined) current[4] = data.company
+    if (data.planId   !== undefined) current[5] = data.planId
+    if (data.planName !== undefined) current[6] = data.planName
+    if (data.status   !== undefined) current[7] = data.status
+    await updateRange(this.spreadsheetId, `${this.sheet}!A${sheetRow}:I${sheetRow}`, [current])
     return true
   }
 }
