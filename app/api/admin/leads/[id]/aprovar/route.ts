@@ -37,7 +37,7 @@ export async function POST(_req: NextRequest, { params }: Ctx): Promise<NextResp
     const tenantId = randomUUID()
     await tenantsRepo.create({
       id:                tenantId,
-      name:              lead.company,
+      name:              lead.company || lead.name || lead.email,
       email:             lead.email,
       phone:             lead.phone,
       planId:            lead.planId,
