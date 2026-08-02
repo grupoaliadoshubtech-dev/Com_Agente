@@ -57,8 +57,12 @@ export default function EmpresasPage(){
   const [webhookOf,   setWebhookOf]  =useState<Tenant|null>(null)
   const [webhookBusy, setWebhookBusy]=useState(false)
 
-  function F(k:string,v:string){setForm(f=>({...f,[k]:v}))}
-  function EF(k:string,v:string){setEditForm(f=>({...f,[k]:v}))}
+  function extractSheetId(v:string):string{
+    const m=v.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)
+    return m?m[1]:v.trim()
+  }
+  function F(k:string,v:string){setForm(f=>({...f,[k]:k==='spreadsheetId'?extractSheetId(v):v}))}
+  function EF(k:string,v:string){setEditForm(f=>({...f,[k]:k==='spreadsheetId'?extractSheetId(v):v}))}
   function showToast(m:string){setToast(m);setTimeout(()=>setToast(''),3500)}
 
   function openEdit(t:Tenant){

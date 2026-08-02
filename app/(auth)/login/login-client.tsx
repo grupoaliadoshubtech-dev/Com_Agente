@@ -156,7 +156,8 @@ export default function LoginClient() {
                   E-mail
                 </label>
                 <input
-                  type="email" value={email}
+                  type="email" name="email" autoComplete="email"
+                  value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="seu@email.com" required
                   style={{ width: '100%', padding: '10px 14px' }}
@@ -169,7 +170,9 @@ export default function LoginClient() {
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
-                    type={showPwd ? 'text' : 'password'} value={password}
+                    type={showPwd ? 'text' : 'password'}
+                    name="password" autoComplete="current-password"
+                    value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••" required
                     style={{ width: '100%', padding: '10px 44px 10px 14px' }}
