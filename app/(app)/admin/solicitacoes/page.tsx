@@ -353,6 +353,7 @@ export default function SolicitacoesPage() {
           </p>
           <div style={{ background:'var(--bg-input)', borderRadius:8, padding:'12px 14px', marginBottom:20, fontSize:12, color:'var(--txt-3)', lineHeight:1.7 }}>
             ✓ Cria conta da empresa na plataforma<br/>
+            ✓ Cria o usuário gestor com acesso ao sistema<br/>
             ✓ Gera senha provisória para o gestor<br/>
             ✓ Envia e-mail de boas-vindas com as credenciais
           </div>
