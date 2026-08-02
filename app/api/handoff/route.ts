@@ -95,8 +95,19 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[/api/handoff]', msg)
+
+    let userMsg = 'Erro ao gravar na planilha. Tente novamente.'
+    if (msg.includes('Requested entity was not found'))
+      userMsg = 'Planilha desta empresa não encontrada. Configure o ID da planilha nas configurações da empresa.'
+    else if (msg.includes('PERMISSION_DENIED') || msg.toLowerCase().includes('permission'))
+      userMsg = 'Sem permissão de acesso à planilha. Verifique se a service account tem acesso.'
+    else if (msg.includes('RESOURCE_EXHAUSTED') || msg.toLowerCase().includes('quota'))
+      userMsg = 'Limite de requisições do Google atingido. Aguarde alguns segundos e tente novamente.'
+    else if (msg.includes('Unable to parse range'))
+      userMsg = 'Aba "Fila_Humana" não encontrada na planilha desta empresa.'
+
     return NextResponse.json(
-      { success: false, error: msg },
+      { success: false, error: userMsg },
       { status: 500 }
     )
   }
