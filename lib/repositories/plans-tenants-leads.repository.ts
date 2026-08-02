@@ -76,23 +76,24 @@ export class TenantsRepository {
   private spreadsheetId = MASTER_ID
   private sheet         = 'Empresas'
 
-  private parse(raw: Record<string, string>): Tenant {
-    return {
-      id:                raw.id,
-      name:              raw.name,
-      email:             raw.email?.toLowerCase().trim(),
-      phone:             raw.phone ?? '',
-      planId:            raw.planId ?? '',
-      status:            (raw.status ?? 'trial') as Tenant['status'],
-      createdAt:         raw.createdAt,
-      evolutionInstance: raw.evolutionInstance ?? '',
-      spreadsheetId:     raw.spreadsheetId ?? '',
-    }
-  }
-
   async findAll(): Promise<Tenant[]> {
     const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
-    return rowsToObjects<Record<string, string>>(rows).map(this.parse)
+    if (rows.length < 2) return []
+    // Leitura posicional: A=0 id, B=1 name, C=2 email, D=3 phone, E=4 planId,
+    // F=5 status, G=6 createdAt, H=7 evolutionInstance, I=8 spreadsheetId
+    return rows.slice(1)
+      .filter(r => r[0] && r[2])
+      .map(r => ({
+        id:                String(r[0] ?? ''),
+        name:              String(r[1] ?? ''),
+        email:             String(r[2] ?? '').toLowerCase().trim(),
+        phone:             String(r[3] ?? ''),
+        planId:            String(r[4] ?? ''),
+        status:            (String(r[5] ?? 'trial')) as Tenant['status'],
+        createdAt:         String(r[6] ?? ''),
+        evolutionInstance: String(r[7] ?? ''),
+        spreadsheetId:     String(r[8] ?? ''),
+      }))
   }
 
   async findById(id: string): Promise<Tenant | null> {
