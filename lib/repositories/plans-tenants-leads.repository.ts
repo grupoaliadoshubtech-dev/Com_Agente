@@ -135,21 +135,27 @@ export class TenantsRepository {
   async updateTenant(id: string, data: Partial<Pick<Tenant, 'name' | 'email' | 'phone' | 'planId' | 'evolutionInstance' | 'status' | 'spreadsheetId'>>): Promise<boolean> {
     const rows = await readRange(this.spreadsheetId, `${this.sheet}!A:I`)
     if (rows.length < 2) return false
-    const headers  = rows[0]
-    const idCol    = headers.indexOf('id')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === id)
+
+    // Localiza a linha pelo id (coluna A = índice 0, posicional)
+    const rowIndex = rows.findIndex((r, i) => i > 0 && (r[0] ?? '') === id)
     if (rowIndex === -1) return false
     const sheetRow = rowIndex + 1
-    const updates: Promise<void>[] = []
-    const col = (name: string) => String.fromCharCode(65 + headers.indexOf(name))
-    if (data.name              !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('name')}${sheetRow}`,              [[data.name]]))
-    if (data.email             !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('email')}${sheetRow}`,             [[data.email]]))
-    if (data.phone             !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('phone')}${sheetRow}`,             [[data.phone]]))
-    if (data.planId            !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('planId')}${sheetRow}`,            [[data.planId]]))
-    if (data.status            !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('status')}${sheetRow}`,            [[data.status]]))
-    if (data.evolutionInstance !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('evolutionInstance')}${sheetRow}`, [[data.evolutionInstance]]))
-    if (data.spreadsheetId     !== undefined) updates.push(updateRange(this.spreadsheetId, `${this.sheet}!${col('spreadsheetId')}${sheetRow}`,     [[data.spreadsheetId]]))
-    await Promise.all(updates)
+
+    // Lê a linha atual e aplica os campos por posição conhecida:
+    // A=0:id  B=1:name  C=2:email  D=3:phone  E=4:planId
+    // F=5:status  G=6:createdAt  H=7:evolutionInstance  I=8:spreadsheetId
+    const current = [...(rows[rowIndex] ?? [])]
+    while (current.length < 9) current.push('')
+
+    if (data.name              !== undefined) current[1] = data.name
+    if (data.email             !== undefined) current[2] = data.email
+    if (data.phone             !== undefined) current[3] = data.phone
+    if (data.planId            !== undefined) current[4] = data.planId
+    if (data.status            !== undefined) current[5] = data.status
+    if (data.evolutionInstance !== undefined) current[7] = data.evolutionInstance
+    if (data.spreadsheetId     !== undefined) current[8] = data.spreadsheetId
+
+    await updateRange(this.spreadsheetId, `${this.sheet}!A${sheetRow}:I${sheetRow}`, [current])
     return true
   }
 }
