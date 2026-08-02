@@ -42,19 +42,20 @@ function parseUser(raw: Record<string, string>): UserRecord {
 
 function userToRow(u: UserRecord): (string | boolean)[] {
   return [
-    u.id,
-    u.tenantId,
-    u.email,
-    u.passwordHash,
-    u.name,
-    u.role,
-    u.phone ?? '',
-    u.canViewDashboard,
-    u.canViewCRM,
-    u.canViewTranscricoes,
-    u.canViewSatisfacao,
-    u.createdAt,
-    u.isActive,
+    u.id,                  // A
+    u.tenantId,            // B
+    u.email,               // C
+    u.passwordHash,        // D
+    u.name,                // E
+    u.role,                // F
+    u.phone ?? '',         // G
+    u.canViewDashboard,    // H
+    u.canViewCRM,          // I
+    u.canViewTranscricoes, // J
+    u.canViewSatisfacao,   // K
+    u.createdAt,           // L
+    u.isActive,            // M
+    u.avatarUrl ?? '',     // N
   ]
 }
 

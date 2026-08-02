@@ -51,23 +51,31 @@ export async function POST(_req: NextRequest, { params }: Ctx): Promise<NextResp
     const senhaProvisoria = gerarSenha()
     const passwordHash    = await bcrypt.hash(senhaProvisoria, 10)
     const usersRepo       = new UsersRepository()
-    await usersRepo.create({
-      id:                  randomUUID(),
-      tenantId,
-      email:               lead.email,
-      passwordHash,
-      name:                lead.name || lead.company,
-      role:                'supervisor',
-      phone:               lead.phone,
-      canViewDashboard:    true,
-      canViewCRM:          true,
-      canViewTranscricoes: true,
-      canViewSatisfacao:   true,
-      createdAt:           new Date().toISOString(),
-      isActive:            true,
-      avatarUrl:           '',
-    })
-    console.log('[aprovar] usuário criado:', lead.email)
+    const userId          = randomUUID()
+    console.log('[aprovar] criando usuário id:', userId, 'email:', lead.email, 'tenantId:', tenantId)
+    try {
+      await usersRepo.create({
+        id:                  userId,
+        tenantId,
+        email:               lead.email,
+        passwordHash,
+        name:                lead.name || lead.company,
+        role:                'supervisor',
+        phone:               lead.phone,
+        canViewDashboard:    true,
+        canViewCRM:          true,
+        canViewTranscricoes: true,
+        canViewSatisfacao:   true,
+        createdAt:           new Date().toISOString(),
+        isActive:            true,
+        avatarUrl:           '',
+      })
+      console.log('[aprovar] usuário criado na planilha:', lead.email)
+    } catch (userErr) {
+      const userMsg = userErr instanceof Error ? userErr.message : String(userErr)
+      console.error('[aprovar] FALHA ao criar usuário na planilha:', userMsg)
+      throw new Error(`Falha ao criar usuário na aba Usuarios: ${userMsg}`)
+    }
 
     // 3. Enviar e-mail de boas-vindas com credenciais
     const origin   = process.env.NEXTAUTH_URL ?? 'https://comagente.gaht.com.br'
