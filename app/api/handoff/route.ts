@@ -78,7 +78,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         if (!telefone) {
           return NextResponse.json({ success: false, error: 'telefone obrigatório para retomar' }, { status: 422 })
         }
-        await repo.retomar(telefone, atendenteId)
+        await repo.retomar(telefone)
         return NextResponse.json({
           success: true,
           message: `IA retomada para ${telefone}`,
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
         })
 
       case 'retornar_global':
-        await repo.retomar('ALL', atendenteId)
+        await repo.retomar('ALL')
         return NextResponse.json({
           success: true,
           message: 'Pausa Global removida — IA reativada para TODOS',
