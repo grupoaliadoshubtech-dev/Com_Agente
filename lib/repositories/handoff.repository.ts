@@ -54,14 +54,23 @@ export class HandoffRepository {
    * getStatus() checa presença na coluna A: sem linha = ativo.
    */
   async retomar(telefone: string): Promise<void> {
+    console.log('[retomar] spreadsheetId:', this.spreadsheetId, 'telefone:', telefone)
     const colA = await readRange(this.spreadsheetId, `${SHEET}!A:A`)
+    console.log('[retomar] colA length:', colA.length, 'valores:', colA.slice(0,10).map(r => r[0]))
     const indices: number[] = []
     for (let i = 1; i < colA.length; i++) {
-      if ((colA[i]?.[0] ?? '').trim() === telefone) indices.push(i)
+      const val = (colA[i]?.[0] ?? '').trim()
+      if (val === telefone) indices.push(i)
     }
-    if (indices.length === 0) return
+    console.log('[retomar] indices encontrados:', indices)
+    if (indices.length === 0) {
+      console.warn('[retomar] nenhuma linha encontrada para telefone:', telefone)
+      return
+    }
     const sheetId = await getSheetId(this.spreadsheetId, SHEET)
+    console.log('[retomar] sheetId:', sheetId)
     await deleteRows(this.spreadsheetId, sheetId, indices)
+    console.log('[retomar] linhas deletadas com sucesso')
   }
 
   /**
