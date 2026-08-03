@@ -12,7 +12,7 @@
 //   L: createdAt | M: isActive
 // ─────────────────────────────────────────────────────────────
 
-import { readRange, updateRange, appendRows, rowsToObjects } from '@/lib/sheets/client'
+import { readRange, updateRange, smartAppend, rowsToObjects } from '@/lib/sheets/client'
 import type { UserRecord } from '@/types'
 
 const SHEET   = 'Usuarios'
@@ -91,9 +91,9 @@ export class UsersRepository {
     return all.find(u => u.id === id) ?? null
   }
 
-  /** Cria novo usuário (append no Sheets). */
+  /** Cria novo usuário logo após a última linha com id real, ignorando linhas com checkboxes. */
   async create(user: UserRecord): Promise<void> {
-    await appendRows(this.spreadsheetId, RANGE, [userToRow(user)])
+    await smartAppend(this.spreadsheetId, SHEET, [userToRow(user)])
   }
 
   /**

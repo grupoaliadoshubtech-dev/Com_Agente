@@ -68,6 +68,32 @@ export async function appendRows(
 }
 
 /**
+ * Append seguro: lê coluna A para achar a última linha com id real,
+ * ignorando linhas "vazias" que só têm checkboxes nas colunas booleanas.
+ * Escreve as novas linhas imediatamente após a última linha com conteúdo em A.
+ */
+export async function smartAppend(
+  spreadsheetId: string,
+  sheet: string,
+  rows: (string | number | boolean)[][]
+): Promise<void> {
+  const colA = await readRange(spreadsheetId, `${sheet}!A:A`)
+  let lastDataRow = 1 // mínimo: linha 1 (header)
+  for (let i = colA.length - 1; i >= 1; i--) {
+    if (colA[i]?.[0]?.toString().trim()) {
+      lastDataRow = i + 1 // converte para índice 1-based da planilha
+      break
+    }
+  }
+  const cols = rows[0]?.length ?? 1
+  const endCol = String.fromCharCode(65 + cols - 1)
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = lastDataRow + 1 + i
+    await updateRange(spreadsheetId, `${sheet}!A${rowNum}:${endCol}${rowNum}`, [rows[i]])
+  }
+}
+
+/**
  * Sobrescreve um range específico (update).
  * Use para atualizar status de uma linha já existente.
  */

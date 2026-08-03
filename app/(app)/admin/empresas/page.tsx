@@ -44,8 +44,6 @@ export default function EmpresasPage(){
   const [form,      setForm]      =useState({name:'',email:'',phone:'',planId:'',supervisorName:'',supervisorEmail:'',supervisorPassword:'',spreadsheetId:'',evolutionInstance:''})
   const [saving,    setSaving]    =useState(false)
   const [newStatus, setNewStatus] =useState<Tenant['status']>('trial')
-  const [criarUserOf, setCriarUserOf] =useState<string|null>(null)
-
   // Edição
   const [editOf,    setEditOf]    =useState<Tenant|null>(null)
   const [editForm,  setEditForm]  =useState({name:'',email:'',phone:'',planId:'',status:'trial' as Tenant['status'],evolutionInstance:'',spreadsheetId:''})
@@ -89,16 +87,6 @@ export default function EmpresasPage(){
     const d=await r.json();setWebhookBusy(false)
     setWebhookOf(null)
     showToast(d.success?'✓ Webhook configurado':`Erro: ${d.error}`)
-  }
-
-  async function criarUsuario(tenantId:string){
-    setCriarUserOf(tenantId)
-    const r=await fetch('/api/admin/tenants/recreate-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tenantId})})
-    const d=await r.json()
-    setCriarUserOf(null)
-    if(d.success) showToast(`✓ Usuário criado e e-mail enviado!`)
-    else if(d.error?.includes('Já existe')) showToast(`ℹ️ Usuário já existe para esta empresa`)
-    else showToast(`Erro: ${d.error}`)
   }
 
   async function load(){
@@ -200,9 +188,6 @@ export default function EmpresasPage(){
                     <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                       <button onClick={()=>openEdit(t)} className="btn-neon" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Editar</button>
                       <button onClick={()=>setWebhookOf(t)} className="btn-outline" style={{padding:'5px 10px',fontSize:11,borderRadius:6}}>Webhook</button>
-                      <button onClick={()=>criarUsuario(t.id)} disabled={criarUserOf===t.id} style={{padding:'5px 10px',fontSize:11,borderRadius:6,cursor:'pointer',background:'#7C3AED',border:'1px solid #6D28D9',color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:criarUserOf===t.id ? 0.5 : 1}}>
-                        {criarUserOf===t.id ? 'Criando…' : '+ Usuário'}
-                      </button>
                     </div>
                   </td>
                 </tr>

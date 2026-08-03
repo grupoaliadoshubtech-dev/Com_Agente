@@ -6,7 +6,7 @@
 //          maxAttendants | features (JSON) | isActive
 // ─────────────────────────────────────────────────────────────
 
-import { readRange, appendRows, updateRange, rowsToObjects } from '@/lib/sheets/client'
+import { readRange, smartAppend, updateRange, rowsToObjects } from '@/lib/sheets/client'
 import type { Plan, Tenant, LeadRecord } from '@/types'
 import { randomUUID } from 'crypto'
 
@@ -108,7 +108,7 @@ export class TenantsRepository {
       createdAt: new Date().toISOString(),
       ...rest,
     }
-    await appendRows(this.spreadsheetId, `${this.sheet}!A:I`, [[
+    await smartAppend(this.spreadsheetId, this.sheet, [[
       tenant.id,
       tenant.name,
       tenant.email,
@@ -180,7 +180,7 @@ export class LeadsRepository {
       createdAt: new Date().toISOString(),
       ...data,
     }
-    await appendRows(this.spreadsheetId, `${this.sheet}!A:I`, [[
+    await smartAppend(this.spreadsheetId, this.sheet, [[
       lead.id,
       lead.name,
       lead.email,
