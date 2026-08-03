@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { HandoffRepository } from '@/lib/repositories/handoff.repository'
+import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import { readRange, rowsToObjects } from '@/lib/sheets/client'
 import type { ApiResponse } from '@/types'
 
@@ -14,12 +15,14 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
   }
   try {
     const tenantId = session.user.tenantId
-    const handoff = new HandoffRepository(tenantId)
+    const tenant = await new TenantsRepository().findById(tenantId)
+    const spreadsheetId = tenant?.spreadsheetId || tenantId
+    const handoff = new HandoffRepository(spreadsheetId)
     const filaItems = await handoff.getAll()
     let atendimentos: Record<string, string>[] = []
-    try { const rows = await readRange(tenantId, 'Atendimentos!A:H'); atendimentos = rowsToObjects<Record<string, string>>(rows) } catch {}
+    try { const rows = await readRange(spreadsheetId, 'Atendimentos!A:H'); atendimentos = rowsToObjects<Record<string, string>>(rows) } catch {}
     let clientes: Record<string, string>[] = []
-    try { const rows = await readRange(tenantId, 'Clientes!A:D'); clientes = rowsToObjects<Record<string, string>>(rows) } catch {}
+    try { const rows = await readRange(spreadsheetId, 'Clientes!A:D'); clientes = rowsToObjects<Record<string, string>>(rows) } catch {}
     const queueMap = new Map()
     for (const item of filaItems) {
       if (item.telefone === 'ALL') continue

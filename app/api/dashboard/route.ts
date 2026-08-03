@@ -28,7 +28,9 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
   const view = req.nextUrl.searchParams.get('view')
 
   try {
-    const tid = session.user.tenantId
+    const tenantId = session.user.tenantId
+    const tenant = await tenantsRepo.findById(tenantId)
+    const tid = tenant?.spreadsheetId || tenantId // spreadsheetId da planilha do tenant
 
     // ── Vista rápida (polling leve — só dados em tempo real) ──
     if (view === 'realtime') {
@@ -57,7 +59,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
       // Conexão WhatsApp
       let whatsappStatus = 'unknown'
       try {
-        const tenant = await tenantsRepo.findById(tid)
         if (tenant?.evolutionInstance) {
           const client = EvolutionClient.fromEnv(tenant.evolutionInstance)
           const status = await client.getStatus()

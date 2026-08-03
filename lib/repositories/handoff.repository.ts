@@ -10,12 +10,11 @@
 //   D: Atendente (ID do usuário logado)
 // ─────────────────────────────────────────────────────────────
 
-import { appendRows, readRange, deleteRows, rowsToObjects } from '@/lib/sheets/client'
+import { appendRows, readRange, deleteRows, getSheetId, rowsToObjects } from '@/lib/sheets/client'
 import type { HandoffRecord } from '@/types'
 
-const SHEET    = 'Fila_Humana'
-const RANGE    = `${SHEET}!A:D`
-const SHEET_ID = 1239974346  // gid da aba Fila_Humana
+const SHEET = 'Fila_Humana'
+const RANGE = `${SHEET}!A:D`
 
 export class HandoffRepository {
   constructor(private spreadsheetId: string) {}
@@ -62,8 +61,10 @@ export class HandoffRepository {
     for (let i = 1; i < rows.length; i++) {
       if ((rows[i][0] ?? '').trim() === telefone) indices.push(i)
     }
+    if (indices.length === 0) return
 
-    await deleteRows(this.spreadsheetId, SHEET_ID, indices)
+    const sheetId = await getSheetId(this.spreadsheetId, SHEET)
+    await deleteRows(this.spreadsheetId, sheetId, indices)
   }
 
   /**
