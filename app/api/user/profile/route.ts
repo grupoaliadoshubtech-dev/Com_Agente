@@ -45,9 +45,6 @@ const PatchSchema = z.object({
     v => !v || /^https:\/\//.test(v),
     { message: 'Avatar deve ser uma URL HTTPS válida' }
   ).optional(),
-}).refine(d => !d.newPassword || !!d.currentPassword, {
-  message: 'Informe a senha atual para definir uma nova',
-  path: ['currentPassword'],
 }).refine(d => !d.newPassword || d.newPassword === d.confirmPassword, {
   message: 'As senhas não coincidem',
   path: ['confirmPassword'],
@@ -79,10 +76,18 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   if (name !== undefined) update.name = name.trim()
 
   if (newPassword) {
-    const match = await bcrypt.compare(currentPassword!, user.passwordHash)
-    if (!match) return NextResponse.json({ success: false, error: 'Senha atual incorreta', field: 'currentPassword' }, { status: 400 })
-    update.passwordHash = await bcrypt.hash(newPassword, 12)
-    if (user.mustChangePassword) update.mustChangePassword = false
+    if (session.user.mustChangePassword) {
+      // Primeiro acesso: usuário já autenticou com a senha provisória no login,
+      // não precisa re-informar a senha atual
+      update.passwordHash = await bcrypt.hash(newPassword, 12)
+      update.mustChangePassword = false
+    } else {
+      if (!currentPassword) return NextResponse.json({ success: false, error: 'Informe a senha atual', field: 'currentPassword' }, { status: 400 })
+      const match = await bcrypt.compare(currentPassword, user.passwordHash)
+      if (!match) return NextResponse.json({ success: false, error: 'Senha atual incorreta', field: 'currentPassword' }, { status: 400 })
+      update.passwordHash = await bcrypt.hash(newPassword, 12)
+      if (user.mustChangePassword) update.mustChangePassword = false
+    }
   }
 
   if (avatarUrl !== undefined) update.avatarUrl = avatarUrl

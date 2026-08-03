@@ -135,13 +135,11 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [curPwStatus,    setCurPwStatus]    = useState<'idle'|'checking'|'ok'|'error'>('idle')
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // ── Modal: primeiro acesso (senha provisória → nova senha) ──
-  const [tempPw,           setTempPw]           = useState('')
+  // ── Modal: primeiro acesso ───────────────────────────────────
   const [firstPw,          setFirstPw]          = useState('')
   const [firstConfirm,     setFirstConfirm]     = useState('')
   const [firstSaving,      setFirstSaving]      = useState(false)
   const [firstErr,         setFirstErr]         = useState('')
-  const [showTempPw,       setShowTempPw]       = useState(false)
   const [showFirstPw,      setShowFirstPw]      = useState(false)
   const [showFirstConfirm, setShowFirstConfirm] = useState(false)
 
@@ -253,17 +251,13 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   async function saveFirstPassword() {
     setFirstErr('')
-    if (!tempPw)                  { setFirstErr('Informe a senha temporária recebida por e-mail'); return }
-    if (firstPw.length < 6)      { setFirstErr('A nova senha deve ter no mínimo 6 caracteres'); return }
+    if (firstPw.length < 6)      { setFirstErr('A senha deve ter no mínimo 6 caracteres'); return }
     if (firstPw !== firstConfirm) { setFirstErr('As senhas não coincidem'); return }
     setFirstSaving(true)
     try {
-      const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: tempPw, newPassword: firstPw, confirmPassword: firstPw }) })
+      const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword: firstPw, confirmPassword: firstPw }) })
       const d = await r.json()
-      if (!d.success) {
-        setFirstErr(d.field === 'currentPassword' ? 'Senha temporária incorreta. Verifique o e-mail recebido.' : (d.error ?? 'Erro ao salvar'))
-        return
-      }
+      if (!d.success) { setFirstErr(d.error ?? 'Erro ao salvar'); return }
       await updateSession({ mustChangePassword: false })
       showToast('Senha definida com sucesso!')
     } catch { setFirstErr('Erro de conexão') }
@@ -520,72 +514,86 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* ── Modal: Primeiro Acesso ─────────────────────────── */}
       {mustChangePw && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:'16px'}}>
-          <div className="card animate-slide-up" style={{width:'min(440px, calc(100vw - 32px))',padding:'32px 28px',textAlign:'center'}}>
-            <div style={{width:48,height:48,borderRadius:'50%',background:'rgba(163,230,53,.12)',border:'1px solid rgba(163,230,53,.3)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:22}}>🔐</div>
-            <div className="font-display" style={{fontSize:18,fontWeight:700,color:'var(--txt)',marginBottom:6}}>Defina sua senha</div>
-            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:24}}>
-              Este é seu primeiro acesso. Informe a senha temporária recebida por e-mail e crie uma nova senha de sua escolha.
-            </p>
-            <div style={{display:'flex',flexDirection:'column',gap:14,textAlign:'left'}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:'16px'}}>
+          <div className="card animate-slide-up" style={{width:'min(420px, calc(100vw - 32px))',padding:'32px 28px'}}>
 
-              {/* Senha temporária */}
-              <div>
-                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Senha temporária (recebida por e-mail)</label>
-                <div style={{position:'relative'}}>
-                  <input type={showTempPw ? 'text' : 'password'} value={tempPw} onChange={e=>setTempPw(e.target.value)} maxLength={30}
-                    placeholder="Cole ou digite a senha do e-mail"
-                    style={{width:'100%',padding:'10px 40px 10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
-                  <button type="button" onClick={()=>setShowTempPw(v=>!v)}
-                    style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
-                    {showTempPw ? IC.eyeOff : IC.eye}
-                  </button>
-                </div>
+            {/* Cabeçalho */}
+            <div style={{textAlign:'center',marginBottom:24}}>
+              <div style={{width:52,height:52,borderRadius:'50%',background:'rgba(163,230,53,.1)',border:'2px solid rgba(163,230,53,.25)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
+                <svg width="22" height="22" fill="none" stroke="var(--neon)" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </div>
+              <div className="font-display" style={{fontSize:18,fontWeight:700,color:'var(--txt)',marginBottom:6}}>Crie sua senha</div>
+              <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,margin:0}}>
+                Primeiro acesso detectado. Defina uma senha pessoal para continuar.
+              </p>
+            </div>
+
+            <div style={{display:'flex',flexDirection:'column',gap:14}}>
 
               {/* Nova senha */}
               <div>
-                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Nova senha</label>
+                <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--txt-2)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.07em'}}>Nova senha</label>
                 <div style={{position:'relative'}}>
-                  <input type={showFirstPw ? 'text' : 'password'} value={firstPw} onChange={e=>setFirstPw(e.target.value)} maxLength={20}
+                  <input
+                    type={showFirstPw ? 'text' : 'password'}
+                    value={firstPw}
+                    onChange={e=>setFirstPw(e.target.value)}
+                    maxLength={20}
                     placeholder="Mínimo 6 caracteres"
-                    style={{width:'100%',padding:'10px 40px 10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                    autoFocus
+                    style={{width:'100%',padding:'11px 42px 11px 14px',borderRadius:9,border:`1px solid ${firstPw.length>=6?'#10B981':firstPw.length>0?'var(--danger)':'var(--border-md)'}`,background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box',outline:'none',fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
                   <button type="button" onClick={()=>setShowFirstPw(v=>!v)}
-                    style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
+                    style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
                     {showFirstPw ? IC.eyeOff : IC.eye}
                   </button>
                 </div>
-                {firstPw.length > 0 && firstPw.length < 6 && <p style={{fontSize:10,color:'var(--danger)',margin:'3px 0 0'}}>Mínimo 6 caracteres</p>}
+                {firstPw.length > 0 && firstPw.length < 6 && <p style={{fontSize:11,color:'var(--danger)',margin:'4px 0 0'}}>Mínimo 6 caracteres</p>}
               </div>
 
-              {/* Confirmar nova senha */}
+              {/* Confirmar senha */}
               <div>
-                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Confirmar nova senha</label>
+                <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--txt-2)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.07em'}}>Confirmar senha</label>
                 <div style={{position:'relative'}}>
-                  <input type={showFirstConfirm ? 'text' : 'password'} value={firstConfirm} onChange={e=>setFirstConfirm(e.target.value)} maxLength={20}
+                  <input
+                    type={showFirstConfirm ? 'text' : 'password'}
+                    value={firstConfirm}
+                    onChange={e=>setFirstConfirm(e.target.value)}
+                    maxLength={20}
                     placeholder="Repita a nova senha"
                     onKeyDown={e=>e.key==='Enter'&&saveFirstPassword()}
-                    style={{width:'100%',padding:'10px 40px 10px 12px',borderRadius:8,border:firstConfirm.length>0?(firstPw===firstConfirm?'1px solid #10B981':'1px solid var(--danger)'):'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                    style={{width:'100%',padding:'11px 42px 11px 14px',borderRadius:9,border:`1px solid ${firstConfirm.length>0?(firstPw===firstConfirm&&firstPw.length>=6?'#10B981':'var(--danger)'):'var(--border-md)'}`,background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box',outline:'none',fontFamily:"'Plus Jakarta Sans',sans-serif"}}/>
                   <button type="button" onClick={()=>setShowFirstConfirm(v=>!v)}
-                    style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
+                    style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
                     {showFirstConfirm ? IC.eyeOff : IC.eye}
                   </button>
                 </div>
-                {firstConfirm.length > 0 && firstPw !== firstConfirm && <p style={{fontSize:10,color:'var(--danger)',margin:'3px 0 0'}}>Senhas não coincidem</p>}
-                {firstConfirm.length > 0 && firstPw === firstConfirm && firstPw.length >= 6 && <p style={{fontSize:10,color:'#10B981',margin:'3px 0 0'}}>✓ Senhas coincidem</p>}
+                {firstConfirm.length > 0 && firstPw !== firstConfirm && <p style={{fontSize:11,color:'var(--danger)',margin:'4px 0 0'}}>Senhas não coincidem</p>}
+                {firstConfirm.length > 0 && firstPw === firstConfirm && firstPw.length >= 6 && <p style={{fontSize:11,color:'#10B981',margin:'4px 0 0'}}>✓ Tudo certo!</p>}
               </div>
 
+              {/* Erro geral */}
               {firstErr && (
                 <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderRadius:8,background:'rgba(220,38,38,.08)',border:'1px solid rgba(220,38,38,.2)'}}>
-                  <span style={{color:'var(--danger)',fontSize:14}}>⚠</span>
+                  <span style={{color:'var(--danger)',flexShrink:0}}>⚠</span>
                   <span style={{fontSize:12,color:'var(--danger)'}}>{firstErr}</span>
                 </div>
               )}
 
-              <button onClick={saveFirstPassword} disabled={firstSaving} className="btn-primary"
-                style={{width:'100%',padding:'12px',fontSize:14,marginTop:2}}>
-                {firstSaving ? 'Salvando...' : 'Definir minha senha'}
+              {/* Botão */}
+              <button
+                onClick={saveFirstPassword}
+                disabled={firstSaving || firstPw.length < 6 || firstPw !== firstConfirm}
+                className="btn-neon"
+                style={{width:'100%',padding:'13px',fontSize:14,fontWeight:700,marginTop:4,borderRadius:10,opacity:(firstSaving||firstPw.length<6||firstPw!==firstConfirm)?.5:1,transition:'opacity .15s',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                {firstSaving
+                  ? <><span style={{width:16,height:16,border:'2px solid rgba(0,0,0,.3)',borderTopColor:'#000',borderRadius:'50%',display:'inline-block',animation:'spin .7s linear infinite'}}/> Salvando...</>
+                  : <>
+                      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
+                      Definir minha senha
+                    </>
+                }
               </button>
+
             </div>
           </div>
         </div>
