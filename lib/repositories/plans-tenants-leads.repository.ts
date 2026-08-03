@@ -6,7 +6,7 @@
 //          maxAttendants | features (JSON) | isActive
 // ─────────────────────────────────────────────────────────────
 
-import { readRange, smartAppend, updateRange, rowsToObjects } from '@/lib/sheets/client'
+import { readRange, appendRows, smartAppend, updateRange, rowsToObjects } from '@/lib/sheets/client'
 import type { Plan, Tenant, LeadRecord } from '@/types'
 import { randomUUID } from 'crypto'
 
