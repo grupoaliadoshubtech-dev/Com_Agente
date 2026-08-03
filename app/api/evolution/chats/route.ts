@@ -52,31 +52,33 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       return NextResponse.json({ success: false, error: 'Instância WhatsApp não configurada' }, { status: 400 })
     }
 
+    const spreadsheetId = (tenant as { spreadsheetId?: string } | null)?.spreadsheetId || cacheKey
+
     const client = EvolutionClient.fromEnv(instanceName)
     const chats = await client.findChats()
 
-    const cachedHandoff = handoffCache.get(cacheKey)
+    const cachedHandoff = handoffCache.get(spreadsheetId)
     let handoffRecords: Array<{ telefone: string; status: string; timestamp: string; atendente: string }> = []
     if (cachedHandoff && Date.now() - cachedHandoff.ts < 30000) {
       handoffRecords = cachedHandoff.data as typeof handoffRecords
     } else {
       try {
-        const handoff = new HandoffRepository(cacheKey)
+        const handoff = new HandoffRepository(spreadsheetId)
         handoffRecords = await handoff.getAll()
-        handoffCache.set(cacheKey, { data: handoffRecords, ts: Date.now() })
+        handoffCache.set(spreadsheetId, { data: handoffRecords, ts: Date.now() })
       } catch {}
     }
 
     // Busca nomes cadastrados na aba Clientes da planilha do tenant
-    const cachedClientes = clientesCache.get(cacheKey)
+    const cachedClientes = clientesCache.get(spreadsheetId)
     let clienteNames = new Map<string, string>()
     if (cachedClientes && Date.now() - cachedClientes.ts < 60000) {
       clienteNames = cachedClientes.map
     } else {
       try {
-        const clientesRepo = new ClientesRepository(cacheKey)
+        const clientesRepo = new ClientesRepository(spreadsheetId)
         clienteNames = await clientesRepo.buildNameMap()
-        clientesCache.set(cacheKey, { map: clienteNames, ts: Date.now() })
+        clientesCache.set(spreadsheetId, { map: clienteNames, ts: Date.now() })
       } catch { /* planilha pode não ter a aba ainda */ }
     }
 
