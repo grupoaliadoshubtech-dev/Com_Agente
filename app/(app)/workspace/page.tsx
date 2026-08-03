@@ -708,7 +708,7 @@ export default function WorkspacePage() {
           </div>
 
           {/* Input + Anexo */}
-          <div className="px-4 py-3 border-t flex gap-2 items-end flex-shrink-0 workspace-input-bar" style={{ borderColor: 'var(--border)', background: 'var(--bg-sidebar)' }}>
+          <div className="px-4 py-3 border-t flex gap-2 items-center flex-shrink-0 workspace-input-bar" style={{ borderColor: 'var(--border)', background: 'var(--bg-sidebar)' }}>
             {/* Botão de anexo */}
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowAttach(!showAttach)}
