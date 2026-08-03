@@ -17,10 +17,8 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     const tenantId = session.user.tenantId
     const tenant = await new TenantsRepository().findById(tenantId)
     const spreadsheetId = tenant?.spreadsheetId || tenantId
-    console.log('[queue] tenantId:', tenantId, '| spreadsheetId:', spreadsheetId, '| tenant found:', !!tenant)
     const handoff = new HandoffRepository(spreadsheetId)
     const filaItems = await handoff.getAll()
-    console.log('[queue] filaItems:', filaItems.length, filaItems.map(f => f.telefone))
     let atendimentos: Record<string, string>[] = []
     try { const rows = await readRange(spreadsheetId, 'Atendimentos!A:H'); atendimentos = rowsToObjects<Record<string, string>>(rows) } catch {}
     let clientes: Record<string, string>[] = []
