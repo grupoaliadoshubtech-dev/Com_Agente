@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { HandoffRepository } from '@/lib/repositories/handoff.repository'
+import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import { z } from 'zod'
 import type { ApiResponse } from '@/types'
 
@@ -49,8 +50,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     return NextResponse.json({ success: false, error: 'tenantId ausente na sessão' }, { status: 400 })
   }
 
-  // 3. Executa ação no repositório
-  const repo = new HandoffRepository(tenantId)
+  // 3. Resolve o spreadsheetId real da empresa (campo configurável em Empresas)
+  const tenantsRepo = new TenantsRepository()
+  const tenant = await tenantsRepo.findById(tenantId)
+  const spreadsheetId = tenant?.spreadsheetId || tenantId // fallback para tenants antigos onde id === spreadsheetId
+
+  if (!spreadsheetId) {
+    return NextResponse.json({ success: false, error: 'Planilha desta empresa não configurada. Configure o ID da planilha nas configurações da empresa.' }, { status: 400 })
+  }
+
+  const repo = new HandoffRepository(spreadsheetId)
 
   try {
     switch (action) {
@@ -120,8 +129,11 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 })
   }
 
-  const telefone = req.nextUrl.searchParams.get('telefone')
-  const repo     = new HandoffRepository(session.user.tenantId)
+  const telefone   = req.nextUrl.searchParams.get('telefone')
+  const tenantsRepoGet = new TenantsRepository()
+  const tenantGet  = await tenantsRepoGet.findById(session.user.tenantId)
+  const spreadsheetIdGet = tenantGet?.spreadsheetId || session.user.tenantId
+  const repo = new HandoffRepository(spreadsheetIdGet)
 
   try {
     if (telefone) {
