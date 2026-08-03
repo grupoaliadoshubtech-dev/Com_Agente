@@ -69,36 +69,37 @@ export class HandoffRepository {
 
   /**
    * Verifica se IA está pausada para um número.
-   * Lê a fila e retorna o status mais recente daquele telefone.
+   * Leitura posicional: A=telefone, B=status, C=timestamp — imune a variação nos cabeçalhos.
    */
   async getStatus(telefone: string): Promise<'pausado' | 'ativo'> {
     const rows = await readRange(this.spreadsheetId, RANGE)
-    const records = rowsToObjects<Record<string, string>>(rows)
+    if (rows.length < 2) return 'ativo'
 
-    // Filtra registros do telefone OU ALL (kill switch ativo afeta todos)
-    const relevant = records.filter(
-      r => r.Telefone === telefone || r.Telefone === 'ALL'
-    )
+    const toMs = (ts: string) => { try { return new Date(ts.replace(' ', 'T')).getTime() } catch { return 0 } }
+
+    const relevant = rows.slice(1).filter(r => {
+      const tel = (r[0] ?? '').trim()
+      return tel === telefone || tel === 'ALL'
+    })
 
     if (relevant.length === 0) return 'ativo'
 
-    // O mais recente determina o status (suporta formato "YYYY-MM-DD HH:MM:SS" e ISO)
-    const toMs = (ts: string) => new Date(ts.replace(' ', 'T')).getTime()
-    const sorted = relevant.sort((a, b) => toMs(b.Timestamp) - toMs(a.Timestamp))
-
-    return sorted[0].Status === 'pausado' ? 'pausado' : 'ativo'
+    const sorted = [...relevant].sort((a, b) => toMs(b[2] ?? '') - toMs(a[2] ?? ''))
+    return (sorted[0][1] ?? '').trim() === 'pausado' ? 'pausado' : 'ativo'
   }
 
   /**
-   * Retorna toda a fila atual (últimos 100 registros).
+   * Retorna toda a fila atual.
+   * Leitura posicional: A=telefone, B=status, C=timestamp, D=atendente.
    */
   async getAll(): Promise<HandoffRecord[]> {
-    const rows = await readRange(this.spreadsheetId, `${SHEET}!A:D`)
-    return rowsToObjects<Record<string, string>>(rows).map(r => ({
-      telefone:  r.Telefone ?? r.A ?? '',
-      status:    (r.Status ?? r.B ?? 'ativo') as HandoffRecord['status'],
-      timestamp: r.Timestamp ?? r.C ?? '',
-      atendente: r.Atendente ?? r.D ?? '',
-    }))
+    const rows = await readRange(this.spreadsheetId, RANGE)
+    if (rows.length < 2) return []
+    return rows.slice(1).map(r => ({
+      telefone:  (r[0] ?? '').trim(),
+      status:    ((r[1] ?? 'ativo').trim()) as HandoffRecord['status'],
+      timestamp: r[2] ?? '',
+      atendente: r[3] ?? '',
+    })).filter(r => r.telefone)
   }
 }
