@@ -66,12 +66,23 @@ function userToRow(u: UserRecord): (string | boolean)[] {
 export class UsersRepository {
   constructor(private spreadsheetId: string = MASTER_ID) {}
 
-  /** Busca todos os usuários ativos da planilha. */
+  /** Busca todos os usuários ativos da planilha.
+   * Lê mustChangePassword posicionalmente (col O = índice 14)
+   * independente de o cabeçalho existir na planilha.
+   */
   async findAll(): Promise<UserRecord[]> {
     const rows = await readRange(this.spreadsheetId, RANGE)
-    return rowsToObjects<Record<string, string>>(rows)
-      .filter(r => r.id && r.email)
-      .map(parseUser)
+    if (rows.length < 2) return []
+    const headers = rows[0]
+    return rows.slice(1)
+      .filter(r => r[0] && r[2]) // id e email presentes
+      .map(r => {
+        const raw: Record<string, string> = {}
+        headers.forEach((h, i) => { if (h) raw[h] = r[i] ?? '' })
+        // leitura posicional da coluna O (índice 14) independente do cabeçalho
+        raw.mustChangePassword = r[14] ?? ''
+        return parseUser(raw)
+      })
       .filter(u => u.isActive)
   }
 
@@ -180,8 +191,10 @@ export class UsersRepository {
       if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.avatarUrl]]))
     }
     if (data.mustChangePassword !== undefined) {
+      // usa o cabeçalho se existir, senão escreve direto na coluna O (índice 14)
       const col = headers.indexOf('mustChangePassword')
-      if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.mustChangePassword]]))
+      const colIdx = col !== -1 ? col : 14
+      updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + colIdx)}${sheetRow}`, [[data.mustChangePassword]]))
     }
 
     await Promise.all(updates)
