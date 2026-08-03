@@ -29,6 +29,8 @@ const IC = {
   stop:        <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>,
   play:        <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>,
   master:      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>,
+  eye:         <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  eyeOff:      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
   // FASE 5: Templates
   templates:   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>,
   // FASE 6: Distribuição
@@ -133,11 +135,20 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [curPwStatus,    setCurPwStatus]    = useState<'idle'|'checking'|'ok'|'error'>('idle')
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // ── Modal: primeiro acesso (senha padrão) ───────────────────
-  const [firstPw,      setFirstPw]      = useState('')
-  const [firstConfirm, setFirstConfirm] = useState('')
-  const [firstSaving,  setFirstSaving]  = useState(false)
-  const [firstErr,     setFirstErr]     = useState('')
+  // ── Modal: primeiro acesso (senha provisória → nova senha) ──
+  const [tempPw,           setTempPw]           = useState('')
+  const [firstPw,          setFirstPw]          = useState('')
+  const [firstConfirm,     setFirstConfirm]     = useState('')
+  const [firstSaving,      setFirstSaving]      = useState(false)
+  const [firstErr,         setFirstErr]         = useState('')
+  const [showTempPw,       setShowTempPw]       = useState(false)
+  const [showFirstPw,      setShowFirstPw]      = useState(false)
+  const [showFirstConfirm, setShowFirstConfirm] = useState(false)
+
+  // ── Olho nos campos de senha do modal Perfil ─────────────
+  const [showCurPw,          setShowCurPw]          = useState(false)
+  const [showNewPwProfile,   setShowNewPwProfile]   = useState(false)
+  const [showConfirmProfile, setShowConfirmProfile] = useState(false)
 
   const mustChangePw = session?.user?.mustChangePassword === true
 
@@ -175,6 +186,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     if (!profileOpen) return
     setProfileErr(''); setProfileErrField('')
     setCurPw(''); setNewPw(''); setConfirmPw(''); setCurPwStatus('idle')
+    setShowCurPw(false); setShowNewPwProfile(false); setShowConfirmProfile(false)
     fetch('/api/user/profile')
       .then(r => r.json())
       .then(d => {
@@ -241,13 +253,17 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   async function saveFirstPassword() {
     setFirstErr('')
-    if (firstPw.length < 6)      { setFirstErr('A senha deve ter no mínimo 6 caracteres'); return }
+    if (!tempPw)                  { setFirstErr('Informe a senha temporária recebida por e-mail'); return }
+    if (firstPw.length < 6)      { setFirstErr('A nova senha deve ter no mínimo 6 caracteres'); return }
     if (firstPw !== firstConfirm) { setFirstErr('As senhas não coincidem'); return }
     setFirstSaving(true)
     try {
-      const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: '098765', newPassword: firstPw, confirmPassword: firstPw }) })
+      const r = await fetch('/api/user/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: tempPw, newPassword: firstPw, confirmPassword: firstPw }) })
       const d = await r.json()
-      if (!d.success) { setFirstErr(d.error ?? 'Erro ao salvar'); return }
+      if (!d.success) {
+        setFirstErr(d.field === 'currentPassword' ? 'Senha temporária incorreta. Verifique o e-mail recebido.' : (d.error ?? 'Erro ao salvar'))
+        return
+      }
       await updateSession({ mustChangePassword: false })
       showToast('Senha definida com sucesso!')
     } catch { setFirstErr('Erro de conexão') }
@@ -505,28 +521,70 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       {/* ── Modal: Primeiro Acesso ─────────────────────────── */}
       {mustChangePw && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:'16px'}}>
-          <div className="card animate-slide-up" style={{width:'min(420px, calc(100vw - 32px))',padding:'32px 28px',textAlign:'center'}}>
+          <div className="card animate-slide-up" style={{width:'min(440px, calc(100vw - 32px))',padding:'32px 28px',textAlign:'center'}}>
             <div style={{width:48,height:48,borderRadius:'50%',background:'rgba(163,230,53,.12)',border:'1px solid rgba(163,230,53,.3)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:22}}>🔐</div>
             <div className="font-display" style={{fontSize:18,fontWeight:700,color:'var(--txt)',marginBottom:6}}>Defina sua senha</div>
-            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:24}}>Este é seu primeiro acesso. Crie uma senha de sua escolha para continuar.</p>
-            <div style={{display:'flex',flexDirection:'column',gap:12,textAlign:'left'}}>
+            <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.6,marginBottom:24}}>
+              Este é seu primeiro acesso. Informe a senha temporária recebida por e-mail e crie uma nova senha de sua escolha.
+            </p>
+            <div style={{display:'flex',flexDirection:'column',gap:14,textAlign:'left'}}>
+
+              {/* Senha temporária */}
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Senha temporária (recebida por e-mail)</label>
+                <div style={{position:'relative'}}>
+                  <input type={showTempPw ? 'text' : 'password'} value={tempPw} onChange={e=>setTempPw(e.target.value)} maxLength={30}
+                    placeholder="Cole ou digite a senha do e-mail"
+                    style={{width:'100%',padding:'10px 40px 10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                  <button type="button" onClick={()=>setShowTempPw(v=>!v)}
+                    style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
+                    {showTempPw ? IC.eyeOff : IC.eye}
+                  </button>
+                </div>
+              </div>
+
+              {/* Nova senha */}
               <div>
                 <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Nova senha</label>
-                <input type="password" value={firstPw} onChange={e=>setFirstPw(e.target.value)} maxLength={20}
-                  placeholder="Mínimo 6 caracteres"
-                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                <div style={{position:'relative'}}>
+                  <input type={showFirstPw ? 'text' : 'password'} value={firstPw} onChange={e=>setFirstPw(e.target.value)} maxLength={20}
+                    placeholder="Mínimo 6 caracteres"
+                    style={{width:'100%',padding:'10px 40px 10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                  <button type="button" onClick={()=>setShowFirstPw(v=>!v)}
+                    style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
+                    {showFirstPw ? IC.eyeOff : IC.eye}
+                  </button>
+                </div>
+                {firstPw.length > 0 && firstPw.length < 6 && <p style={{fontSize:10,color:'var(--danger)',margin:'3px 0 0'}}>Mínimo 6 caracteres</p>}
               </div>
+
+              {/* Confirmar nova senha */}
               <div>
-                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Confirmar senha</label>
-                <input type="password" value={firstConfirm} onChange={e=>setFirstConfirm(e.target.value)} maxLength={20}
-                  placeholder="Repita a nova senha"
-                  onKeyDown={e=>e.key==='Enter'&&saveFirstPassword()}
-                  style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.06em'}}>Confirmar nova senha</label>
+                <div style={{position:'relative'}}>
+                  <input type={showFirstConfirm ? 'text' : 'password'} value={firstConfirm} onChange={e=>setFirstConfirm(e.target.value)} maxLength={20}
+                    placeholder="Repita a nova senha"
+                    onKeyDown={e=>e.key==='Enter'&&saveFirstPassword()}
+                    style={{width:'100%',padding:'10px 40px 10px 12px',borderRadius:8,border:firstConfirm.length>0?(firstPw===firstConfirm?'1px solid #10B981':'1px solid var(--danger)'):'1px solid var(--border-md)',background:'var(--bg-input)',color:'var(--txt)',fontSize:13,boxSizing:'border-box'}}/>
+                  <button type="button" onClick={()=>setShowFirstConfirm(v=>!v)}
+                    style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
+                    {showFirstConfirm ? IC.eyeOff : IC.eye}
+                  </button>
+                </div>
+                {firstConfirm.length > 0 && firstPw !== firstConfirm && <p style={{fontSize:10,color:'var(--danger)',margin:'3px 0 0'}}>Senhas não coincidem</p>}
+                {firstConfirm.length > 0 && firstPw === firstConfirm && firstPw.length >= 6 && <p style={{fontSize:10,color:'#10B981',margin:'3px 0 0'}}>✓ Senhas coincidem</p>}
               </div>
-              {firstErr && <p style={{fontSize:12,color:'var(--danger)',margin:0}}>{firstErr}</p>}
+
+              {firstErr && (
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderRadius:8,background:'rgba(220,38,38,.08)',border:'1px solid rgba(220,38,38,.2)'}}>
+                  <span style={{color:'var(--danger)',fontSize:14}}>⚠</span>
+                  <span style={{fontSize:12,color:'var(--danger)'}}>{firstErr}</span>
+                </div>
+              )}
+
               <button onClick={saveFirstPassword} disabled={firstSaving} className="btn-primary"
-                style={{width:'100%',padding:'11px',fontSize:14,marginTop:4}}>
-                {firstSaving ? 'Salvando...' : 'Salvar senha'}
+                style={{width:'100%',padding:'12px',fontSize:14,marginTop:2}}>
+                {firstSaving ? 'Salvando...' : 'Definir minha senha'}
               </button>
             </div>
           </div>
@@ -578,14 +636,20 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                   <div>
                     <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Senha atual</label>
                     <div style={{position:'relative'}}>
-                      <input type="password" value={curPw}
+                      <input type={showCurPw ? 'text' : 'password'} value={curPw}
                         onChange={e=>{ setCurPw(e.target.value); if(curPwStatus!=='idle') setCurPwStatus('idle') }}
                         onBlur={checkCurPw}
                         maxLength={20} placeholder="Digite sua senha atual"
-                        style={{...iStyle(profileErrField==='curPw'||curPwStatus==='error'?'error':curPwStatus==='ok'?'ok':undefined), paddingRight:36}}/>
-                      {curPwStatus==='checking' && <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'var(--txt-3)'}}>…</span>}
-                      {curPwStatus==='ok'       && <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'#10B981'}}>✓</span>}
-                      {curPwStatus==='error'    && <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'var(--danger)'}}>✗</span>}
+                        style={{...iStyle(profileErrField==='curPw'||curPwStatus==='error'?'error':curPwStatus==='ok'?'ok':undefined), paddingRight:60}}/>
+                      <div style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',display:'flex',alignItems:'center',gap:6}}>
+                        {curPwStatus==='checking' && <span style={{fontSize:12,color:'var(--txt-3)'}}>…</span>}
+                        {curPwStatus==='ok'       && <span style={{fontSize:14,color:'#10B981'}}>✓</span>}
+                        {curPwStatus==='error'    && <span style={{fontSize:14,color:'var(--danger)'}}>✗</span>}
+                        <button type="button" onClick={()=>setShowCurPw(v=>!v)}
+                          style={{background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
+                          {showCurPw ? IC.eyeOff : IC.eye}
+                        </button>
+                      </div>
                     </div>
                     {curPwStatus==='error' && <p style={{fontSize:11,color:'var(--danger)',margin:'4px 0 0'}}>Senha atual incorreta</p>}
                   </div>
@@ -594,16 +658,28 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                     <div>
                       <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Nova senha</label>
-                      <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} maxLength={20}
-                        placeholder="Mín. 6 caracteres"
-                        style={iStyle(profileErrField==='newPw'?'error':newPw.length>=6?'ok':undefined)}/>
+                      <div style={{position:'relative'}}>
+                        <input type={showNewPwProfile ? 'text' : 'password'} value={newPw} onChange={e=>setNewPw(e.target.value)} maxLength={20}
+                          placeholder="Mín. 6 caracteres"
+                          style={{...iStyle(profileErrField==='newPw'?'error':newPw.length>=6?'ok':undefined), paddingRight:36}}/>
+                        <button type="button" onClick={()=>setShowNewPwProfile(v=>!v)}
+                          style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
+                          {showNewPwProfile ? IC.eyeOff : IC.eye}
+                        </button>
+                      </div>
                       {newPw.length>0&&newPw.length<6 && <p style={{fontSize:10,color:'var(--danger)',margin:'3px 0 0'}}>Mín. 6 caracteres</p>}
                     </div>
                     <div>
                       <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Confirmar</label>
-                      <input type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} maxLength={20}
-                        placeholder="Repita a senha"
-                        style={iStyle(pwMatch===false?'error':pwMatch===true?'ok':undefined)}/>
+                      <div style={{position:'relative'}}>
+                        <input type={showConfirmProfile ? 'text' : 'password'} value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} maxLength={20}
+                          placeholder="Repita a senha"
+                          style={{...iStyle(pwMatch===false?'error':pwMatch===true?'ok':undefined), paddingRight:36}}/>
+                        <button type="button" onClick={()=>setShowConfirmProfile(v=>!v)}
+                          style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',display:'flex',alignItems:'center',padding:0}}>
+                          {showConfirmProfile ? IC.eyeOff : IC.eye}
+                        </button>
+                      </div>
                       {pwMatch===true  && <p style={{fontSize:10,color:'#10B981',margin:'3px 0 0'}}>✓ Senhas coincidem</p>}
                       {pwMatch===false && <p style={{fontSize:10,color:'var(--danger)',margin:'3px 0 0'}}>✗ Senhas diferentes</p>}
                     </div>

@@ -149,7 +149,7 @@ export const authOptions: NextAuthOptions = {
           canViewCRM:          user.canViewCRM,
           canViewTranscricoes: user.canViewTranscricoes,
           canViewSatisfacao:   user.canViewSatisfacao,
-          mustChangePassword:  false,
+          mustChangePassword:  user.mustChangePassword ?? false,
           rememberMe:          credentials.remember === 'true',
         }
       },

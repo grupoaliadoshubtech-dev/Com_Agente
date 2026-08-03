@@ -74,6 +74,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
       createdAt:           new Date().toISOString(),
       isActive:            true,
       avatarUrl:           '',
+      mustChangePassword:  true,
     })
     console.log('[recreate-user] usuário criado na planilha:', tenant.email)
 

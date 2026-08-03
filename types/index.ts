@@ -60,6 +60,7 @@ export interface UserRecord {
   createdAt: string
   isActive: boolean
   avatarUrl?: string
+  mustChangePassword?: boolean
 }
 
 // ── HANDOFF ───────────────────────────────────────────────────

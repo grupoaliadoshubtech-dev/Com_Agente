@@ -69,6 +69,7 @@ export async function POST(_req: NextRequest, { params }: Ctx): Promise<NextResp
         createdAt:           new Date().toISOString(),
         isActive:            true,
         avatarUrl:           '',
+        mustChangePassword:  true,
       })
       console.log('[aprovar] usuário criado na planilha:', lead.email)
     } catch (userErr) {

@@ -9,14 +9,14 @@
 //   A: id | B: tenantId | C: email | D: passwordHash | E: name
 //   F: role | G: phone | H: canViewDashboard | I: canViewCRM
 //   J: canViewTranscricoes | K: canViewSatisfacao
-//   L: createdAt | M: isActive
+//   L: createdAt | M: isActive | N: avatarUrl | O: mustChangePassword
 // ─────────────────────────────────────────────────────────────
 
 import { readRange, updateRange, smartAppend, rowsToObjects } from '@/lib/sheets/client'
 import type { UserRecord } from '@/types'
 
 const SHEET   = 'Usuarios'
-const RANGE   = `${SHEET}!A:N`
+const RANGE   = `${SHEET}!A:O`
 const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
 // ── Helpers internos ─────────────────────────────────────────
@@ -37,6 +37,7 @@ function parseUser(raw: Record<string, string>): UserRecord {
     createdAt:             raw.createdAt,
     isActive:              raw.isActive !== 'FALSE',
     avatarUrl:             raw.avatarUrl ?? '',
+    mustChangePassword:    raw.mustChangePassword === 'TRUE',
   }
 }
 
@@ -53,9 +54,10 @@ function userToRow(u: UserRecord): (string | boolean)[] {
     u.canViewCRM,          // I
     u.canViewTranscricoes, // J
     u.canViewSatisfacao,   // K
-    u.createdAt,           // L
-    u.isActive,            // M
-    u.avatarUrl ?? '',     // N
+    u.createdAt,                    // L
+    u.isActive,                    // M
+    u.avatarUrl ?? '',             // N
+    u.mustChangePassword ?? false, // O
   ]
 }
 
@@ -149,10 +151,10 @@ export class UsersRepository {
     return true
   }
 
-  /** Atualiza nome, passwordHash e/ou avatarUrl do usuário. */
+  /** Atualiza nome, passwordHash, avatarUrl e/ou mustChangePassword do usuário. */
   async updateProfile(
     userId: string,
-    data: { name?: string; passwordHash?: string; avatarUrl?: string }
+    data: { name?: string; passwordHash?: string; avatarUrl?: string; mustChangePassword?: boolean }
   ): Promise<boolean> {
     const rows = await readRange(this.spreadsheetId, RANGE)
     if (rows.length < 2) return false
@@ -176,6 +178,10 @@ export class UsersRepository {
     if (data.avatarUrl !== undefined) {
       const col = headers.indexOf('avatarUrl')
       if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.avatarUrl]]))
+    }
+    if (data.mustChangePassword !== undefined) {
+      const col = headers.indexOf('mustChangePassword')
+      if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.mustChangePassword]]))
     }
 
     await Promise.all(updates)

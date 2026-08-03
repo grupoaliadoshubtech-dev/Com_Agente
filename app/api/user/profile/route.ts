@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   const user = await repo.findById(session.user.id)
   if (!user) return NextResponse.json({ success: false, error: 'Usuário não encontrado' }, { status: 404 })
 
-  const update: { name?: string; passwordHash?: string; avatarUrl?: string } = {}
+  const update: { name?: string; passwordHash?: string; avatarUrl?: string; mustChangePassword?: boolean } = {}
 
   if (name !== undefined) update.name = name.trim()
 
@@ -82,6 +82,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const match = await bcrypt.compare(currentPassword!, user.passwordHash)
     if (!match) return NextResponse.json({ success: false, error: 'Senha atual incorreta', field: 'currentPassword' }, { status: 400 })
     update.passwordHash = await bcrypt.hash(newPassword, 12)
+    if (user.mustChangePassword) update.mustChangePassword = false
   }
 
   if (avatarUrl !== undefined) update.avatarUrl = avatarUrl
