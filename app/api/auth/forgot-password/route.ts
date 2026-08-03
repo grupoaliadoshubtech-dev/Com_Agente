@@ -57,8 +57,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const repo = new UsersRepository()
   const user = await repo.findByEmail(email)
 
-  // Responde sempre igual — não revela se o e-mail está cadastrado
+  // Responde sempre igual — não revela se o e-mail está cadastrado.
+  // Delay artificial equaliza o tempo de resposta com o fluxo real
+  // (busca + geração de token + envio de e-mail ≈ 1–2s),
+  // impedindo enumeração de usuários por timing.
   if (!user || !user.isActive) {
+    await new Promise(r => setTimeout(r, 1200 + Math.random() * 600))
     return NextResponse.json({ success: true })
   }
 
