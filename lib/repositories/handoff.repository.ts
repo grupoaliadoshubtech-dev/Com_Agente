@@ -10,7 +10,7 @@
 //   D: Atendente (ID do usuário logado)
 // ─────────────────────────────────────────────────────────────
 
-import { appendRows, readRange, deleteRows, getSheetId, rowsToObjects } from '@/lib/sheets/client'
+import { appendRows, readRange, rowsToObjects } from '@/lib/sheets/client'
 import type { HandoffRecord } from '@/types'
 
 const SHEET = 'Fila_Humana'
@@ -50,21 +50,21 @@ export class HandoffRepository {
   }
 
   /**
-   * Retoma IA para um cliente — apaga todas as linhas do telefone na fila.
-   * getStatus() sem registros retorna 'ativo' por padrão, então não precisa gravar nada.
+   * Retoma IA — grava linha com Status='ativo', mesma lógica do Retornar Global.
+   * getStatus() lê o registro mais recente, então 'ativo' sobrescreve qualquer 'pausado' anterior.
    */
-  async retomar(telefone: string): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
-
-    const indices: number[] = []
-    for (let i = 1; i < rows.length; i++) {
-      if ((rows[i][0] ?? '').trim() === telefone) indices.push(i)
-    }
-    if (indices.length === 0) return
-
-    const sheetId = await getSheetId(this.spreadsheetId, SHEET)
-    await deleteRows(this.spreadsheetId, sheetId, indices)
+  async retomar(telefone: string, atendenteId = 'sistema'): Promise<void> {
+    await appendRows(this.spreadsheetId, RANGE, [[
+      telefone,
+      'ativo',
+      new Date().toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false,
+      }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4'),
+      atendenteId,
+    ]])
   }
 
   /**
