@@ -22,9 +22,10 @@ declare module 'next-auth' {
       tenantName:          string
       canViewDashboard:    boolean
       canViewCRM:          boolean
-      canViewTranscricoes: boolean
-      canViewSatisfacao:   boolean
-      mustChangePassword:  boolean
+      canViewTranscricoes:  boolean
+      canViewSatisfacao:    boolean
+      canViewAgendamentos:  boolean
+      mustChangePassword:   boolean
     }
   }
   interface User {
@@ -34,10 +35,11 @@ declare module 'next-auth' {
     tenantName:          string
     canViewDashboard:    boolean
     canViewCRM:          boolean
-    canViewTranscricoes: boolean
-    canViewSatisfacao:   boolean
-    mustChangePassword:  boolean
-    rememberMe:          boolean
+    canViewTranscricoes:  boolean
+    canViewSatisfacao:    boolean
+    canViewAgendamentos:  boolean
+    mustChangePassword:   boolean
+    rememberMe:           boolean
   }
 }
 
@@ -49,10 +51,11 @@ declare module 'next-auth/jwt' {
     tenantName:          string
     canViewDashboard:    boolean
     canViewCRM:          boolean
-    canViewTranscricoes: boolean
-    canViewSatisfacao:   boolean
-    mustChangePassword:  boolean
-    rememberMe:          boolean
+    canViewTranscricoes:  boolean
+    canViewSatisfacao:    boolean
+    canViewAgendamentos:  boolean
+    mustChangePassword:   boolean
+    rememberMe:           boolean
   }
 }
 
@@ -120,9 +123,10 @@ export const authOptions: NextAuthOptions = {
             canViewDashboard:    demoUser.canViewDashboard,
             canViewCRM:          demoUser.canViewCRM,
             canViewTranscricoes: demoUser.canViewTranscricoes,
-            canViewSatisfacao:   demoUser.canViewSatisfacao,
-            mustChangePassword:  false,
-            rememberMe:          false,
+            canViewSatisfacao:    demoUser.canViewSatisfacao,
+            canViewAgendamentos:  demoUser.canViewAgendamentos,
+            mustChangePassword:   false,
+            rememberMe:           false,
           }
         }
 
@@ -148,8 +152,9 @@ export const authOptions: NextAuthOptions = {
           canViewDashboard:    user.canViewDashboard,
           canViewCRM:          user.canViewCRM,
           canViewTranscricoes: user.canViewTranscricoes,
-          canViewSatisfacao:   user.canViewSatisfacao,
-          mustChangePassword:  user.mustChangePassword ?? false,
+          canViewSatisfacao:    user.canViewSatisfacao,
+          canViewAgendamentos:  user.canViewAgendamentos,
+          mustChangePassword:   user.mustChangePassword ?? false,
           rememberMe:          credentials.remember === 'true',
         }
       },
@@ -172,6 +177,7 @@ export const authOptions: NextAuthOptions = {
         token.canViewCRM          = user.canViewCRM
         token.canViewTranscricoes = user.canViewTranscricoes
         token.canViewSatisfacao   = user.canViewSatisfacao
+        token.canViewAgendamentos = user.canViewAgendamentos
         token.mustChangePassword  = user.mustChangePassword
         token.rememberMe          = user.rememberMe ?? false
       }
@@ -187,8 +193,9 @@ export const authOptions: NextAuthOptions = {
       session.user.canViewDashboard    = token.canViewDashboard
       session.user.canViewCRM          = token.canViewCRM
       session.user.canViewTranscricoes = token.canViewTranscricoes
-      session.user.canViewSatisfacao   = token.canViewSatisfacao
-      session.user.mustChangePassword  = token.mustChangePassword ?? false
+      session.user.canViewSatisfacao    = token.canViewSatisfacao
+      session.user.canViewAgendamentos  = token.canViewAgendamentos ?? false
+      session.user.mustChangePassword   = token.mustChangePassword ?? false
       return session
     },
   },

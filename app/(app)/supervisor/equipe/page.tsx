@@ -7,6 +7,7 @@ interface Attendant {
   id: string; name: string; email: string; phone: string; role: string
   canViewDashboard: boolean; canViewCRM: boolean
   canViewTranscricoes: boolean; canViewSatisfacao: boolean
+  canViewAgendamentos: boolean
   createdAt: string; isActive: boolean
 }
 
@@ -25,7 +26,7 @@ export default function EquipePage() {
   const [form,    setForm]    = useState({ name: '', email: '', phone: '', password: '' })
   const [saving,  setSaving]  = useState(false)
   const [toggleOf, setToggleOf] = useState<Attendant | null>(null)
-  const [tog, setTog] = useState({ canViewDashboard: false, canViewCRM: false, canViewTranscricoes: false, canViewSatisfacao: false })
+  const [tog, setTog] = useState({ canViewDashboard: false, canViewCRM: false, canViewTranscricoes: false, canViewSatisfacao: false, canViewAgendamentos: false })
 
   function F(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
@@ -108,7 +109,7 @@ export default function EquipePage() {
                   <td style={{ ...td, fontSize: 12 }}>{fmtDate(u.createdAt)}</td>
                   <td style={td}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => { setToggleOf(u); setTog({ canViewDashboard: u.canViewDashboard, canViewCRM: u.canViewCRM, canViewTranscricoes: u.canViewTranscricoes, canViewSatisfacao: u.canViewSatisfacao }) }}
+                      <button onClick={() => { setToggleOf(u); setTog({ canViewDashboard: u.canViewDashboard, canViewCRM: u.canViewCRM, canViewTranscricoes: u.canViewTranscricoes, canViewSatisfacao: u.canViewSatisfacao, canViewAgendamentos: u.canViewAgendamentos }) }}
                         className="btn-outline" style={{ padding: '5px 10px', fontSize: 11, borderRadius: 6 }}>Permissões</button>
                       <button onClick={() => deactivate(u.id, u.name)}
                         style={{ padding: '5px 10px', fontSize: 11, borderRadius: 6, cursor: 'pointer', background: 'var(--danger-dim)', border: '1px solid rgba(239,68,68,.25)', color: '#FCA5A5', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Desativar</button>
@@ -161,7 +162,8 @@ export default function EquipePage() {
               <Toggle label="Dashboard" value={tog.canViewDashboard} onChange={v => setTog(t => ({ ...t, canViewDashboard: v }))} />
               <Toggle label="CRM / Clientes" value={tog.canViewCRM} onChange={v => setTog(t => ({ ...t, canViewCRM: v }))} />
               <Toggle label="Transcrições" value={tog.canViewTranscricoes} onChange={v => setTog(t => ({ ...t, canViewTranscricoes: v }))} />
-              <Toggle label="Satisfação" value={tog.canViewSatisfacao} onChange={v => setTog(t => ({ ...t, canViewSatisfacao: v }))} />
+              <Toggle label="Satisfação"    value={tog.canViewSatisfacao}    onChange={v => setTog(t => ({ ...t, canViewSatisfacao: v }))} />
+              <Toggle label="Agendamentos" value={tog.canViewAgendamentos} onChange={v => setTog(t => ({ ...t, canViewAgendamentos: v }))} />
               <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                 <button onClick={() => setToggleOf(null)} className="btn-outline" style={{ flex: 1, padding: '10px', fontSize: 13 }}>Cancelar</button>
                 <button onClick={saveToggles} className="btn-neon" style={{ flex: 1, padding: '10px', fontSize: 13 }}>Salvar</button>

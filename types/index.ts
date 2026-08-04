@@ -17,6 +17,7 @@ export interface AuthUser {
   canViewCRM: boolean
   canViewTranscricoes: boolean
   canViewSatisfacao: boolean
+  canViewAgendamentos: boolean
 }
 
 // ── TENANT (Empresa) ──────────────────────────────────────────
@@ -57,6 +58,7 @@ export interface UserRecord {
   canViewCRM: boolean
   canViewTranscricoes: boolean
   canViewSatisfacao: boolean
+  canViewAgendamentos: boolean
   createdAt: string
   isActive: boolean
   avatarUrl?: string
@@ -141,6 +143,19 @@ export interface DiagnosticoRecord {
   responses: string // JSON stringificado { "1.1": "...", ... }
   createdAt: string
   respondedAt: string
+}
+
+// ── AGENDAMENTOS ─────────────────────────────────────────────
+export interface AgendamentoRow {
+  _rowIndex: number
+  [key: string]: string | number
+}
+
+export interface AgendamentosData {
+  headers: string[]
+  dateCol: string | null
+  statusCol: string | null
+  records: AgendamentoRow[]
 }
 
 // ── API RESPONSE WRAPPER ──────────────────────────────────────

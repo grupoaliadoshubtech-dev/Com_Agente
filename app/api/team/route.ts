@@ -23,11 +23,12 @@ const CreateAttendantSchema = z.object({
 })
 
 const ToggleSchema = z.object({
-  userId:              z.string(),
-  canViewDashboard:    z.boolean(),
-  canViewCRM:          z.boolean(),
-  canViewTranscricoes: z.boolean(),
-  canViewSatisfacao:   z.boolean(),
+  userId:               z.string(),
+  canViewDashboard:     z.boolean(),
+  canViewCRM:           z.boolean(),
+  canViewTranscricoes:  z.boolean(),
+  canViewSatisfacao:    z.boolean(),
+  canViewAgendamentos:  z.boolean(),
 })
 
 function isSupervisorOrMaster(role?: string) {
@@ -133,6 +134,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse<ApiResponse>
       canViewCRM:          parsed.data.canViewCRM,
       canViewTranscricoes: parsed.data.canViewTranscricoes,
       canViewSatisfacao:   parsed.data.canViewSatisfacao,
+      canViewAgendamentos: parsed.data.canViewAgendamentos,
     })
     return NextResponse.json({ success: true, message: 'Permissões atualizadas' })
   } catch (err) {

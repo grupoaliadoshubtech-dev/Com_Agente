@@ -16,7 +16,7 @@ import { readRange, updateRange, smartAppend, rowsToObjects } from '@/lib/sheets
 import type { UserRecord } from '@/types'
 
 const SHEET   = 'Usuarios'
-const RANGE   = `${SHEET}!A:O`
+const RANGE   = `${SHEET}!A:P`
 const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
 // ── Helpers internos ─────────────────────────────────────────
@@ -34,6 +34,7 @@ function parseUser(raw: Record<string, string>): UserRecord {
     canViewCRM:            raw.canViewCRM === 'TRUE',
     canViewTranscricoes:   raw.canViewTranscricoes === 'TRUE',
     canViewSatisfacao:     raw.canViewSatisfacao === 'TRUE',
+    canViewAgendamentos:   raw.canViewAgendamentos === 'TRUE',
     createdAt:             raw.createdAt,
     isActive:              raw.isActive !== 'FALSE',
     avatarUrl:             raw.avatarUrl ?? '',
@@ -57,7 +58,8 @@ function userToRow(u: UserRecord): (string | boolean)[] {
     u.createdAt,                    // L
     u.isActive,                    // M
     u.avatarUrl ?? '',             // N
-    u.mustChangePassword ?? false, // O
+    u.mustChangePassword ?? false,  // O
+    u.canViewAgendamentos ?? false, // P
   ]
 }
 
@@ -80,7 +82,8 @@ export class UsersRepository {
         const raw: Record<string, string> = {}
         headers.forEach((h, i) => { if (h) raw[h] = r[i] ?? '' })
         // leitura posicional da coluna O (índice 14) independente do cabeçalho
-        raw.mustChangePassword = r[14] ?? ''
+        raw.mustChangePassword    = r[14] ?? ''
+        raw.canViewAgendamentos   = r[15] ?? ''
         return parseUser(raw)
       })
       .filter(u => u.isActive)
@@ -117,31 +120,35 @@ export class UsersRepository {
     userId: string,
     toggles: Pick<
       UserRecord,
-      'canViewDashboard' | 'canViewCRM' | 'canViewTranscricoes' | 'canViewSatisfacao'
+      'canViewDashboard' | 'canViewCRM' | 'canViewTranscricoes' | 'canViewSatisfacao' | 'canViewAgendamentos'
     >
   ): Promise<void> {
     const rows = await readRange(this.spreadsheetId, RANGE)
     if (rows.length < 2) return
 
-    const headers = rows[0]
-    const idCol   = headers.indexOf('id')
-
+    const headers  = rows[0]
+    const idCol    = headers.indexOf('id')
     const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === userId)
     if (rowIndex === -1) throw new Error(`Usuário ${userId} não encontrado.`)
 
-    // Sheets rows são 1-indexed, +1 para pular cabeçalho
     const sheetRow = rowIndex + 1
 
-    await updateRange(
-      this.spreadsheetId,
-      `${SHEET}!H${sheetRow}:K${sheetRow}`,
-      [[
+    // H-K: os 4 toggles originais (posições fixas no sheet)
+    const updates: Promise<void>[] = [
+      updateRange(this.spreadsheetId, `${SHEET}!H${sheetRow}:K${sheetRow}`, [[
         toggles.canViewDashboard,
         toggles.canViewCRM,
         toggles.canViewTranscricoes,
         toggles.canViewSatisfacao,
-      ]]
-    )
+      ]])
+    ]
+
+    // canViewAgendamentos — coluna P (índice 15), ou pelo cabeçalho se presente
+    const agCol = headers.indexOf('canViewAgendamentos')
+    const agLetter = agCol !== -1 ? String.fromCharCode(65 + agCol) : 'P'
+    updates.push(updateRange(this.spreadsheetId, `${SHEET}!${agLetter}${sheetRow}`, [[toggles.canViewAgendamentos]]))
+
+    await Promise.all(updates)
   }
 
   /** Redefine o passwordHash de um usuário pelo e-mail. */
