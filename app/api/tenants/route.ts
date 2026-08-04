@@ -93,7 +93,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
       canViewDashboard:    true,
       canViewCRM:          true,
       canViewTranscricoes: true,
-      canViewSatisfacao:   true,
+      canViewSatisfacao:    true,
+      canViewAgendamentos:  false,
       createdAt:           new Date().toISOString(),
       isActive:            true,
     }
