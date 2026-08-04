@@ -216,7 +216,23 @@ export default function CRMPage() {
   // ── Render ─────────────────────────────────────────────────
 
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: 'var(--txt-2)' }}><span className="spinner" style={{ width: 18, height: 18 }} /><span style={{ fontSize: 13 }}>Carregando CRM...</span></div>
-  if (error) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 10 }}><p style={{ color: 'var(--danger)', fontSize: 14 }}>{error}</p><button className="btn-outline" onClick={load} style={{ padding: '8px 16px', fontSize: 13 }}>Tentar novamente</button></div>
+  if (error) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',padding:24}}>
+      <div className="card" style={{maxWidth:440,width:'100%',padding:'36px 32px',textAlign:'center'}}>
+        <div style={{fontSize:40,marginBottom:16}}>🗄️</div>
+        <div className="font-display" style={{fontSize:17,fontWeight:700,color:'var(--txt)',marginBottom:10}}>Banco de dados não configurado</div>
+        <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.7,marginBottom:24}}>
+          Os dados do CRM ainda não estão disponíveis para sua empresa.<br/>
+          Entre em contato com a{' '}
+          <span style={{fontFamily:"'Syne',sans-serif",fontWeight:700,color:'var(--txt)'}}>
+            Com<span style={{color:'var(--neon)'}}>Agente</span>
+          </span>
+          {' '}para solicitar o cadastramento do seu banco de dados.
+        </p>
+        <button className="btn-outline" onClick={load} style={{padding:'9px 20px',fontSize:13}}>↻ Tentar novamente</button>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
