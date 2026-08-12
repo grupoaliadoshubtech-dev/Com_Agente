@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>31 de julho de 2026</strong> (v2.7)<br>
+    Documento consolidado e atualizado — <strong>01 de agosto de 2026</strong> (v2.8)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -189,6 +189,7 @@
       <tr><td>26/07/2026</td><td>2.5</td><td>Preview WhatsApp (OG image, URL limpa), 2ª auditoria de segurança — 6 novas vulnerabilidades corrigidas, 3 pendências de segurança catalogadas</td></tr>
       <tr><td>30/07/2026</td><td>2.6</td><td>Scroll instantâneo ao abrir conversa, badge dinâmico (chats pausados), indicador colorido de estado na lista, sync de badges, timestamps handoff no fuso de Brasília</td></tr>
       <tr><td>31/07/2026</td><td>2.7</td><td>Botão Pausar/Retornar Global redesenhado (sólido + pulse animation, 4 modos), pausa automática ao redefinir senha do cliente, modal de aviso ao logar com IA pausada</td></tr>
+      <tr><td>01/08/2026</td><td>2.8</td><td>Migração completa de dados operacionais para Supabase PostgreSQL: 4 migrações SQL (006–009), import completo Lucena Decorações e TrackerMap, 3 novos repositórios TypeScript, auto-provisionamento de schema ao cadastrar empresa, função create_tenant_schema() com 14 tabelas padronizadas</td></tr>
     </tbody>
   </table>
 </div>
@@ -208,7 +209,8 @@
   <tbody>
     <tr><td>Frontend/Backend</td><td>Next.js 14.2.5 (App Router)</td></tr>
     <tr><td>Autenticação</td><td>NextAuth.js v4 com JWT</td></tr>
-    <tr><td>Banco de dados</td><td>Google Sheets API (via service account)</td></tr>
+    <tr><td>Banco de dados (operacional)</td><td>Supabase PostgreSQL — schemas multi-tenant (<code>tenant_lucena</code>, <code>tenant_trackermap</code>, …)</td></tr>
+    <tr><td>Banco de dados (config/master)</td><td>Google Sheets API (via service account) — planilha master: Usuarios, Empresas, Planos</td></tr>
     <tr><td>WhatsApp</td><td>Evolution API v2 (auto-hospedada)</td></tr>
     <tr><td>IA</td><td>n8n + Gemini (Google)</td></tr>
     <tr><td>E-mail</td><td>Nodemailer (SMTP)</td></tr>
@@ -244,12 +246,24 @@
 <p>O ComAgente <strong>NÃO</strong> intercepta o webhook. Lê mensagens diretamente do PostgreSQL da Evolution API via polling. O n8n continua recebendo tudo normalmente.</p>
 
 <h3>2.2 Modelo Multi-tenant</h3>
-<p>Cada cliente (tenant) tem sua própria planilha Google Sheets como banco de dados isolado. O <code>tenantId</code> de cada usuário é o próprio ID da planilha.</p>
+<p>O sistema usa dois bancos em paralelo: <strong>Google Sheets</strong> para dados globais de configuração (master) e <strong>Supabase PostgreSQL</strong> para dados operacionais de cada tenant (desde v2.8).</p>
+
+<h4 style="font-size:13px;font-weight:700;margin:12px 0 6px">Google Sheets — Dados Globais (Master)</h4>
 <table>
   <thead><tr><th>Planilha</th><th>ID</th><th>Abas</th></tr></thead>
   <tbody>
     <tr><td>Master</td><td><code>1YwEjf8So9vQ-MEPqzc1zERiwF8hvUW9w8U3JuyhfjEc</code></td><td>Usuarios, Empresas, Planos, Leads, ResetTokens, Blacklist, Log_Erros</td></tr>
-    <tr><td>Lucena Decorações</td><td><code>1fvrlD2raZxlVyzhLGPxoY7cRJiq1iUwwdwO3d-vMBOA</code></td><td>Atendimentos, Fila_Humana, Clientes, Satisfacao, Templates, Distribuicao</td></tr>
+  </tbody>
+</table>
+
+<h4 style="font-size:13px;font-weight:700;margin:12px 0 6px">Supabase PostgreSQL — Dados Operacionais por Tenant</h4>
+<table>
+  <thead><tr><th>Schema</th><th>Empresa</th><th>Tabelas</th></tr></thead>
+  <tbody>
+    <tr><td><code>app</code></td><td>Global</td><td>empresas, usuarios, planos</td></tr>
+    <tr><td><code>tenant_lucena</code></td><td>Lucena Decorações</td><td>14 tabelas padrão — migradas em v2.8</td></tr>
+    <tr><td><code>tenant_trackermap</code></td><td>TrackerMap</td><td>14 tabelas padrão — migradas em v2.8</td></tr>
+    <tr><td><code>tenant_lucena_radija</code></td><td>Lucena Radija</td><td>14 tabelas padrão — dados pendentes</td></tr>
   </tbody>
 </table>
 
@@ -274,6 +288,46 @@
 <pre>postgres://postgres:04ce48cc2b28b2ce0eaf@agenciadia_evolution-api-db:5432/agenciadia</pre>
 <p>Variável de ambiente: <code>EVOLUTION_DB_URL</code> | Banco: <code>agenciadia</code></p>
 <p>O ComAgente acessa diretamente o PostgreSQL para buscar mensagens recebidas (@lid), contornando bug da Evolution API que retorna apenas <code>fromMe: true</code> via HTTP.</p>
+
+<h3>2.6 Supabase PostgreSQL — Banco Operacional (adicionado em 01/08/2026)</h3>
+<p>Banco de dados principal para dados operacionais de cada tenant. Usa <strong>schemas separados por empresa</strong> (Separate Schema Multi-tenancy). A função <code>public.create_tenant_schema(schema_name TEXT)</code> provisiona automaticamente as 14 tabelas padrão ao cadastrar uma nova empresa.</p>
+
+<table>
+  <thead><tr><th>Schema</th><th>Empresa</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td><code>app</code></td><td>Schema global — <code>app.empresas</code>, <code>app.usuarios</code>, <code>app.planos</code></td><td><span class="ok">✓ Ativo</span></td></tr>
+    <tr><td><code>tenant_lucena</code></td><td>Lucena Decorações</td><td><span class="ok">✓ Migrado (v2.8)</span></td></tr>
+    <tr><td><code>tenant_trackermap</code></td><td>TrackerMap</td><td><span class="ok">✓ Migrado (v2.8)</span></td></tr>
+    <tr><td><code>tenant_lucena_radija</code></td><td>Lucena Radija</td><td><span class="pend">■ Pendente</span></td></tr>
+  </tbody>
+</table>
+
+<h4 style="font-size:13px;font-weight:700;margin:16px 0 8px">14 Tabelas Padrão por Tenant</h4>
+<table>
+  <thead><tr><th>Tabela</th><th>Função</th></tr></thead>
+  <tbody>
+    <tr><td><code>clientes</code></td><td>Base de contatos (telefone PK, nome, status, etapa, tags, …)</td></tr>
+    <tr><td><code>atendimentos</code></td><td>Histórico de atendimentos finalizados</td></tr>
+    <tr><td><code>satisfacao</code></td><td>Notas de satisfação dos atendimentos</td></tr>
+    <tr><td><code>fila_humana</code></td><td>Chats em atendimento humano (telefone, status, timestamp, atendente)</td></tr>
+    <tr><td><code>templates</code></td><td>Mensagens prontas para supervisor/atendente</td></tr>
+    <tr><td><code>blacklist</code></td><td>Números bloqueados localmente pelo tenant</td></tr>
+    <tr><td><code>log_erros</code></td><td>Log de erros de integração (n8n, Evolution API)</td></tr>
+    <tr><td><code>agendamentos</code></td><td>Agendamentos via IA (JSONB)</td></tr>
+    <tr><td><code>distribuicao</code></td><td>Distribuição de chats entre atendentes</td></tr>
+    <tr><td><code>log_distribuicao</code></td><td>Log de ações de distribuição</td></tr>
+    <tr><td><code>transcricoes</code></td><td>Logs de mensagens / transcrições de atendimentos</td></tr>
+    <tr><td><code>instancia</code></td><td>Nome/configuração da instância do tenant</td></tr>
+    <tr><td><code>primeiros_contatos</code></td><td>Leads / primeiros contatos aguardando retorno</td></tr>
+    <tr><td><code>conhecimento</code></td><td>Base de conhecimento FAQ da IA (UNIQUE por pergunta)</td></tr>
+  </tbody>
+</table>
+
+<h4 style="font-size:13px;font-weight:700;margin:16px 0 8px">Auto-provisionamento ao criar empresa</h4>
+<p>Em <code>app/api/tenants/route.ts</code> (POST), ao cadastrar nova empresa:</p>
+<pre>await execute(`SELECT create_tenant_schema($1)`, [d.supabaseSchema])
+await execute(`INSERT INTO ${d.supabaseSchema}.instancia (empresa) VALUES ($1) ON CONFLICT DO NOTHING`, [d.name])</pre>
+<p>Schema criado, 14 tabelas provisionadas e instancia populada automaticamente. Falhas ignoradas (schema pode já existir).</p>
 
 
 <!-- ══════════════════════════════════════════════════════════
@@ -413,6 +467,8 @@
     <tr><td>PORT</td><td><span class="ok">✓</span></td><td>3001</td></tr>
     <tr><td>NODE_ENV</td><td><span class="ok">✓</span></td><td>production</td></tr>
     <tr><td>SMTP_*</td><td><span class="fail">✗ NÃO configurado</span></td><td>Pendente</td></tr>
+    <tr><td>SUPABASE_URL</td><td><span class="ok">✓ Configurada</span></td><td>URL do projeto Supabase (adicionada em 01/08/2026)</td></tr>
+    <tr><td>SUPABASE_SERVICE_KEY</td><td><span class="ok">✓ Configurada</span></td><td>Service role key — acesso pleno ao Supabase</td></tr>
   </tbody>
 </table>
 
@@ -1317,6 +1373,114 @@ curl -I http://localhost:3001</pre>
   <p><strong>Arquivo:</strong> <code>app/(app)/layout.tsx</code>.</p>
 </div>
 
+<!-- ═════════════════════════════════════════════════════════
+     v2.8 — Migração Supabase PostgreSQL (01/08/2026)
+════════════════════════════════════════════════════════ -->
+
+<div class="pend-card done">
+  <h4>6.72 Migration 006 — Transcricoes Lucena Decorações (01/08/2026)</h4>
+  <p>Criada tabela <code>tenant_lucena.transcricoes</code> e importados <strong>516 registros</strong> do histórico de atendimentos da planilha Google Sheets (aba "Atendimentos").</p>
+  <p>Separação de conceitos: a aba "Atendimentos" da planilha continha na verdade logs de mensagens/transcrições, não sessões de atendimento. A tabela <code>transcricoes</code> reflete essa semântica corretamente, enquanto <code>atendimentos</code> fica reservada para sessões estruturadas.</p>
+  <p><strong>Arquivo:</strong> <code>supabase/migrations/006_lucena_transcricoes.sql</code></p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.73 Migration 007 — Lucena Decorações: Tabelas Completas (01/08/2026)</h4>
+  <p>Completou a migração das 11 abas da planilha Lucena para o Supabase. Novas tabelas criadas e populadas:</p>
+  <table>
+    <thead><tr><th>Tabela</th><th>Registros</th><th>Observação</th></tr></thead>
+    <tbody>
+      <tr><td><code>tenant_lucena.instancia</code></td><td>1</td><td>Nome: "Lucena Decorações"</td></tr>
+      <tr><td><code>tenant_lucena.primeiros_contatos</code></td><td>2</td><td>2 leads iniciais</td></tr>
+      <tr><td><code>tenant_lucena.conhecimento</code></td><td>0</td><td>Vazia — alimentada pelo sistema. UNIQUE(pergunta)</td></tr>
+      <tr><td><code>tenant_lucena.transcricoes</code></td><td>516</td><td>Garantia: recria se migration 006 não foi executada</td></tr>
+    </tbody>
+  </table>
+  <p>Também inseridos/verificados 4 usuários em <code>app.usuarios</code>: Maicom (canecassa@gmail.com), Lucena, Lucena Decorações, Radija Lucena. Uso de <code>WHERE NOT EXISTS</code> para idempotência (evita conflito de constraint única em email).</p>
+  <p>Migration 007 também atualiza <code>public.create_tenant_schema()</code> para incluir as novas tabelas em todos os tenants futuros.</p>
+  <p><strong>Erros corrigidos durante execução:</strong></p>
+  <ul>
+    <li><code>column "schema_name" does not exist</code> → coluna correta é <code>supabase_schema</code> em <code>app.empresas</code></li>
+    <li><code>duplicate key violates unique constraint "idx_usuarios_email"</code> → substituído <code>ON CONFLICT (id) DO NOTHING</code> por <code>WHERE NOT EXISTS (...OR email = ...)</code></li>
+  </ul>
+  <p><strong>Arquivo:</strong> <code>supabase/migrations/007_lucena_tabelas_completas.sql</code></p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.74 Migration 008 — TrackerMap: Importação Completa (01/08/2026)</h4>
+  <p>Criadas 4 novas tabelas para o schema <code>tenant_trackermap</code> e importados todos os dados operacionais da planilha Google Sheets da TrackerMap.</p>
+  <table>
+    <thead><tr><th>Tabela</th><th>Registros</th></tr></thead>
+    <tbody>
+      <tr><td><code>tenant_trackermap.instancia</code></td><td>1</td></tr>
+      <tr><td><code>tenant_trackermap.clientes</code></td><td>26 <em>(+ coluna <code>cpj TEXT DEFAULT ''</code> adicionada via ALTER TABLE)</em></td></tr>
+      <tr><td><code>tenant_trackermap.transcricoes</code></td><td>23</td></tr>
+      <tr><td><code>tenant_trackermap.satisfacao</code></td><td>2</td></tr>
+      <tr><td><code>tenant_trackermap.primeiros_contatos</code></td><td>4</td></tr>
+      <tr><td><code>tenant_trackermap.fila_humana</code></td><td>1</td></tr>
+      <tr><td><code>tenant_trackermap.conhecimento</code></td><td>0 (vazia)</td></tr>
+    </tbody>
+  </table>
+  <p>Abas não importadas: Log_Erros (120 linhas vazias), Usuarios (mesmos do master, já existentes).</p>
+  <p><strong>Erro corrigido:</strong> <code>column "nome" of relation "fila_humana" does not exist</code> → colunas corretas confirmadas via <code>001_initial_schema.sql</code>: <code>telefone, status, timestamp, atendente</code>.</p>
+  <p><strong>Arquivo:</strong> <code>supabase/migrations/008_migrate_trackermap.sql</code></p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.75 Migration 009 — Fix create_tenant_schema(): 14 Tabelas Corretas (01/08/2026)</h4>
+  <p>A versão da função em <code>007</code> tinha definição incorreta da tabela <code>fila_humana</code> (usava colunas <code>nome</code> e <code>motivo</code> de uma definição antiga). Migration 009 fornece a versão definitiva e canônica com todas as 14 tabelas corretas.</p>
+  <p><strong>Correção crítica em <code>fila_humana</code>:</strong></p>
+  <pre>-- ERRADO (007):   nome TEXT, motivo TEXT, created_at TIMESTAMPTZ
+-- CORRETO (009):  telefone TEXT NOT NULL, status TEXT DEFAULT 'pausado', timestamp TIMESTAMPTZ, atendente TEXT</pre>
+  <p>Todos os novos tenants criados a partir desta migration recebem automaticamente o schema correto via <code>SELECT create_tenant_schema('tenant_nome')</code>.</p>
+  <p><strong>Arquivo:</strong> <code>supabase/migrations/009_fix_create_tenant_schema.sql</code></p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.76 Novos Repositórios TypeScript — Supabase (01/08/2026)</h4>
+  <p>Adicionadas 3 classes de repositório em <code>lib/repositories/analytics.repository.ts</code> para as novas tabelas do schema operacional:</p>
+  <table>
+    <thead><tr><th>Classe</th><th>Tabela</th><th>Métodos</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>PrimeirosContatosRepository</code></td>
+        <td><code>{schema}.primeiros_contatos</code></td>
+        <td><code>findAll()</code>, <code>findByPhone()</code>, <code>updateStatus()</code>, <code>create()</code></td>
+      </tr>
+      <tr>
+        <td><code>ConhecimentoRepository</code></td>
+        <td><code>{schema}.conhecimento</code></td>
+        <td><code>findAll(onlyActive)</code>, <code>findByCategoria()</code>, <code>upsert()</code> — usa UNIQUE(pergunta)</td>
+      </tr>
+      <tr>
+        <td><code>InstanciaRepository</code></td>
+        <td><code>{schema}.instancia</code></td>
+        <td><code>get()</code>, <code>setEmpresa()</code></td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Todas recebem o <code>schema</code> como parâmetro no constructor e usam <code>${this.schema}.tablename</code> para isolamento multi-tenant.</p>
+</div>
+
+<div class="pend-card done">
+  <h4>6.77 Auto-provisionamento de Schema ao Cadastrar Empresa (01/08/2026)</h4>
+  <p>Ao registrar uma nova empresa via <code>POST /api/tenants</code>, o sistema agora cria automaticamente o schema Supabase com todas as 14 tabelas e popula a tabela <code>instancia</code> com o nome da empresa.</p>
+  <p><strong>Fluxo:</strong></p>
+  <ol>
+    <li><code>SELECT create_tenant_schema('tenant_nome')</code> — cria schema + 14 tabelas</li>
+    <li><code>INSERT INTO tenant_nome.instancia (empresa) VALUES ($1) ON CONFLICT DO NOTHING</code></li>
+    <li>Cria registro em <code>app.empresas</code> com <code>supabase_schema</code></li>
+    <li>Cria usuário Supervisor em <code>app.usuarios</code></li>
+  </ol>
+  <p>Erros no passo 1–2 são ignorados (schema pode já existir). Isso garante idempotência e não bloqueia o cadastro.</p>
+  <p><strong>Arquivo:</strong> <code>app/api/tenants/route.ts</code></p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.78 Migração tenant_lucena_radija — PENDENTE</h4>
+  <p>O schema <code>tenant_lucena_radija</code> existe no Supabase mas nenhum dado foi migrado da planilha Google Sheets correspondente ainda.</p>
+</div>
+
 <div class="pend-card open">
   <h4>6.62 String(err) exposto nas respostas de erro — PENDENTE</h4>
   <p><strong>Vulnerabilidade (BAIXA):</strong> Vários endpoints retornam <code>String(err)</code> diretamente no corpo da resposta HTTP em caso de erro interno. Isso pode vazar nomes de variáveis internas, caminhos de arquivos, mensagens de conexão com banco de dados ou chaves de configuração.</p>
@@ -1335,7 +1499,7 @@ curl -I http://localhost:3001</pre>
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 2.7 | 31 de julho de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 2.8 | 01 de agosto de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
