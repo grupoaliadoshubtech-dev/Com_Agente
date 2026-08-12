@@ -202,9 +202,9 @@ BEGIN
     CREATE TABLE IF NOT EXISTS %I.fila_humana (
       id         BIGSERIAL PRIMARY KEY,
       telefone   TEXT NOT NULL,
-      nome       TEXT DEFAULT '''',
-      motivo     TEXT DEFAULT '''',
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      status     TEXT NOT NULL DEFAULT ''pausado'',
+      timestamp  TIMESTAMPTZ DEFAULT NOW(),
+      atendente  TEXT DEFAULT ''''
     )', schema_name);
 
   EXECUTE format('

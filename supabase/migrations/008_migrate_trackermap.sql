@@ -177,8 +177,8 @@ WHERE NOT EXISTS (SELECT 1 FROM tenant_trackermap.primeiros_contatos WHERE telef
 -- Mapeamento: Status→motivo, Atendente→nome, Timestamp→created_at
 -- ══════════════════════════════════════════════════════════════════
 
-INSERT INTO tenant_trackermap.fila_humana (telefone, nome, motivo, created_at)
-SELECT '5516994985975', 'ComAgente - Rogério', 'pausado', '2026-08-11 13:56:01'
+INSERT INTO tenant_trackermap.fila_humana (telefone, status, timestamp, atendente)
+SELECT '5516994985975', 'pausado', '2026-08-11 13:56:01', 'ComAgente - Rogério'
 WHERE NOT EXISTS (SELECT 1 FROM tenant_trackermap.fila_humana WHERE telefone = '5516994985975');
 
 
