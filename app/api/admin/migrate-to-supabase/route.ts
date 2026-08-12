@@ -14,11 +14,25 @@ const SECRET    = process.env.MIGRATION_SECRET ?? 'comagente-migrate-2026'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+// GET: pode ser chamado direto pelo navegador
+// /api/admin/migrate-to-supabase?secret=comagente-migrate-2026
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const secret = req.nextUrl.searchParams.get('secret')
+  if (secret !== SECRET) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+  return runMigration()
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Autenticação simples por secret header
   if (req.headers.get('x-migration-secret') !== SECRET) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
+  return runMigration()
+}
+
+async function runMigration(): Promise<NextResponse> {
 
   const log: string[] = []
   const errors: string[] = []
