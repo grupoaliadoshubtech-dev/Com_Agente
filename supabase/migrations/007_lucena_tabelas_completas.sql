@@ -100,7 +100,7 @@ DO $$
 DECLARE
   v_tenant_id TEXT;
 BEGIN
-  SELECT id INTO v_tenant_id FROM app.empresas WHERE schema_name = 'tenant_lucena' LIMIT 1;
+  SELECT id INTO v_tenant_id FROM app.empresas WHERE supabase_schema = 'tenant_lucena' LIMIT 1;
 
   IF v_tenant_id IS NULL THEN
     RAISE NOTICE 'tenant_lucena não encontrado em app.empresas — usuarios não inseridos';
@@ -328,4 +328,4 @@ SELECT 'tenant_lucena.agendamentos'       AS tabela, COUNT(*) AS total FROM tena
 SELECT 'app.usuarios (lucena)'            AS tabela, COUNT(*) AS total
   FROM app.usuarios u
   JOIN app.empresas e ON u.tenant_id = e.id
-  WHERE e.schema_name = 'tenant_lucena';
+  WHERE e.supabase_schema = 'tenant_lucena';
