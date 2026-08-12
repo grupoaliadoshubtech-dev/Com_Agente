@@ -140,6 +140,110 @@ export class SatisfacaoRepository {
   }
 }
 
+// ── Transcrições ──────────────────────────────────────────────
+
+export interface TranscricaoRecord {
+  id:          number
+  timestamp:   string
+  telefone:    string
+  nome:        string
+  intencao:    string
+  sentimento:  string
+  transcricao: string
+  preview:     string
+}
+
+export class TranscricoesRepository {
+  constructor(private schema: string) {}
+
+  async findAll(): Promise<TranscricaoRecord[]> {
+    try {
+      const rows = await query(
+        `SELECT id, timestamp, telefone, nome, intencao, sentimento, transcricao, preview
+         FROM ${this.schema}.transcricoes ORDER BY timestamp DESC`
+      )
+      return rows.map(r => ({
+        id:          Number(r.id),
+        timestamp:   r.timestamp ? new Date(r.timestamp as string).toISOString() : '',
+        telefone:    String(r.telefone   ?? ''),
+        nome:        String(r.nome       ?? ''),
+        intencao:    String(r.intencao   ?? ''),
+        sentimento:  String(r.sentimento ?? ''),
+        transcricao: String(r.transcricao ?? ''),
+        preview:     String(r.preview    ?? ''),
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  async findByPhone(telefone: string): Promise<TranscricaoRecord[]> {
+    try {
+      const rows = await query(
+        `SELECT * FROM ${this.schema}.transcricoes WHERE telefone = $1 ORDER BY timestamp DESC`,
+        [telefone]
+      )
+      return rows.map(r => ({
+        id:          Number(r.id),
+        timestamp:   r.timestamp ? new Date(r.timestamp as string).toISOString() : '',
+        telefone:    String(r.telefone   ?? ''),
+        nome:        String(r.nome       ?? ''),
+        intencao:    String(r.intencao   ?? ''),
+        sentimento:  String(r.sentimento ?? ''),
+        transcricao: String(r.transcricao ?? ''),
+        preview:     String(r.preview    ?? ''),
+      }))
+    } catch {
+      return []
+    }
+  }
+}
+
+// ── Agendamentos ──────────────────────────────────────────────
+
+export interface AgendamentoRecord {
+  id:        number
+  data:      Record<string, string>
+  createdAt: string
+  updatedAt: string
+}
+
+export class AgendamentosRepository {
+  constructor(private schema: string) {}
+
+  async findAll(): Promise<AgendamentoRecord[]> {
+    try {
+      const rows = await query(
+        `SELECT id, data, created_at, updated_at
+         FROM ${this.schema}.agendamentos ORDER BY created_at DESC`
+      )
+      return rows.map(r => ({
+        id:        Number(r.id),
+        data:      (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as Record<string, string>,
+        createdAt: r.created_at ? new Date(r.created_at as string).toISOString() : '',
+        updatedAt: r.updated_at ? new Date(r.updated_at as string).toISOString() : '',
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  async create(data: Record<string, string>): Promise<AgendamentoRecord> {
+    const rows = await query<{ id: number; created_at: string; updated_at: string }>(
+      `INSERT INTO ${this.schema}.agendamentos (data) VALUES ($1::jsonb)
+       RETURNING id, created_at, updated_at`,
+      [JSON.stringify(data)]
+    )
+    const r = rows[0]
+    return {
+      id:        Number(r.id),
+      data,
+      createdAt: new Date(r.created_at).toISOString(),
+      updatedAt: new Date(r.updated_at).toISOString(),
+    }
+  }
+}
+
 // ── CRM / Clientes — FASE 4 ──────────────────────────────────
 
 export class ClientesRepository {
