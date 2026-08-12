@@ -66,9 +66,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
   try {
     const tenantId = randomUUID()
 
-    // 1. Cria o schema do tenant no Supabase (se não existir)
+    // 1. Cria o schema do tenant no Supabase com todas as tabelas padrão
     try {
       await execute(`SELECT create_tenant_schema($1)`, [d.supabaseSchema])
+      await execute(
+        `INSERT INTO ${d.supabaseSchema}.instancia (empresa) VALUES ($1) ON CONFLICT DO NOTHING`,
+        [d.name]
+      )
     } catch {
       // Schema pode já existir — ignorar
     }
