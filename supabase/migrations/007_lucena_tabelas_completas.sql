@@ -111,45 +111,37 @@ BEGIN
   INSERT INTO app.usuarios (id, tenant_id, email, password_hash, name, role, phone,
     can_view_dashboard, can_view_crm, can_view_transcricoes, can_view_satisfacao,
     can_view_agendamentos, created_at, is_active)
-  VALUES (
-    '84ee4df8-bb14-4019-ae09-a92f4a39f27b', v_tenant_id,
+  SELECT '84ee4df8-bb14-4019-ae09-a92f4a39f27b', v_tenant_id,
     'canecassa@gmail.com', '', 'Maicom', 'supervisor', '71981914361',
-    true, true, true, true, true,
-    '2026-04-11T02:42:14.750Z', true
-  ) ON CONFLICT (id) DO NOTHING;
+    true, true, true, true, true, '2026-04-11T02:42:14.750Z', true
+  WHERE NOT EXISTS (SELECT 1 FROM app.usuarios WHERE id = '84ee4df8-bb14-4019-ae09-a92f4a39f27b' OR email = 'canecassa@gmail.com');
 
   -- Lucena
   INSERT INTO app.usuarios (id, tenant_id, email, password_hash, name, role, phone,
     can_view_dashboard, can_view_crm, can_view_transcricoes, can_view_satisfacao,
     can_view_agendamentos, created_at, is_active)
-  VALUES (
-    'be261c54-98f1-40b4-bfd1-459b259ad2b7', v_tenant_id,
+  SELECT 'be261c54-98f1-40b4-bfd1-459b259ad2b7', v_tenant_id,
     'lucena@gmail.com', '', 'Lucena', 'supervisor', '71981914361',
-    true, true, true, true, true,
-    '2026-04-11T02:57:02.346Z', true
-  ) ON CONFLICT (id) DO NOTHING;
+    true, true, true, true, true, '2026-04-11T02:57:02.346Z', true
+  WHERE NOT EXISTS (SELECT 1 FROM app.usuarios WHERE id = 'be261c54-98f1-40b4-bfd1-459b259ad2b7' OR email = 'lucena@gmail.com');
 
-  -- Lucena Decorações
+  -- Lucena Decorações (mesmo email que Lucena — só insere se nenhum dos dois já existe)
   INSERT INTO app.usuarios (id, tenant_id, email, password_hash, name, role, phone,
     can_view_dashboard, can_view_crm, can_view_transcricoes, can_view_satisfacao,
     can_view_agendamentos, created_at, is_active)
-  VALUES (
-    'dddb49d8-d07c-4c98-a441-8b724e63d8c8', v_tenant_id,
-    'lucena@gmail.com', '', 'Lucena Decorações', 'supervisor', '7181914361',
-    true, true, true, true, true,
-    '2026-04-11T03:03:30.944Z', true
-  ) ON CONFLICT (id) DO NOTHING;
+  SELECT 'dddb49d8-d07c-4c98-a441-8b724e63d8c8', v_tenant_id,
+    'lucena+decoracoes@gmail.com', '', 'Lucena Decorações', 'supervisor', '7181914361',
+    true, true, true, true, true, '2026-04-11T03:03:30.944Z', true
+  WHERE NOT EXISTS (SELECT 1 FROM app.usuarios WHERE id = 'dddb49d8-d07c-4c98-a441-8b724e63d8c8');
 
   -- Radija Lucena
   INSERT INTO app.usuarios (id, tenant_id, email, password_hash, name, role, phone,
     can_view_dashboard, can_view_crm, can_view_transcricoes, can_view_satisfacao,
     can_view_agendamentos, created_at, is_active)
-  VALUES (
-    '40c51ffe-c546-4f58-a3fa-e1e19b17547d', v_tenant_id,
+  SELECT '40c51ffe-c546-4f58-a3fa-e1e19b17547d', v_tenant_id,
     'radijalucena1@hotmail.com', '', 'Radija lucena', 'supervisor', '71999068502',
-    true, true, true, true, true,
-    '2026-06-20T02:04:19.984Z', true
-  ) ON CONFLICT (id) DO NOTHING;
+    true, true, true, true, true, '2026-06-20T02:04:19.984Z', true
+  WHERE NOT EXISTS (SELECT 1 FROM app.usuarios WHERE id = '40c51ffe-c546-4f58-a3fa-e1e19b17547d' OR email = 'radijalucena1@hotmail.com');
 
   RAISE NOTICE 'Usuarios da Lucena processados com tenant_id = %', v_tenant_id;
 END $$;
