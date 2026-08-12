@@ -95,11 +95,11 @@ export class UsersRepository {
   }
 
   async resetPassword(email: string, newHash: string): Promise<boolean> {
-    const { rowCount } = await (await import('@/lib/supabase/client')).supabasePool.query(
-      'UPDATE app.usuarios SET password_hash = $1 WHERE email = $2',
+    const rows = await query<{ id: string }>(
+      'UPDATE app.usuarios SET password_hash = $1 WHERE email = $2 RETURNING id',
       [newHash, email.toLowerCase().trim()]
     )
-    return (rowCount ?? 0) > 0
+    return rows.length > 0
   }
 
   async updateProfile(
@@ -117,11 +117,11 @@ export class UsersRepository {
 
     if (sets.length === 0) return false
     vals.push(userId)
-    const { rowCount } = await (await import('@/lib/supabase/client')).supabasePool.query(
-      `UPDATE app.usuarios SET ${sets.join(', ')} WHERE id = $${idx}`,
+    const rows = await query<{ id: string }>(
+      `UPDATE app.usuarios SET ${sets.join(', ')} WHERE id = $${idx} RETURNING id`,
       vals
     )
-    return (rowCount ?? 0) > 0
+    return rows.length > 0
   }
 
   async deactivate(userId: string): Promise<void> {
