@@ -99,7 +99,7 @@ export const authOptions: NextAuthOptions = {
         const rl = await rateLimit(`login:${ip}`, 10, 15 * 60)
         if (!rl.allowed) return null
 
-        const repo = new UsersRepository(process.env.GOOGLE_MASTER_SHEET_ID)
+        const repo = new UsersRepository()
 
         // ── Login demo — credenciais ficam só no servidor ────────
         if (credentials?.demo === 'true') {
