@@ -406,3 +406,185 @@ export class ClientesRepository {
     }
   }
 }
+
+// ── Primeiros Contatos ────────────────────────────────────────
+
+export interface PrimeiroContatoRecord {
+  id:        number
+  telefone:  string
+  parceiro:  string
+  data:      string
+  status:    string
+  createdAt: string
+}
+
+export class PrimeirosContatosRepository {
+  constructor(private schema: string) {}
+
+  async findAll(): Promise<PrimeiroContatoRecord[]> {
+    try {
+      const rows = await query(
+        `SELECT id, telefone, parceiro, data, status, created_at
+         FROM ${this.schema}.primeiros_contatos ORDER BY data DESC`
+      )
+      return rows.map(r => ({
+        id:        Number(r.id),
+        telefone:  String(r.telefone  ?? ''),
+        parceiro:  String(r.parceiro  ?? ''),
+        data:      r.data       ? new Date(r.data       as string).toISOString() : '',
+        status:    String(r.status    ?? 'aguardando'),
+        createdAt: r.created_at ? new Date(r.created_at as string).toISOString() : '',
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  async findByPhone(telefone: string): Promise<PrimeiroContatoRecord[]> {
+    try {
+      const rows = await query(
+        `SELECT * FROM ${this.schema}.primeiros_contatos WHERE telefone = $1 ORDER BY data DESC`,
+        [telefone]
+      )
+      return rows.map(r => ({
+        id:        Number(r.id),
+        telefone:  String(r.telefone  ?? ''),
+        parceiro:  String(r.parceiro  ?? ''),
+        data:      r.data       ? new Date(r.data       as string).toISOString() : '',
+        status:    String(r.status    ?? 'aguardando'),
+        createdAt: r.created_at ? new Date(r.created_at as string).toISOString() : '',
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  async updateStatus(id: number, status: string): Promise<void> {
+    await execute(
+      `UPDATE ${this.schema}.primeiros_contatos SET status = $1 WHERE id = $2`,
+      [status, id]
+    )
+  }
+
+  async create(telefone: string, parceiro: string): Promise<PrimeiroContatoRecord> {
+    const rows = await query<{ id: number; data: string; created_at: string }>(
+      `INSERT INTO ${this.schema}.primeiros_contatos (telefone, parceiro)
+       VALUES ($1, $2) RETURNING id, data, created_at`,
+      [telefone, parceiro]
+    )
+    const r = rows[0]
+    return {
+      id:        Number(r.id),
+      telefone, parceiro,
+      data:      new Date(r.data).toISOString(),
+      status:    'aguardando',
+      createdAt: new Date(r.created_at).toISOString(),
+    }
+  }
+}
+
+// ── Conhecimento ──────────────────────────────────────────────
+
+export interface ConhecimentoRecord {
+  id:        number
+  pergunta:  string
+  resposta:  string
+  categoria: string
+  data:      string
+  createdAt: string
+  isActive:  boolean
+}
+
+export class ConhecimentoRepository {
+  constructor(private schema: string) {}
+
+  async findAll(onlyActive = true): Promise<ConhecimentoRecord[]> {
+    try {
+      const rows = await query(
+        `SELECT id, pergunta, resposta, categoria, data, created_at, is_active
+         FROM ${this.schema}.conhecimento
+         ${onlyActive ? 'WHERE is_active = true' : ''}
+         ORDER BY categoria, pergunta`
+      )
+      return rows.map(r => ({
+        id:        Number(r.id),
+        pergunta:  String(r.pergunta  ?? ''),
+        resposta:  String(r.resposta  ?? ''),
+        categoria: String(r.categoria ?? 'geral'),
+        data:      r.data       ? new Date(r.data       as string).toISOString() : '',
+        createdAt: r.created_at ? new Date(r.created_at as string).toISOString() : '',
+        isActive:  Boolean(r.is_active ?? true),
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  async findByCategoria(categoria: string): Promise<ConhecimentoRecord[]> {
+    try {
+      const rows = await query(
+        `SELECT * FROM ${this.schema}.conhecimento
+         WHERE categoria = $1 AND is_active = true ORDER BY pergunta`,
+        [categoria]
+      )
+      return rows.map(r => ({
+        id:        Number(r.id),
+        pergunta:  String(r.pergunta  ?? ''),
+        resposta:  String(r.resposta  ?? ''),
+        categoria: String(r.categoria ?? 'geral'),
+        data:      r.data       ? new Date(r.data       as string).toISOString() : '',
+        createdAt: r.created_at ? new Date(r.created_at as string).toISOString() : '',
+        isActive:  Boolean(r.is_active ?? true),
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  async upsert(pergunta: string, resposta: string, categoria = 'geral'): Promise<void> {
+    await execute(
+      `INSERT INTO ${this.schema}.conhecimento (pergunta, resposta, categoria)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (pergunta) DO UPDATE SET resposta = $2, categoria = $3, data = NOW()`,
+      [pergunta, resposta, categoria]
+    )
+  }
+}
+
+// ── Instância ─────────────────────────────────────────────────
+
+export interface InstanciaRecord {
+  id:        number
+  empresa:   string
+  updatedAt: string
+}
+
+export class InstanciaRepository {
+  constructor(private schema: string) {}
+
+  async get(): Promise<InstanciaRecord | null> {
+    try {
+      const rows = await query(
+        `SELECT id, empresa, updated_at FROM ${this.schema}.instancia LIMIT 1`
+      )
+      if (rows.length === 0) return null
+      const r = rows[0]
+      return {
+        id:        Number(r.id),
+        empresa:   String(r.empresa   ?? ''),
+        updatedAt: r.updated_at ? new Date(r.updated_at as string).toISOString() : '',
+      }
+    } catch {
+      return null
+    }
+  }
+
+  async setEmpresa(empresa: string): Promise<void> {
+    await execute(
+      `INSERT INTO ${this.schema}.instancia (empresa)
+       VALUES ($1)
+       ON CONFLICT (id) DO UPDATE SET empresa = $1, updated_at = NOW()`,
+      [empresa]
+    )
+  }
+}
