@@ -42,7 +42,7 @@ export class AgendamentosRepository {
         const data = (row.data ?? {}) as Record<string, unknown>
         Object.keys(data).forEach(k => allKeys.add(k))
       }
-      const headers   = [...allKeys]
+      const headers   = Array.from(allKeys)
       const dateCol   = detectDateCol(headers)
       const statusCol = detectStatusCol(headers)
 
