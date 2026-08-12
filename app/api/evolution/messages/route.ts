@@ -93,12 +93,15 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const phoneJid = numberToJid(phone)
     const client   = EvolutionClient.fromEnv(instanceName)
 
-    // Duas queries HTTP provadas via teste direto na Evolution API:
-    // 1. remoteJid = @s.whatsapp.net → retorna mensagens ENVIADAS (fromMe=true)
-    // 2. remoteJidAlt = @s.whatsapp.net → retorna mensagens RECEBIDAS (fromMe=false, remoteJid=@lid)
-    const [httpSent, httpReceived] = await Promise.all([
+    // Três queries HTTP em paralelo para cobrir todas as formas de armazenamento:
+    // 1. remoteJid = phone@s.whatsapp.net   → mensagens ENVIADAS (fromMe=true)
+    // 2. remoteJidAlt = phone@s.whatsapp.net → mensagens RECEBIDAS (se remoteJidAlt estiver preenchido)
+    // 3. remoteJid = @lid (JID moderno)      → mensagens RECEBIDAS armazenadas pelo JID @lid direto
+    //    (fallback quando remoteJidAlt não é preenchido pela Evolution API)
+    const [httpSent, httpReceived, httpByLid] = await Promise.all([
       client.findMessages(phoneJid, count),
       client.findReceivedMessages(phoneJid, count),
+      lidJid ? client.findMessages(lidJid, count) : Promise.resolve([]),
     ])
 
     // Merge deduplicando pelo key.id (WhatsApp message ID)
@@ -106,7 +109,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     type MsgRow = { key: { id: string; fromMe: boolean; remoteJid: string }; pushName?: string; message?: Record<string, unknown>; messageTimestamp?: number; messageType?: string; status?: string }
     const merged: MsgRow[] = []
 
-    for (const src of [httpSent, httpReceived]) {
+    for (const src of [httpSent, httpReceived, httpByLid]) {
       for (const m of src) {
         if (!seen.has(m.key.id)) {
           seen.add(m.key.id)
