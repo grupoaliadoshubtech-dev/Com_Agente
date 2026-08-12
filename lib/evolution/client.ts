@@ -277,9 +277,14 @@ export class EvolutionClient {
 
   async getContactInfo(number: string): Promise<{ name?: string; pushName?: string; profilePictureUrl?: string }> {
     const raw = await this.request<Record<string, unknown>>('POST', `/chat/fetchProfile/${this.instanceName}`, { number })
-    // Evolution API pode retornar o campo com nomes diferentes dependendo da versão
     const pic = (raw.profilePictureUrl ?? raw.profilePicUrl ?? raw.picture ?? raw.profilePic ?? null) as string | null
     return { ...raw, profilePictureUrl: pic ?? undefined } as { name?: string; pushName?: string; profilePictureUrl?: string }
+  }
+
+  async findContacts(where: Record<string, unknown> = {}): Promise<Array<{ id: string; pushName?: string; profilePictureUrl?: string; remoteJid?: string }>> {
+    const result = await this.request<unknown>('POST', `/contact/findContacts/${this.instanceName}`, { where })
+    if (Array.isArray(result)) return result as Array<{ id: string; pushName?: string; profilePictureUrl?: string; remoteJid?: string }>
+    return []
   }
 }
 
