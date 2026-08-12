@@ -82,8 +82,27 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       } catch { /* schema pode não existir ainda */ }
     }
 
-    // Busca mapeamento @lid → @s.whatsapp.net do PostgreSQL
-    const lidToPhone = await getLidMapping(instanceName)
+    // Busca mapeamento @lid → @s.whatsapp.net.
+    // Tenta primeiro o PostgreSQL interno (disponível no EasyPanel/VPS).
+    // Se falhar (Vercel ou ambiente externo), usa o endpoint HTTP da Evolution API como fallback.
+    let lidToPhone = new Map<string, string>()
+    try {
+      lidToPhone = await getLidMapping(instanceName)
+    } catch {
+      // EVOLUTION_DB_URL inacessível (hostname Docker interno não resolve fora da VPS).
+      // Fallback: constrói o mapeamento via HTTP /contact/findContacts.
+      try {
+        const contacts = await client.findContacts()
+        for (const c of contacts) {
+          // Contatos com id=@lid e remoteJid=@s.whatsapp.net fornecem o mapeamento
+          if (c.id?.endsWith('@lid') && c.remoteJid?.endsWith('@s.whatsapp.net')) {
+            lidToPhone.set(c.id, c.remoteJid)
+          }
+        }
+      } catch {
+        // Sem mapeamento disponível — contatos @lid serão omitidos
+      }
+    }
     const phoneToLid = new Map<string, string>()
     lidToPhone.forEach((phone, lid) => {
       phoneToLid.set(phone, lid)
