@@ -2,6 +2,7 @@
 // Singleton pg.Pool para o Supabase (usado por todos os repositórios).
 // SSL requerido pelo Supabase; rejectUnauthorized=false para compatibilidade
 // com certificados wildcard *.supabase.co no ambiente serverless da Vercel.
+// Pool é lazy — só é criado na primeira query, nunca durante o build.
 
 import { Pool } from 'pg'
 
@@ -11,27 +12,26 @@ declare global {
   var __supabasePool: Pool | undefined
 }
 
-function createPool(): Pool {
+function getPool(): Pool {
+  if (global.__supabasePool) return global.__supabasePool
   const url = process.env.SUPABASE_DATABASE_URL
   if (!url) throw new Error('[Supabase] SUPABASE_DATABASE_URL não configurado.')
-  return new Pool({
+  global.__supabasePool = new Pool({
     connectionString: url,
     ssl: { rejectUnauthorized: false },
     max: 5,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   })
+  return global.__supabasePool
 }
-
-export const supabasePool: Pool =
-  global.__supabasePool ?? (global.__supabasePool = createPool())
 
 /** Helper: executa uma query com parâmetros e retorna as linhas. */
 export async function query<T extends Record<string, unknown> = Record<string, unknown>>(
   text: string,
   values?: unknown[]
 ): Promise<T[]> {
-  const { rows } = await supabasePool.query<T>(text, values)
+  const { rows } = await getPool().query<T>(text, values)
   return rows
 }
 
@@ -46,5 +46,5 @@ export async function queryOne<T extends Record<string, unknown> = Record<string
 
 /** Helper: executa sem retorno de linhas (INSERT/UPDATE/DELETE). */
 export async function execute(text: string, values?: unknown[]): Promise<void> {
-  await supabasePool.query(text, values)
+  await getPool().query(text, values)
 }
