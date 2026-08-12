@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { TemplatesRepository } from '@/lib/repositories/templates.repository'
+import { getTenantSchema } from '@/lib/supabase/tenant-schema'
 import { z } from 'zod'
 import type { ApiResponse } from '@/types'
 
@@ -19,7 +20,9 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
   }
 
   try {
-    const repo = new TemplatesRepository(session.user.tenantId)
+    const schema = await getTenantSchema(session.user.tenantId)
+    if (!schema) return NextResponse.json({ success: false, error: 'Schema não configurado' }, { status: 400 })
+    const repo = new TemplatesRepository(schema)
     const templates = await repo.findAll()
     return NextResponse.json({ success: true, data: templates })
   } catch (err) {
@@ -56,7 +59,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
   }
 
   try {
-    const repo = new TemplatesRepository(session.user.tenantId)
+    const schema = await getTenantSchema(session.user.tenantId)
+    if (!schema) return NextResponse.json({ success: false, error: 'Schema não configurado' }, { status: 400 })
+    const repo = new TemplatesRepository(schema)
 
     // Verifica se atalho já existe
     const existing = await repo.findByAtalho(parsed.data.atalho)
@@ -105,7 +110,9 @@ export async function PUT(req: NextRequest): Promise<NextResponse<ApiResponse>> 
   }
 
   try {
-    const repo = new TemplatesRepository(session.user.tenantId)
+    const schema = await getTenantSchema(session.user.tenantId)
+    if (!schema) return NextResponse.json({ success: false, error: 'Schema não configurado' }, { status: 400 })
+    const repo = new TemplatesRepository(schema)
     const { id, ...updates } = parsed.data
     await repo.update(id, updates)
     return NextResponse.json({ success: true, message: 'Template atualizado' })
@@ -131,7 +138,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse<ApiResponse
   }
 
   try {
-    const repo = new TemplatesRepository(session.user.tenantId)
+    const schema = await getTenantSchema(session.user.tenantId)
+    if (!schema) return NextResponse.json({ success: false, error: 'Schema não configurado' }, { status: 400 })
+    const repo = new TemplatesRepository(schema)
     await repo.delete(id)
     return NextResponse.json({ success: true, message: 'Template removido' })
   } catch (err) {

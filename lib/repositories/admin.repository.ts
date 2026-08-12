@@ -1,60 +1,51 @@
-// ─────────────────────────────────────────────────────────────
 // lib/repositories/admin.repository.ts
-// Repositórios exclusivos do Master Admin:
-//   LogErrosRepository   — lê aba Log_Erros de cada tenant
-//   GlobalBlacklistRepository — blacklist cross-tenant
-// ─────────────────────────────────────────────────────────────
+// Migrado de Google Sheets → Supabase
 
-import { readRange, appendRows, rowsToObjects } from '@/lib/sheets/client'
+import { query, execute } from '@/lib/supabase/client'
 import { TenantsRepository } from './plans-tenants-leads.repository'
-
-const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
 // ── Log de Erros ──────────────────────────────────────────────
 
 export interface LogErroRecord {
   timestamp: string
-  no:        string   // nó do n8n ou rota da API
+  no:        string
   erro:      string
   telefone:  string
-  tenant:    string   // nome do tenant
+  tenant:    string
   tenantId:  string
 }
 
 export class LogErrosRepository {
-  /**
-   * Agrega logs de erros de TODOS os tenants ativos.
-   * Lê a aba Log_Erros de cada planilha de tenant.
-   */
   async findAll(limit = 200): Promise<LogErroRecord[]> {
     const tenantsRepo = new TenantsRepository()
     const tenants     = await tenantsRepo.findAll()
-
     const results: LogErroRecord[] = []
 
-    // Leitura paralela para não travar em tenants com muitos erros
     await Promise.allSettled(
-      tenants.map(async tenant => {
-        try {
-          const rows    = await readRange(tenant.id, 'Log_Erros!A:D')
-          const records = rowsToObjects<Record<string, string>>(rows)
-          for (const r of records) {
-            results.push({
-              timestamp: r.timestamp ?? r.Timestamp ?? '',
-              no:        r.no        ?? r.No        ?? r['Nó'] ?? '',
-              erro:      r.erro      ?? r.Erro      ?? '',
-              telefone:  r.telefone  ?? r.Telefone  ?? '',
-              tenant:    tenant.name,
-              tenantId:  tenant.id,
-            })
+      tenants
+        .filter(t => t.supabaseSchema)
+        .map(async tenant => {
+          try {
+            const rows = await query(
+              `SELECT timestamp, no, erro, telefone FROM ${tenant.supabaseSchema}.log_erros ORDER BY timestamp DESC LIMIT $1`,
+              [limit]
+            )
+            for (const r of rows) {
+              results.push({
+                timestamp: r.timestamp ? new Date(r.timestamp as string).toISOString() : '',
+                no:        String(r.no ?? ''),
+                erro:      String(r.erro ?? ''),
+                telefone:  String(r.telefone ?? ''),
+                tenant:    tenant.name,
+                tenantId:  tenant.id,
+              })
+            }
+          } catch {
+            // Schema pode não existir ainda
           }
-        } catch {
-          // Tenant pode não ter a aba ainda — ignorar silenciosamente
-        }
-      })
+        })
     )
 
-    // Mais recente primeiro, limitado
     return results
       .filter(r => r.timestamp)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -64,19 +55,20 @@ export class LogErrosRepository {
   async findByTenant(tenantId: string): Promise<LogErroRecord[]> {
     const tenantsRepo = new TenantsRepository()
     const tenant      = await tenantsRepo.findById(tenantId)
-    if (!tenant) return []
+    if (!tenant?.supabaseSchema) return []
 
     try {
-      const rows    = await readRange(tenantId, 'Log_Erros!A:D')
-      const records = rowsToObjects<Record<string, string>>(rows)
-      return records.map(r => ({
-        timestamp: r.timestamp ?? '',
-        no:        r.no        ?? r['Nó'] ?? '',
-        erro:      r.erro      ?? '',
-        telefone:  r.telefone  ?? '',
+      const rows = await query(
+        `SELECT timestamp, no, erro, telefone FROM ${tenant.supabaseSchema}.log_erros ORDER BY timestamp DESC LIMIT 500`
+      )
+      return rows.map(r => ({
+        timestamp: r.timestamp ? new Date(r.timestamp as string).toISOString() : '',
+        no:        String(r.no ?? ''),
+        erro:      String(r.erro ?? ''),
+        telefone:  String(r.telefone ?? ''),
         tenant:    tenant.name,
         tenantId,
-      })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      }))
     } catch {
       return []
     }
@@ -121,24 +113,26 @@ export interface GlobalBlacklistRecord {
 }
 
 export class GlobalBlacklistRepository {
-  /**
-   * Lista blacklist da planilha MASTER (scope global).
-   * Números aqui são bloqueados em todos os tenants.
-   */
+  /** Blacklist da tabela global (app.blacklist_global). */
   async findGlobal(): Promise<GlobalBlacklistRecord[]> {
-    const rows = await readRange(MASTER_ID, 'Blacklist!A:E')
-    return rowsToObjects<Record<string, string>>(rows).map(r => ({
-      telefone:  r.telefone  ?? '',
-      motivo:    r.motivo    ?? '',
-      atendente: r.atendente ?? '',
-      timestamp: r.timestamp ?? '',
-      tenant:    'Global (todos)',
-      tenantId:  MASTER_ID,
-      scope:     'global' as const,
-    }))
+    try {
+      const rows = await query(
+        'SELECT telefone, motivo, atendente, timestamp FROM app.blacklist_global ORDER BY timestamp DESC'
+      )
+      return rows.map(r => ({
+        telefone:  String(r.telefone ?? ''),
+        motivo:    String(r.motivo ?? ''),
+        atendente: String(r.atendente ?? ''),
+        timestamp: r.timestamp ? new Date(r.timestamp as string).toISOString() : '',
+        tenant:    'Global (todos)',
+        tenantId:  'global',
+        scope:     'global' as const,
+      }))
+    } catch {
+      return []
+    }
   }
 
-  /** Agrega blacklists de todos os tenants + global. */
   async findAll(): Promise<GlobalBlacklistRecord[]> {
     const tenantsRepo = new TenantsRepository()
     const tenants     = await tenantsRepo.findAll()
@@ -146,23 +140,26 @@ export class GlobalBlacklistRepository {
     const local: GlobalBlacklistRecord[] = []
 
     await Promise.allSettled(
-      tenants.map(async tenant => {
-        try {
-          const rows    = await readRange(tenant.id, 'Blacklist!A:D')
-          const records = rowsToObjects<Record<string, string>>(rows)
-          for (const r of records) {
-            local.push({
-              telefone:  r.telefone  ?? '',
-              motivo:    r.motivo    ?? '',
-              atendente: r.atendente ?? '',
-              timestamp: r.timestamp ?? '',
-              tenant:    tenant.name,
-              tenantId:  tenant.id,
-              scope:     'local',
-            })
-          }
-        } catch { /* aba pode não existir ainda */ }
-      })
+      tenants
+        .filter(t => t.supabaseSchema)
+        .map(async tenant => {
+          try {
+            const rows = await query(
+              `SELECT telefone, motivo, atendente, timestamp FROM ${tenant.supabaseSchema}.blacklist ORDER BY timestamp DESC`
+            )
+            for (const r of rows) {
+              local.push({
+                telefone:  String(r.telefone ?? ''),
+                motivo:    String(r.motivo ?? ''),
+                atendente: String(r.atendente ?? ''),
+                timestamp: r.timestamp ? new Date(r.timestamp as string).toISOString() : '',
+                tenant:    tenant.name,
+                tenantId:  tenant.id,
+                scope:     'local',
+              })
+            }
+          } catch { /* schema pode não existir */ }
+        })
     )
 
     return [...global, ...local]
@@ -170,14 +167,12 @@ export class GlobalBlacklistRepository {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   }
 
-  /** Adiciona número à blacklist global (Master). */
   async addGlobal(telefone: string, motivo: string, adminId: string): Promise<void> {
-    await appendRows(MASTER_ID, 'Blacklist!A:E', [[
-      telefone,
-      motivo,
-      adminId,
-      new Date().toISOString(),
-      'global',
-    ]])
+    await execute(
+      `INSERT INTO app.blacklist_global (telefone, motivo, atendente, timestamp)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (telefone) DO UPDATE SET motivo = EXCLUDED.motivo, atendente = EXCLUDED.atendente, timestamp = NOW()`,
+      [telefone, motivo, adminId]
+    )
   }
 }

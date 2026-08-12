@@ -2,10 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { readRange, updateRange, rowsToObjects } from '@/lib/sheets/client'
-
-const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
-const SHEET = 'Planos'
+import { execute, queryOne } from '@/lib/supabase/client'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -14,30 +11,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     const body = await req.json()
-    const rows = await readRange(MASTER_ID, `${SHEET}!A:H`)
-    if (rows.length < 2) return NextResponse.json({ success: false, error: 'Plano não encontrado' }, { status: 404 })
+    const current = await queryOne('SELECT * FROM app.planos WHERE id = $1', [params.id])
+    if (!current) return NextResponse.json({ success: false, error: 'Plano não encontrado' }, { status: 404 })
 
-    const headers  = rows[0]
-    const idCol    = headers.indexOf('id')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === params.id)
-    if (rowIndex === -1) return NextResponse.json({ success: false, error: 'Plano não encontrado' }, { status: 404 })
+    const sets: string[]  = []
+    const vals: unknown[] = []
+    let   idx             = 1
 
-    const sheetRow  = rowIndex + 1
-    const current   = rowsToObjects<Record<string, string>>([rows[0], rows[rowIndex]])[0]
+    if (body.name          !== undefined) { sets.push(`name = $${idx++}`);           vals.push(body.name) }
+    if (body.price         !== undefined) { sets.push(`price = $${idx++}`);          vals.push(body.price) }
+    if (body.period        !== undefined) { sets.push(`period = $${idx++}`);         vals.push(body.period) }
+    if (body.maxInstances  !== undefined) { sets.push(`max_instances = $${idx++}`);  vals.push(body.maxInstances) }
+    if (body.maxAttendants !== undefined) { sets.push(`max_attendants = $${idx++}`); vals.push(body.maxAttendants) }
+    if (body.features      !== undefined) { sets.push(`features = $${idx++}`);       vals.push(JSON.stringify(body.features)) }
+    if (body.isActive      !== undefined) { sets.push(`is_active = $${idx++}`);      vals.push(body.isActive) }
 
-    // Merge body com valores atuais
-    const updated = [
-      current.id,
-      body.name          ?? current.name,
-      body.price         ?? current.price,
-      body.period        ?? current.period,
-      body.maxInstances  ?? current.maxInstances,
-      body.maxAttendants ?? current.maxAttendants,
-      body.features      ? JSON.stringify(body.features) : current.features,
-      body.isActive      !== undefined ? body.isActive : current.isActive,
-    ]
-
-    await updateRange(MASTER_ID, `${SHEET}!A${sheetRow}:H${sheetRow}`, [updated])
+    if (sets.length === 0) return NextResponse.json({ success: true })
+    vals.push(params.id)
+    await execute(`UPDATE app.planos SET ${sets.join(', ')} WHERE id = $${idx}`, vals)
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[/api/plans PATCH]', err)

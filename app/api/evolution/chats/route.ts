@@ -52,34 +52,34 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       return NextResponse.json({ success: false, error: 'Instância WhatsApp não configurada' }, { status: 400 })
     }
 
-    const spreadsheetId = (tenant as { spreadsheetId?: string } | null)?.spreadsheetId || cacheKey
+    const schema = (tenant as { supabaseSchema?: string } | null)?.supabaseSchema || ''
 
     const client = EvolutionClient.fromEnv(instanceName)
     const chats = await client.findChats()
 
-    const cachedHandoff = handoffCache.get(spreadsheetId)
+    const cachedHandoff = schema ? handoffCache.get(schema) : undefined
     let handoffRecords: Array<{ telefone: string; status: string; timestamp: string; atendente: string }> = []
     if (cachedHandoff && Date.now() - cachedHandoff.ts < 30000) {
       handoffRecords = cachedHandoff.data as typeof handoffRecords
-    } else {
+    } else if (schema) {
       try {
-        const handoff = new HandoffRepository(spreadsheetId)
+        const handoff = new HandoffRepository(schema)
         handoffRecords = await handoff.getAll()
-        handoffCache.set(spreadsheetId, { data: handoffRecords, ts: Date.now() })
+        handoffCache.set(schema, { data: handoffRecords, ts: Date.now() })
       } catch {}
     }
 
-    // Busca nomes cadastrados na aba Clientes da planilha do tenant
-    const cachedClientes = clientesCache.get(spreadsheetId)
+    // Busca nomes cadastrados na tabela clientes do tenant
+    const cachedClientes = schema ? clientesCache.get(schema) : undefined
     let clienteNames = new Map<string, string>()
     if (cachedClientes && Date.now() - cachedClientes.ts < 60000) {
       clienteNames = cachedClientes.map
-    } else {
+    } else if (schema) {
       try {
-        const clientesRepo = new ClientesRepository(spreadsheetId)
+        const clientesRepo = new ClientesRepository(schema)
         clienteNames = await clientesRepo.buildNameMap()
-        clientesCache.set(spreadsheetId, { map: clienteNames, ts: Date.now() })
-      } catch { /* planilha pode não ter a aba ainda */ }
+        clientesCache.set(schema, { map: clienteNames, ts: Date.now() })
+      } catch { /* schema pode não existir ainda */ }
     }
 
     // Busca mapeamento @lid → @s.whatsapp.net do PostgreSQL

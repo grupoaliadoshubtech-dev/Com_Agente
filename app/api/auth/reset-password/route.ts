@@ -17,10 +17,7 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { ResetTokenRepository } from '@/lib/repositories/reset-token.repository'
 import { UsersRepository }      from '@/lib/repositories/users.repository'
-import { readRange, updateRange } from '@/lib/sheets/client'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-
-const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
 const Schema = z.object({
   token:    z.string().length(64),
@@ -61,22 +58,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // 2. Hash da nova senha
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // 3. Atualiza no Sheets — coluna D (passwordHash) da aba Usuarios
-    //    Localiza linha pelo userId
-    const rows = await readRange(MASTER_ID, 'Usuarios!A:M')
-    if (rows.length < 2) throw new Error('Aba Usuarios vazia')
-
-    const headers  = rows[0]
-    const idCol    = headers.indexOf('id')
-    const hashCol  = headers.indexOf('passwordHash')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === record.userId)
-
-    if (rowIndex === -1) throw new Error('Usuário não encontrado')
-
-    const sheetRow  = rowIndex + 1
-    const colLetter = String.fromCharCode(65 + hashCol)  // D = índice 3
-
-    await updateRange(MASTER_ID, `Usuarios!${colLetter}${sheetRow}`, [[passwordHash]])
+    // 3. Atualiza no Supabase — tabela app.usuarios
+    const usersRepo = new UsersRepository()
+    const updated   = await usersRepo.updateProfile(record.userId, { passwordHash })
+    if (!updated) throw new Error('Usuário não encontrado')
 
     // 4. Marca token como consumido
     await tokenRepo.consume(token)

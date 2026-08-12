@@ -1,12 +1,5 @@
-// ─────────────────────────────────────────────────────────────
 // app/api/handoff/route.ts
-//
-// POST /api/handoff
-// Corpo: { action: 'pausar' | 'retomar' | 'pausa_global' | 'retornar_global', telefone?: string }
-//
-// Grava na aba Fila_Humana do tenant com exatamente 4 colunas:
-//   A: Telefone | B: Status | C: Timestamp ISO | D: Atendente
-// ─────────────────────────────────────────────────────────────
+// POST /api/handoff — pausa / retoma IA via tabela fila_humana no Supabase
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -21,14 +14,17 @@ const HandoffSchema = z.object({
   telefone: z.string().optional(),
 })
 
+async function resolveSchema(tenantId: string): Promise<string | null> {
+  const tenant = await new TenantsRepository().findById(tenantId)
+  return tenant?.supabaseSchema || null
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
-  // 1. Autenticação
   const session = await getServerSession(authOptions)
   if (!session?.user) {
     return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 })
   }
 
-  // 2. Validação do corpo
   let body: unknown
   try { body = await req.json() } catch {
     return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })
@@ -36,105 +32,56 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
 
   const parsed = HandoffSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json(
-      { success: false, error: parsed.error.flatten().fieldErrors.toString() },
-      { status: 422 }
-    )
+    return NextResponse.json({ success: false, error: 'Dados inválidos' }, { status: 422 })
   }
 
   const { action, telefone } = parsed.data
   const atendenteId = `ComAgente - ${session.user.name}`
-  const tenantId    = session.user.tenantId
 
-  if (!tenantId) {
-    return NextResponse.json({ success: false, error: 'tenantId ausente na sessão' }, { status: 400 })
+  const schema = await resolveSchema(session.user.tenantId)
+  if (!schema) {
+    return NextResponse.json({ success: false, error: 'Schema do tenant não configurado.' }, { status: 400 })
   }
 
-  // 3. Resolve o spreadsheetId real da empresa (campo configurável em Empresas)
-  const tenantsRepo = new TenantsRepository()
-  const tenant = await tenantsRepo.findById(tenantId)
-  const spreadsheetId = tenant?.spreadsheetId || tenantId // fallback para tenants antigos onde id === spreadsheetId
-
-  if (!spreadsheetId) {
-    return NextResponse.json({ success: false, error: 'Planilha desta empresa não configurada. Configure o ID da planilha nas configurações da empresa.' }, { status: 400 })
-  }
-
-  const repo = new HandoffRepository(spreadsheetId)
+  const repo = new HandoffRepository(schema)
 
   try {
     switch (action) {
       case 'pausar':
-        if (!telefone) {
-          return NextResponse.json({ success: false, error: 'telefone obrigatório para pausar' }, { status: 422 })
-        }
+        if (!telefone) return NextResponse.json({ success: false, error: 'telefone obrigatório para pausar' }, { status: 422 })
         await repo.pausar(telefone, atendenteId)
-        return NextResponse.json({
-          success: true,
-          message: `IA pausada para ${telefone}`,
-          data: { telefone, status: 'pausado', atendente: atendenteId, timestamp: new Date().toISOString() }
-        })
+        return NextResponse.json({ success: true, message: `IA pausada para ${telefone}`, data: { telefone, status: 'pausado', atendente: atendenteId, timestamp: new Date().toISOString() } })
 
       case 'retomar':
-        if (!telefone) {
-          return NextResponse.json({ success: false, error: 'telefone obrigatório para retomar' }, { status: 422 })
-        }
+        if (!telefone) return NextResponse.json({ success: false, error: 'telefone obrigatório para retomar' }, { status: 422 })
         await repo.retomar(telefone)
-        return NextResponse.json({
-          success: true,
-          message: `IA retomada para ${telefone}`,
-          data: { telefone, status: 'ativo', atendente: atendenteId, timestamp: new Date().toISOString() }
-        })
+        return NextResponse.json({ success: true, message: `IA retomada para ${telefone}`, data: { telefone, status: 'ativo', atendente: atendenteId, timestamp: new Date().toISOString() } })
 
       case 'pausa_global':
         await repo.pausaGlobal(atendenteId)
-        return NextResponse.json({
-          success: true,
-          message: 'Pausa Global acionada — IA pausada para TODOS',
-          data: { telefone: 'ALL', status: 'pausado', atendente: atendenteId, timestamp: new Date().toISOString() }
-        })
+        return NextResponse.json({ success: true, message: 'Pausa Global acionada — IA pausada para TODOS', data: { telefone: 'ALL', status: 'pausado', atendente: atendenteId, timestamp: new Date().toISOString() } })
 
       case 'retornar_global':
         await repo.retomar('ALL')
-        return NextResponse.json({
-          success: true,
-          message: 'Pausa Global removida — IA reativada para TODOS',
-          data: { telefone: 'ALL', status: 'ativo', atendente: atendenteId, timestamp: new Date().toISOString() }
-        })
+        return NextResponse.json({ success: true, message: 'Pausa Global removida — IA reativada para TODOS', data: { telefone: 'ALL', status: 'ativo', atendente: atendenteId, timestamp: new Date().toISOString() } })
     }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[/api/handoff]', msg)
-
-    let userMsg = 'Erro ao gravar na planilha. Tente novamente.'
-    if (msg.includes('Requested entity was not found'))
-      userMsg = 'Planilha desta empresa não encontrada. Configure o ID da planilha nas configurações da empresa.'
-    else if (msg.includes('PERMISSION_DENIED') || msg.toLowerCase().includes('permission'))
-      userMsg = 'Sem permissão de acesso à planilha. Verifique se a service account tem acesso.'
-    else if (msg.includes('RESOURCE_EXHAUSTED') || msg.toLowerCase().includes('quota'))
-      userMsg = 'Limite de requisições do Google atingido. Aguarde alguns segundos e tente novamente.'
-    else if (msg.includes('Unable to parse range'))
-      userMsg = 'Aba "Fila_Humana" não encontrada na planilha desta empresa.'
-
-    return NextResponse.json(
-      { success: false, error: userMsg },
-      { status: 500 }
-    )
+    console.error('[/api/handoff]', err)
+    return NextResponse.json({ success: false, error: 'Erro ao gravar no banco. Tente novamente.' }, { status: 500 })
   }
 }
 
-// GET /api/handoff?telefone=55719...
 export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> {
   const session = await getServerSession(authOptions)
   if (!session?.user) {
     return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 })
   }
 
-  const telefone   = req.nextUrl.searchParams.get('telefone')
-  const tenantsRepoGet = new TenantsRepository()
-  const tenantGet  = await tenantsRepoGet.findById(session.user.tenantId)
-  const spreadsheetIdGet = tenantGet?.spreadsheetId || session.user.tenantId
-  const repo = new HandoffRepository(spreadsheetIdGet)
+  const telefone = req.nextUrl.searchParams.get('telefone')
+  const schema   = await resolveSchema(session.user.tenantId)
+  if (!schema) return NextResponse.json({ success: false, error: 'Schema não configurado' }, { status: 400 })
 
+  const repo = new HandoffRepository(schema)
   try {
     if (telefone) {
       const status = await repo.getStatus(telefone)
@@ -144,6 +91,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     return NextResponse.json({ success: true, data: all })
   } catch (err) {
     console.error('[/api/handoff GET]', err)
-    return NextResponse.json({ success: false, error: 'Erro ao ler planilha' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Erro ao ler banco' }, { status: 500 })
   }
 }

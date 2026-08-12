@@ -30,7 +30,11 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
   try {
     const tenantId = session.user.tenantId
     const tenant = await tenantsRepo.findById(tenantId)
-    const tid = tenant?.spreadsheetId || tenantId // spreadsheetId da planilha do tenant
+    const tid = tenant?.supabaseSchema ?? ''
+
+    if (!tid) {
+      return NextResponse.json({ success: false, error: 'Schema do tenant não configurado' }, { status: 400 })
+    }
 
     // ── Vista rápida (polling leve — só dados em tempo real) ──
     if (view === 'realtime') {
@@ -90,6 +94,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
       new HandoffRepository(tid).getAll(),
     ])
 
+
     const atd  = atdMetrics.status  === 'fulfilled' ? atdMetrics.value  : null
     const sat  = satMetrics.status  === 'fulfilled' ? satMetrics.value  : null
     const dist = distMetrics.status === 'fulfilled' ? distMetrics.value : null
@@ -111,6 +116,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const porHora: Record<string, number> = {}
     if (atdMetrics.status === 'fulfilled') {
       const atdRepo = new AtendimentosRepository(tid)
+
       const all = await atdRepo.findAll()
       const ontem = new Date(Date.now() - 24 * 3600000).toISOString()
       for (const a of all) {

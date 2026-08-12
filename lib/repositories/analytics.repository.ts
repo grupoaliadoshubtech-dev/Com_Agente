@@ -1,48 +1,69 @@
-// ─────────────────────────────────────────────────────────────
 // lib/repositories/analytics.repository.ts
-// FASE 4: ClientesRepository com suporte a funil, tags,
-// follow-up, update de etapa e notas.
-// ─────────────────────────────────────────────────────────────
+// Migrado de Google Sheets → Supabase (schema do tenant)
 
-import { readRange, updateRange, appendRows, rowsToObjects } from '@/lib/sheets/client'
+import { query, execute } from '@/lib/supabase/client'
 import type { AtendimentoRecord, SatisfacaoRecord, ClientRecord, CRMStage } from '@/types'
 
 // ── Atendimentos ──────────────────────────────────────────────
 
 export class AtendimentosRepository {
-  constructor(private spreadsheetId: string) {}
+  constructor(private schema: string) {}
 
   async findAll(): Promise<AtendimentoRecord[]> {
-    const rows = await readRange(this.spreadsheetId, 'Atendimentos!A:H')
-    return rowsToObjects<Record<string, string>>(rows).map(r => ({
-      id:         r.id        ?? '',
-      telefone:   r.telefone  ?? '',
-      nome:       r.nome      ?? '',
-      inicio:     r.inicio    ?? '',
-      fim:        r.fim       ?? '',
-      duracao:    r.duracao   ?? '',
-      atendente:  r.atendente ?? 'Bot',
-      satisfacao: r.satisfacao ? Number(r.satisfacao) : undefined,
-    }))
+    try {
+      const rows = await query(
+        `SELECT id, telefone, nome, inicio, fim, duracao, atendente, satisfacao
+         FROM ${this.schema}.atendimentos ORDER BY inicio DESC`
+      )
+      return rows.map(r => ({
+        id:         String(r.id ?? ''),
+        telefone:   String(r.telefone ?? ''),
+        nome:       String(r.nome ?? ''),
+        inicio:     r.inicio ? new Date(r.inicio as string).toISOString() : '',
+        fim:        r.fim    ? new Date(r.fim    as string).toISOString() : '',
+        duracao:    String(r.duracao ?? ''),
+        atendente:  String(r.atendente ?? 'Bot'),
+        satisfacao: r.satisfacao !== null ? Number(r.satisfacao) : undefined,
+      }))
+    } catch {
+      return []
+    }
   }
 
   async findByPhone(telefone: string): Promise<AtendimentoRecord[]> {
-    const all = await this.findAll()
-    return all.filter(a => a.telefone === telefone)
+    try {
+      const rows = await query(
+        `SELECT * FROM ${this.schema}.atendimentos WHERE telefone = $1 ORDER BY inicio DESC`,
+        [telefone]
+      )
+      return rows.map(r => ({
+        id:         String(r.id ?? ''),
+        telefone:   String(r.telefone ?? ''),
+        nome:       String(r.nome ?? ''),
+        inicio:     r.inicio ? new Date(r.inicio as string).toISOString() : '',
+        fim:        r.fim    ? new Date(r.fim    as string).toISOString() : '',
+        duracao:    String(r.duracao ?? ''),
+        atendente:  String(r.atendente ?? 'Bot'),
+        satisfacao: r.satisfacao !== null ? Number(r.satisfacao) : undefined,
+      }))
+    } catch {
+      return []
+    }
   }
 
   async getMetrics(): Promise<{
     total: number; hoje: number; semana: number
     porAtendente: Record<string, number>; mediaMinutos: number; taxaHumano: number
   }> {
-    const all   = await this.findAll()
-    const now   = new Date()
-    const today = now.toISOString().slice(0, 10)
+    const all     = await this.findAll()
+    const now     = new Date()
+    const today   = now.toISOString().slice(0, 10)
     const weekAgo = new Date(now.getTime() - 7 * 86400_000).toISOString()
-    const hoje   = all.filter(a => a.inicio.startsWith(today)).length
-    const semana = all.filter(a => a.inicio >= weekAgo).length
+    const hoje    = all.filter(a => a.inicio.startsWith(today)).length
+    const semana  = all.filter(a => a.inicio >= weekAgo).length
     const porAtendente: Record<string, number> = {}
     let totalMinutos = 0, comMinutos = 0, comHumano = 0
+
     for (const a of all) {
       const key = a.atendente || 'Bot'
       porAtendente[key] = (porAtendente[key] ?? 0) + 1
@@ -52,10 +73,11 @@ export class AtendimentosRepository {
       }
       if (a.atendente && a.atendente !== 'Bot') comHumano++
     }
+
     return {
       total: all.length, hoje, semana, porAtendente,
       mediaMinutos: comMinutos > 0 ? Math.round(totalMinutos / comMinutos) : 0,
-      taxaHumano: all.length > 0 ? Math.round((comHumano / all.length) * 100) : 0,
+      taxaHumano:   all.length > 0 ? Math.round((comHumano / all.length) * 100) : 0,
     }
   }
 }
@@ -63,17 +85,24 @@ export class AtendimentosRepository {
 // ── Satisfação ────────────────────────────────────────────────
 
 export class SatisfacaoRepository {
-  constructor(private spreadsheetId: string) {}
+  constructor(private schema: string) {}
 
   async findAll(): Promise<SatisfacaoRecord[]> {
-    const rows = await readRange(this.spreadsheetId, 'Satisfacao!A:E')
-    return rowsToObjects<Record<string, string>>(rows).map(r => ({
-      timestamp:     r.timestamp     ?? '',
-      telefone:      r.telefone      ?? '',
-      nota:          Number(r.nota ?? 0),
-      atendimentoId: r.atendimentoId ?? '',
-      atendente:     r.atendente     ?? 'Bot',
-    }))
+    try {
+      const rows = await query(
+        `SELECT timestamp, telefone, nota, atendimento_id, atendente
+         FROM ${this.schema}.satisfacao ORDER BY timestamp DESC`
+      )
+      return rows.map(r => ({
+        timestamp:     r.timestamp ? new Date(r.timestamp as string).toISOString() : '',
+        telefone:      String(r.telefone ?? ''),
+        nota:          Number(r.nota ?? 0),
+        atendimentoId: String(r.atendimento_id ?? ''),
+        atendente:     String(r.atendente ?? 'Bot'),
+      }))
+    } catch {
+      return []
+    }
   }
 
   async getMetrics(): Promise<{
@@ -84,21 +113,26 @@ export class SatisfacaoRepository {
     const all  = await this.findAll()
     const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
     let soma = 0
+
     for (const s of all) {
       const n = Math.round(s.nota)
       if (n >= 1 && n <= 5) { dist[n]++; soma += s.nota }
     }
+
     const byDay: Record<string, number[]> = {}
     for (const s of all) {
       const day = s.timestamp.slice(0, 10)
       if (!byDay[day]) byDay[day] = []
       byDay[day].push(s.nota)
     }
+
     const tendencia = Object.entries(byDay)
       .sort(([a], [b]) => a.localeCompare(b)).slice(-14)
       .map(([data, notas]) => ({
-        data, media: Math.round((notas.reduce((s, n) => s + n, 0) / notas.length) * 10) / 10,
+        data,
+        media: Math.round((notas.reduce((s, n) => s + n, 0) / notas.length) * 10) / 10,
       }))
+
     return {
       media: all.length > 0 ? Math.round((soma / all.length) * 10) / 10 : 0,
       total: all.length, distribuicao: dist, tendencia,
@@ -107,36 +141,64 @@ export class SatisfacaoRepository {
 }
 
 // ── CRM / Clientes — FASE 4 ──────────────────────────────────
-// Planilha Clientes expandida:
-// A: telefone | B: nome | C: status | D: historico
-// E: etapa | F: tags | G: ultimoContato | H: proximoFollowUp
-// I: valorEstimado | J: atendente | K: notas | L: origem | M: createdAt
 
 export class ClientesRepository {
-  constructor(private spreadsheetId: string) {}
+  constructor(private schema: string) {}
 
   async findAll(): Promise<ClientRecord[]> {
-    const rows = await readRange(this.spreadsheetId, 'Clientes!A:M')
-    return rowsToObjects<Record<string, string>>(rows).map(r => ({
-      telefone:        r.telefone        ?? r.Telefone        ?? '',
-      nome:            r.nome            ?? r.Nome            ?? '',
-      status:          r.status          ?? r.Status          ?? '',
-      historico:       r.historico       ?? r.Historico       ?? '',
-      etapa:           (r.etapa          ?? r.Etapa           ?? 'novo') as CRMStage,
-      tags:            r.tags            ?? r.Tags            ?? '',
-      ultimoContato:   r.ultimoContato   ?? r.UltimoContato   ?? '',
-      proximoFollowUp: r.proximoFollowUp ?? r.ProximoFollowUp ?? '',
-      valorEstimado:   r.valorEstimado   ?? r.ValorEstimado   ?? '',
-      atendente:       r.atendente       ?? r.Atendente       ?? '',
-      notas:           r.notas           ?? r.Notas           ?? '',
-      origem:          r.origem          ?? r.Origem          ?? '',
-      createdAt:       r.createdAt       ?? r.CreatedAt       ?? '',
-    }))
+    try {
+      const rows = await query(
+        `SELECT telefone, nome, status, historico, etapa, tags,
+                ultimo_contato, proximo_follow_up, valor_estimado,
+                atendente, notas, origem, created_at
+         FROM ${this.schema}.clientes ORDER BY nome`
+      )
+      return rows.map(r => ({
+        telefone:        String(r.telefone ?? ''),
+        nome:            String(r.nome ?? ''),
+        status:          String(r.status ?? ''),
+        historico:       String(r.historico ?? ''),
+        etapa:           String(r.etapa ?? 'novo') as CRMStage,
+        tags:            String(r.tags ?? ''),
+        ultimoContato:   r.ultimo_contato   ? new Date(r.ultimo_contato   as string).toISOString() : '',
+        proximoFollowUp: r.proximo_follow_up ? new Date(r.proximo_follow_up as string).toISOString() : '',
+        valorEstimado:   String(r.valor_estimado ?? ''),
+        atendente:       String(r.atendente ?? ''),
+        notas:           String(r.notas ?? ''),
+        origem:          String(r.origem ?? 'WhatsApp'),
+        createdAt:       r.created_at ? new Date(r.created_at as string).toISOString() : '',
+      }))
+    } catch {
+      return []
+    }
   }
 
   async findByPhone(telefone: string): Promise<ClientRecord | null> {
-    const all = await this.findAll()
-    return all.find(c => c.telefone === telefone) ?? null
+    try {
+      const rows = await query(
+        `SELECT * FROM ${this.schema}.clientes WHERE telefone = $1 LIMIT 1`,
+        [telefone]
+      )
+      if (rows.length === 0) return null
+      const r = rows[0]
+      return {
+        telefone:        String(r.telefone ?? ''),
+        nome:            String(r.nome ?? ''),
+        status:          String(r.status ?? ''),
+        historico:       String(r.historico ?? ''),
+        etapa:           String(r.etapa ?? 'novo') as CRMStage,
+        tags:            String(r.tags ?? ''),
+        ultimoContato:   r.ultimo_contato   ? new Date(r.ultimo_contato   as string).toISOString() : '',
+        proximoFollowUp: r.proximo_follow_up ? new Date(r.proximo_follow_up as string).toISOString() : '',
+        valorEstimado:   String(r.valor_estimado ?? ''),
+        atendente:       String(r.atendente ?? ''),
+        notas:           String(r.notas ?? ''),
+        origem:          String(r.origem ?? ''),
+        createdAt:       r.created_at ? new Date(r.created_at as string).toISOString() : '',
+      }
+    } catch {
+      return null
+    }
   }
 
   async findByStage(etapa: CRMStage): Promise<ClientRecord[]> {
@@ -145,79 +207,84 @@ export class ClientesRepository {
   }
 
   async findOverdueFollowUps(): Promise<ClientRecord[]> {
-    const all = await this.findAll()
-    const now = new Date().toISOString()
-    return all.filter(c =>
-      c.proximoFollowUp && c.proximoFollowUp < now && c.etapa !== 'fechado' && c.etapa !== 'perdido'
-    )
+    try {
+      const rows = await query(
+        `SELECT * FROM ${this.schema}.clientes
+         WHERE proximo_follow_up < NOW()
+           AND etapa NOT IN ('fechado', 'perdido')`
+      )
+      return rows.map(r => ({
+        telefone:        String(r.telefone ?? ''),
+        nome:            String(r.nome ?? ''),
+        status:          String(r.status ?? ''),
+        historico:       String(r.historico ?? ''),
+        etapa:           String(r.etapa ?? 'novo') as CRMStage,
+        tags:            String(r.tags ?? ''),
+        ultimoContato:   r.ultimo_contato    ? new Date(r.ultimo_contato    as string).toISOString() : '',
+        proximoFollowUp: r.proximo_follow_up  ? new Date(r.proximo_follow_up  as string).toISOString() : '',
+        valorEstimado:   String(r.valor_estimado ?? ''),
+        atendente:       String(r.atendente ?? ''),
+        notas:           String(r.notas ?? ''),
+        origem:          String(r.origem ?? ''),
+        createdAt:       r.created_at ? new Date(r.created_at as string).toISOString() : '',
+      }))
+    } catch {
+      return []
+    }
   }
 
   async updateClient(telefone: string, updates: Partial<ClientRecord>): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, 'Clientes!A:M')
-    if (rows.length < 2) return
+    const sets: string[]  = []
+    const vals: unknown[] = []
+    let   idx             = 1
 
-    const headers = rows[0]
-    const phoneCol = headers.findIndex(h => h.toLowerCase() === 'telefone')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[phoneCol] === telefone)
+    if (updates.etapa           !== undefined) { sets.push(`etapa = $${idx++}`);             vals.push(updates.etapa) }
+    if (updates.tags            !== undefined) { sets.push(`tags = $${idx++}`);              vals.push(updates.tags) }
+    if (updates.ultimoContato   !== undefined) { sets.push(`ultimo_contato = $${idx++}`);   vals.push(updates.ultimoContato || null) }
+    if (updates.proximoFollowUp !== undefined) { sets.push(`proximo_follow_up = $${idx++}`); vals.push(updates.proximoFollowUp || null) }
+    if (updates.valorEstimado   !== undefined) { sets.push(`valor_estimado = $${idx++}`);   vals.push(updates.valorEstimado) }
+    if (updates.atendente       !== undefined) { sets.push(`atendente = $${idx++}`);         vals.push(updates.atendente) }
+    if (updates.notas           !== undefined) { sets.push(`notas = $${idx++}`);             vals.push(updates.notas) }
+    if (updates.status          !== undefined) { sets.push(`status = $${idx++}`);            vals.push(updates.status) }
+    if (updates.historico       !== undefined) { sets.push(`historico = $${idx++}`);         vals.push(updates.historico) }
 
-    if (rowIndex === -1) return
-
-    const sheetRow = rowIndex + 1
-
-    // Monta a linha atualizada preservando valores existentes
-    const currentRow = rows[rowIndex]
-    const fieldMap: Record<string, number> = {}
-    headers.forEach((h, i) => { fieldMap[h.toLowerCase()] = i })
-
-    const updatedRow = [...currentRow]
-
-    if (updates.etapa !== undefined && fieldMap['etapa'] !== undefined)
-      updatedRow[fieldMap['etapa']] = updates.etapa
-    if (updates.tags !== undefined && fieldMap['tags'] !== undefined)
-      updatedRow[fieldMap['tags']] = updates.tags
-    if (updates.ultimoContato !== undefined && fieldMap['ultimocontato'] !== undefined)
-      updatedRow[fieldMap['ultimocontato']] = updates.ultimoContato
-    if (updates.proximoFollowUp !== undefined && fieldMap['proximofollowup'] !== undefined)
-      updatedRow[fieldMap['proximofollowup']] = updates.proximoFollowUp
-    if (updates.valorEstimado !== undefined && fieldMap['valorestimado'] !== undefined)
-      updatedRow[fieldMap['valorestimado']] = updates.valorEstimado
-    if (updates.atendente !== undefined && fieldMap['atendente'] !== undefined)
-      updatedRow[fieldMap['atendente']] = updates.atendente
-    if (updates.notas !== undefined && fieldMap['notas'] !== undefined)
-      updatedRow[fieldMap['notas']] = updates.notas
-    if (updates.status !== undefined && fieldMap['status'] !== undefined)
-      updatedRow[fieldMap['status']] = updates.status
-
-    await updateRange(this.spreadsheetId, `Clientes!A${sheetRow}:M${sheetRow}`, [updatedRow])
+    if (sets.length === 0) return
+    sets.push(`updated_at = NOW()`)
+    vals.push(telefone)
+    await execute(
+      `UPDATE ${this.schema}.clientes SET ${sets.join(', ')} WHERE telefone = $${idx}`,
+      vals
+    )
   }
 
   async addClient(client: ClientRecord): Promise<void> {
-    await appendRows(this.spreadsheetId, 'Clientes!A:M', [[
-      client.telefone,
-      client.nome,
-      client.status ?? '',
-      client.historico ?? '',
-      client.etapa ?? 'novo',
-      client.tags ?? '',
-      client.ultimoContato ?? new Date().toISOString(),
-      client.proximoFollowUp ?? '',
-      client.valorEstimado ?? '',
-      client.atendente ?? '',
-      client.notas ?? '',
-      client.origem ?? 'WhatsApp',
-      client.createdAt ?? new Date().toISOString(),
-    ]])
+    await execute(
+      `INSERT INTO ${this.schema}.clientes
+         (telefone, nome, status, historico, etapa, tags, ultimo_contato, proximo_follow_up,
+          valor_estimado, atendente, notas, origem, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       ON CONFLICT (telefone) DO NOTHING`,
+      [
+        client.telefone, client.nome, client.status ?? '', client.historico ?? '',
+        client.etapa ?? 'novo', client.tags ?? '',
+        client.ultimoContato   || null,
+        client.proximoFollowUp || null,
+        client.valorEstimado ?? '', client.atendente ?? '', client.notas ?? '',
+        client.origem ?? 'WhatsApp',
+        client.createdAt || new Date().toISOString(),
+      ]
+    )
   }
 
   async getMetrics(): Promise<{
     total: number; porStatus: Record<string, number>
     porEtapa: Record<string, number>; overdueFollowUps: number; novosHoje: number
   }> {
-    const all = await this.findAll()
+    const all   = await this.findAll()
     const porStatus: Record<string, number> = {}
-    const porEtapa: Record<string, number> = {}
+    const porEtapa:  Record<string, number> = {}
     const today = new Date().toISOString().slice(0, 10)
-    const now = new Date().toISOString()
+    const now   = new Date().toISOString()
     let overdueFollowUps = 0
 
     for (const c of all) {

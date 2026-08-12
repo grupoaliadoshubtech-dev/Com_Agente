@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { HandoffRepository } from '@/lib/repositories/handoff.repository'
+import { ClientesRepository } from '@/lib/repositories/clientes.repository'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
-import { readRange, rowsToObjects } from '@/lib/sheets/client'
 import type { ApiResponse } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -14,32 +14,35 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
     return NextResponse.json({ success: false, error: 'Nao autorizado' }, { status: 401 })
   }
   try {
-    const tenantId = session.user.tenantId
-    const tenant = await new TenantsRepository().findById(tenantId)
-    const spreadsheetId = tenant?.spreadsheetId || tenantId
-    const handoff = new HandoffRepository(spreadsheetId)
+    const tenant = await new TenantsRepository().findById(session.user.tenantId)
+    const schema = tenant?.supabaseSchema
+    if (!schema) return NextResponse.json({ success: false, error: 'Schema do tenant não configurado' }, { status: 400 })
+
+    const handoff = new HandoffRepository(schema)
     const filaItems = await handoff.getAll()
-    let atendimentos: Record<string, string>[] = []
-    try { const rows = await readRange(spreadsheetId, 'Atendimentos!A:H'); atendimentos = rowsToObjects<Record<string, string>>(rows) } catch {}
-    let clientes: Record<string, string>[] = []
-    try { const rows = await readRange(spreadsheetId, 'Clientes!A:D'); clientes = rowsToObjects<Record<string, string>>(rows) } catch {}
-    const queueMap = new Map()
+
+    const clientesRepo = new ClientesRepository(schema)
+    const clienteNames = await clientesRepo.buildNameMap()
+
+    const queueMap = new Map<string, Record<string, unknown>>()
     for (const item of filaItems) {
       if (item.telefone === 'ALL') continue
       const existing = queueMap.get(item.telefone)
-      if (!existing || new Date(item.timestamp) > new Date(existing.timestamp)) {
-        const cliente = clientes.find(c => (c.telefone ?? c.Telefone) === item.telefone)
-        const atd = atendimentos.find(a => (a.telefone ?? a.Telefone) === item.telefone)
-        queueMap.set(item.telefone, { telefone: item.telefone, nome: cliente?.nome ?? cliente?.Nome ?? atd?.nome ?? atd?.Nome ?? item.telefone, preview: atd?.preview ?? (item.status === 'pausado' ? 'Aguardando atendente' : 'Atendido por IA'), timestamp: item.timestamp, iaStatus: item.status, atendente: item.atendente })
+      if (!existing || new Date(item.timestamp) > new Date(existing.timestamp as string)) {
+        queueMap.set(item.telefone, {
+          telefone:  item.telefone,
+          nome:      clienteNames.get(item.telefone) ?? item.telefone,
+          preview:   item.status === 'pausado' ? 'Aguardando atendente' : 'Atendido por IA',
+          timestamp: item.timestamp,
+          iaStatus:  item.status,
+          atendente: item.atendente,
+        })
       }
     }
-    const recentAtd = atendimentos.slice(-30).reverse()
-    for (const atd of recentAtd) {
-      const phone = atd.telefone ?? atd.Telefone ?? ''
-      if (!phone || queueMap.has(phone)) continue
-      const cliente = clientes.find(c => (c.telefone ?? c.Telefone) === phone)
-      queueMap.set(phone, { telefone: phone, nome: cliente?.nome ?? cliente?.Nome ?? atd.nome ?? atd.Nome ?? phone, preview: atd.preview ?? 'Atendimento recente', timestamp: atd.inicio ?? new Date().toISOString(), iaStatus: 'ativo', atendente: atd.atendente ?? 'Bot' })
-    }
+
     return NextResponse.json({ success: true, data: Array.from(queueMap.values()).slice(0, 50) })
-  } catch (err) { console.error('[/api/workspace/queue]', err); return NextResponse.json({ success: false, error: 'Erro ao buscar fila' }, { status: 500 }) }
+  } catch (err) {
+    console.error('[/api/workspace/queue]', err)
+    return NextResponse.json({ success: false, error: 'Erro ao buscar fila' }, { status: 500 })
+  }
 }

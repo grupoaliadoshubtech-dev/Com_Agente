@@ -1,224 +1,130 @@
-// ─────────────────────────────────────────────────────────────
 // lib/repositories/users.repository.ts
-//
-// Fonte de verdade: aba "Usuarios" da planilha MASTER.
-// Todos os usuários (master, supervisor, atendente) ficam aqui.
-// Isolamento por tenant via campo tenantId (shared schema).
-//
-// Colunas esperadas (linha 1 = cabeçalho):
-//   A: id | B: tenantId | C: email | D: passwordHash | E: name
-//   F: role | G: phone | H: canViewDashboard | I: canViewCRM
-//   J: canViewTranscricoes | K: canViewSatisfacao
-//   L: createdAt | M: isActive | N: avatarUrl | O: mustChangePassword
-// ─────────────────────────────────────────────────────────────
+// Migrado de Google Sheets → Supabase (schema: app)
 
-import { readRange, updateRange, smartAppend, rowsToObjects } from '@/lib/sheets/client'
+import { query, queryOne, execute } from '@/lib/supabase/client'
 import type { UserRecord } from '@/types'
 
-const SHEET   = 'Usuarios'
-const RANGE   = `${SHEET}!A:P`
-const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
-
-// ── Helpers internos ─────────────────────────────────────────
-
-function parseUser(raw: Record<string, string>): UserRecord {
+function parse(row: Record<string, unknown>): UserRecord {
   return {
-    id:                    raw.id   ?? '',
-    tenantId:              raw.tenantId ?? '',
-    email:                 (raw.email ?? '').toLowerCase().trim(),
-    passwordHash:          raw.passwordHash,
-    name:                  raw.name,
-    role:                  raw.role as UserRecord['role'],
-    phone:                 raw.phone ?? '',
-    canViewDashboard:      raw.canViewDashboard === 'TRUE',
-    canViewCRM:            raw.canViewCRM === 'TRUE',
-    canViewTranscricoes:   raw.canViewTranscricoes === 'TRUE',
-    canViewSatisfacao:     raw.canViewSatisfacao === 'TRUE',
-    canViewAgendamentos:   raw.canViewAgendamentos === 'TRUE',
-    createdAt:             raw.createdAt,
-    isActive:              raw.isActive !== 'FALSE',
-    avatarUrl:             raw.avatarUrl ?? '',
-    mustChangePassword:    raw.mustChangePassword === 'TRUE',
+    id:                  String(row.id),
+    tenantId:            String(row.tenant_id),
+    email:               String(row.email ?? '').toLowerCase().trim(),
+    passwordHash:        String(row.password_hash ?? ''),
+    name:                String(row.name ?? ''),
+    role:                String(row.role ?? 'atendente') as UserRecord['role'],
+    phone:               String(row.phone ?? ''),
+    canViewDashboard:    Boolean(row.can_view_dashboard),
+    canViewCRM:          Boolean(row.can_view_crm),
+    canViewTranscricoes: Boolean(row.can_view_transcricoes),
+    canViewSatisfacao:   Boolean(row.can_view_satisfacao),
+    canViewAgendamentos: Boolean(row.can_view_agendamentos),
+    createdAt:           row.created_at ? new Date(row.created_at as string).toISOString() : '',
+    isActive:            Boolean(row.is_active),
+    avatarUrl:           String(row.avatar_url ?? ''),
+    mustChangePassword:  Boolean(row.must_change_password),
   }
 }
-
-function userToRow(u: UserRecord): (string | boolean)[] {
-  return [
-    u.id,                  // A
-    u.tenantId,            // B
-    u.email,               // C
-    u.passwordHash,        // D
-    u.name,                // E
-    u.role,                // F
-    u.phone ?? '',         // G
-    u.canViewDashboard,    // H
-    u.canViewCRM,          // I
-    u.canViewTranscricoes, // J
-    u.canViewSatisfacao,   // K
-    u.createdAt,                    // L
-    u.isActive,                    // M
-    u.avatarUrl ?? '',             // N
-    u.mustChangePassword ?? false,  // O
-    u.canViewAgendamentos ?? false, // P
-  ]
-}
-
-// ── Repositório ───────────────────────────────────────────────
 
 export class UsersRepository {
-  constructor(private spreadsheetId: string = MASTER_ID) {}
-
-  /** Busca todos os usuários ativos da planilha.
-   * Lê mustChangePassword posicionalmente (col O = índice 14)
-   * independente de o cabeçalho existir na planilha.
-   */
   async findAll(): Promise<UserRecord[]> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return []
-    const headers = rows[0]
-    return rows.slice(1)
-      .filter(r => r[0] && r[2]) // id e email presentes
-      .map(r => {
-        const raw: Record<string, string> = {}
-        headers.forEach((h, i) => { if (h) raw[h] = r[i] ?? '' })
-        // leitura posicional da coluna O (índice 14) independente do cabeçalho
-        raw.mustChangePassword    = r[14] ?? ''
-        raw.canViewAgendamentos   = r[15] ?? ''
-        return parseUser(raw)
-      })
-      .filter(u => u.isActive)
+    const rows = await query('SELECT * FROM app.usuarios WHERE is_active = true ORDER BY name')
+    return rows.map(parse)
   }
 
-  /** Busca todos os usuários ativos de um tenant (filtra por tenantId). */
   async findByTenantId(tenantId: string): Promise<UserRecord[]> {
-    const all = await this.findAll()
-    return all.filter(u => u.tenantId === tenantId)
+    const rows = await query(
+      'SELECT * FROM app.usuarios WHERE tenant_id = $1 AND is_active = true ORDER BY name',
+      [tenantId]
+    )
+    return rows.map(parse)
   }
 
-  /** Busca usuário por e-mail (case-insensitive). */
   async findByEmail(email: string): Promise<UserRecord | null> {
-    const all = await this.findAll()
-    return all.find(u => u.email === email.toLowerCase().trim()) ?? null
+    const row = await queryOne(
+      'SELECT * FROM app.usuarios WHERE email = $1 AND is_active = true',
+      [email.toLowerCase().trim()]
+    )
+    return row ? parse(row) : null
   }
 
-  /** Busca usuário por ID. */
   async findById(id: string): Promise<UserRecord | null> {
-    const all = await this.findAll()
-    return all.find(u => u.id === id) ?? null
+    const row = await queryOne(
+      'SELECT * FROM app.usuarios WHERE id = $1',
+      [id]
+    )
+    return row ? parse(row) : null
   }
 
-  /** Cria novo usuário logo após a última linha com id real, ignorando linhas com checkboxes. */
   async create(user: UserRecord): Promise<void> {
-    await smartAppend(this.spreadsheetId, SHEET, [userToRow(user)])
+    await execute(
+      `INSERT INTO app.usuarios
+         (id, tenant_id, email, password_hash, name, role, phone,
+          can_view_dashboard, can_view_crm, can_view_transcricoes,
+          can_view_satisfacao, can_view_agendamentos,
+          created_at, is_active, avatar_url, must_change_password)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+      [
+        user.id, user.tenantId, user.email, user.passwordHash,
+        user.name, user.role, user.phone ?? '',
+        user.canViewDashboard, user.canViewCRM, user.canViewTranscricoes,
+        user.canViewSatisfacao, user.canViewAgendamentos ?? false,
+        user.createdAt, user.isActive,
+        user.avatarUrl ?? '', user.mustChangePassword ?? false,
+      ]
+    )
   }
 
-  /**
-   * Atualiza toggles de permissão de um atendente.
-   * Encontra a linha pelo ID e faz update cirúrgico nas colunas H-K.
-   */
   async updateToggles(
     userId: string,
-    toggles: Pick<
-      UserRecord,
-      'canViewDashboard' | 'canViewCRM' | 'canViewTranscricoes' | 'canViewSatisfacao' | 'canViewAgendamentos'
-    >
+    toggles: Pick<UserRecord, 'canViewDashboard' | 'canViewCRM' | 'canViewTranscricoes' | 'canViewSatisfacao' | 'canViewAgendamentos'>
   ): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
-
-    const headers  = rows[0]
-    const idCol    = headers.indexOf('id')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === userId)
-    if (rowIndex === -1) throw new Error(`Usuário ${userId} não encontrado.`)
-
-    const sheetRow = rowIndex + 1
-
-    // H-K: os 4 toggles originais (posições fixas no sheet)
-    const updates: Promise<void>[] = [
-      updateRange(this.spreadsheetId, `${SHEET}!H${sheetRow}:K${sheetRow}`, [[
-        toggles.canViewDashboard,
-        toggles.canViewCRM,
-        toggles.canViewTranscricoes,
-        toggles.canViewSatisfacao,
-      ]])
-    ]
-
-    // canViewAgendamentos — coluna P (índice 15), ou pelo cabeçalho se presente
-    const agCol = headers.indexOf('canViewAgendamentos')
-    const agLetter = agCol !== -1 ? String.fromCharCode(65 + agCol) : 'P'
-    updates.push(updateRange(this.spreadsheetId, `${SHEET}!${agLetter}${sheetRow}`, [[toggles.canViewAgendamentos]]))
-
-    await Promise.all(updates)
+    await execute(
+      `UPDATE app.usuarios SET
+         can_view_dashboard    = $1,
+         can_view_crm          = $2,
+         can_view_transcricoes = $3,
+         can_view_satisfacao   = $4,
+         can_view_agendamentos = $5
+       WHERE id = $6`,
+      [
+        toggles.canViewDashboard, toggles.canViewCRM,
+        toggles.canViewTranscricoes, toggles.canViewSatisfacao,
+        toggles.canViewAgendamentos, userId,
+      ]
+    )
   }
 
-  /** Redefine o passwordHash de um usuário pelo e-mail. */
   async resetPassword(email: string, newHash: string): Promise<boolean> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return false
-
-    const headers  = rows[0]
-    const emailCol = headers.indexOf('email')
-    const hashCol  = headers.indexOf('passwordHash')
-
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[emailCol]?.toLowerCase().trim() === email.toLowerCase().trim())
-    if (rowIndex === -1) return false
-
-    const sheetRow = rowIndex + 1
-    const colLetter = String.fromCharCode(65 + hashCol) // D
-    await updateRange(this.spreadsheetId, `${SHEET}!${colLetter}${sheetRow}`, [[newHash]])
-    return true
+    const { rowCount } = await (await import('@/lib/supabase/client')).supabasePool.query(
+      'UPDATE app.usuarios SET password_hash = $1 WHERE email = $2',
+      [newHash, email.toLowerCase().trim()]
+    )
+    return (rowCount ?? 0) > 0
   }
 
-  /** Atualiza nome, passwordHash, avatarUrl e/ou mustChangePassword do usuário. */
   async updateProfile(
     userId: string,
     data: { name?: string; passwordHash?: string; avatarUrl?: string; mustChangePassword?: boolean }
   ): Promise<boolean> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return false
+    const sets: string[]  = []
+    const vals: unknown[] = []
+    let   idx             = 1
 
-    const headers  = rows[0]
-    const idCol    = headers.indexOf('id')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === userId)
-    if (rowIndex === -1) return false
+    if (data.name              !== undefined) { sets.push(`name = $${idx++}`);               vals.push(data.name) }
+    if (data.passwordHash      !== undefined) { sets.push(`password_hash = $${idx++}`);      vals.push(data.passwordHash) }
+    if (data.avatarUrl         !== undefined) { sets.push(`avatar_url = $${idx++}`);         vals.push(data.avatarUrl) }
+    if (data.mustChangePassword !== undefined) { sets.push(`must_change_password = $${idx++}`); vals.push(data.mustChangePassword) }
 
-    const sheetRow = rowIndex + 1
-    const updates: Promise<void>[] = []
-
-    if (data.name !== undefined) {
-      const col = headers.indexOf('name')
-      if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.name]]))
-    }
-    if (data.passwordHash !== undefined) {
-      const col = headers.indexOf('passwordHash')
-      if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.passwordHash]]))
-    }
-    if (data.avatarUrl !== undefined) {
-      const col = headers.indexOf('avatarUrl')
-      if (col !== -1) updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + col)}${sheetRow}`, [[data.avatarUrl]]))
-    }
-    if (data.mustChangePassword !== undefined) {
-      // usa o cabeçalho se existir, senão escreve direto na coluna O (índice 14)
-      const col = headers.indexOf('mustChangePassword')
-      const colIdx = col !== -1 ? col : 14
-      updates.push(updateRange(this.spreadsheetId, `${SHEET}!${String.fromCharCode(65 + colIdx)}${sheetRow}`, [[data.mustChangePassword]]))
-    }
-
-    await Promise.all(updates)
-    return true
+    if (sets.length === 0) return false
+    vals.push(userId)
+    const { rowCount } = await (await import('@/lib/supabase/client')).supabasePool.query(
+      `UPDATE app.usuarios SET ${sets.join(', ')} WHERE id = $${idx}`,
+      vals
+    )
+    return (rowCount ?? 0) > 0
   }
 
-  /** Desativa usuário (soft delete — coluna M = FALSE). */
   async deactivate(userId: string): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
-
-    const headers  = rows[0]
-    const idCol    = headers.indexOf('id')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === userId)
-    if (rowIndex === -1) return
-
-    const sheetRow = rowIndex + 1
-    await updateRange(this.spreadsheetId, `${SHEET}!M${sheetRow}`, [['FALSE']])
+    await execute('UPDATE app.usuarios SET is_active = false WHERE id = $1', [userId])
   }
 }

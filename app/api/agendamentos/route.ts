@@ -21,11 +21,12 @@ export async function GET(): Promise<NextResponse> {
   }
 
   try {
-    const tenantsRepo    = new TenantsRepository()
-    const tenant         = await tenantsRepo.findById(tenantId)
-    const spreadsheetId  = tenant?.spreadsheetId || tenantId
+    const tenantsRepo = new TenantsRepository()
+    const tenant      = await tenantsRepo.findById(tenantId)
+    const schema      = tenant?.supabaseSchema
+    if (!schema) return NextResponse.json({ success: false, error: 'Schema do tenant não configurado' }, { status: 400 })
 
-    const repo = new AgendamentosRepository(spreadsheetId)
+    const repo = new AgendamentosRepository(schema)
     const data = await repo.findAll()
 
     return NextResponse.json({ success: true, data })

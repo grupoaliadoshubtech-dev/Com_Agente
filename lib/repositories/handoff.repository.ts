@@ -1,92 +1,54 @@
-// ─────────────────────────────────────────────────────────────
 // lib/repositories/handoff.repository.ts
-//
-// REGRA CENTRAL DO SISTEMA:
-// Toda pausa de IA grava na aba "Fila_Humana" da planilha do tenant
-// com exatamente 4 colunas:
-//   A: Telefone  (número OU "ALL" para kill switch)
-//   B: Status    ("pausado" ou "ativo")
-//   C: Timestamp (ISO 8601)
-//   D: Atendente (ID do usuário logado)
-// ─────────────────────────────────────────────────────────────
+// Migrado de Google Sheets → Supabase (schema do tenant)
+// Tabela: fila_humana
+//   id | telefone | status | timestamp | atendente
 
-import { appendRows, readRange, deleteRows, getSheetId } from '@/lib/sheets/client'
+import { query, execute } from '@/lib/supabase/client'
 import type { HandoffRecord } from '@/types'
 
-const SHEET = 'Fila_Humana'
-const RANGE = `${SHEET}!A:D`
-
 export class HandoffRepository {
-  constructor(private spreadsheetId: string) {}
+  constructor(private schema: string) {}
 
-  /**
-   * Pausa IA para um cliente específico.
-   * Grava: telefone | "pausado" | ISO timestamp | atendenteId
-   */
   async pausar(telefone: string, atendenteId: string): Promise<void> {
-    const now = new Date()
-    const brTimestamp = now.toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false,
-    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2}:\d{2})/, '$3-$2-$1 $4')
-    const record: (string)[] = [
-      telefone,
-      'pausado',
-      brTimestamp,
-      atendenteId,
-    ]
-    await appendRows(this.spreadsheetId, RANGE, [record])
+    await execute(
+      `INSERT INTO ${this.schema}.fila_humana (telefone, status, timestamp, atendente)
+       VALUES ($1, 'pausado', NOW(), $2)`,
+      [telefone, atendenteId]
+    )
   }
 
-  /**
-   * Pausa Global — pausa IA para TODOS.
-   * Grava "ALL" na coluna Telefone. O n8n detecta "ALL" e
-   * bloqueia processamento de qualquer número.
-   */
   async pausaGlobal(atendenteId: string): Promise<void> {
     await this.pausar('ALL', atendenteId)
   }
 
-  /**
-   * Retoma IA — apaga todas as linhas do telefone na Fila_Humana.
-   * getStatus() checa presença na coluna A: sem linha = ativo.
-   */
   async retomar(telefone: string): Promise<void> {
-    const colA = await readRange(this.spreadsheetId, `${SHEET}!A:A`)
-    const indices: number[] = []
-    for (let i = 1; i < colA.length; i++) {
-      if ((colA[i]?.[0] ?? '').trim() === telefone) indices.push(i)
-    }
-    if (indices.length === 0) return
-    const sheetId = await getSheetId(this.spreadsheetId, SHEET)
-    await deleteRows(this.spreadsheetId, sheetId, indices)
+    await execute(
+      `DELETE FROM ${this.schema}.fila_humana WHERE telefone = $1`,
+      [telefone]
+    )
   }
 
-  /**
-   * Verifica se IA está pausada: lê coluna A a partir da linha 2.
-   * Se o número (ou 'ALL') existir → pausado. Se não existir → ativo.
-   */
   async getStatus(telefone: string): Promise<'pausado' | 'ativo'> {
-    const colA = await readRange(this.spreadsheetId, `${SHEET}!A2:A`)
-    const phones = colA.flat().map(v => v.trim()).filter(Boolean)
-    if (phones.includes('ALL') || phones.includes(telefone)) return 'pausado'
-    return 'ativo'
+    const rows = await query(
+      `SELECT 1 FROM ${this.schema}.fila_humana
+       WHERE telefone = $1 OR telefone = 'ALL'
+       LIMIT 1`,
+      [telefone]
+    )
+    return rows.length > 0 ? 'pausado' : 'ativo'
   }
 
-  /**
-   * Retorna toda a fila atual — leitura posicional a partir da linha 2.
-   */
   async getAll(): Promise<HandoffRecord[]> {
-    const rows = await readRange(this.spreadsheetId, `${SHEET}!A2:D`)
-    return rows
-      .filter(r => (r[0] ?? '').trim())
-      .map(r => ({
-        telefone:  r[0].trim(),
-        status:    'pausado' as HandoffRecord['status'],
-        timestamp: r[2] ?? '',
-        atendente: r[3] ?? '',
-      }))
+    const rows = await query(
+      `SELECT telefone, status, timestamp, atendente
+       FROM ${this.schema}.fila_humana
+       ORDER BY timestamp DESC`
+    )
+    return rows.map(r => ({
+      telefone:  String(r.telefone),
+      status:    'pausado' as HandoffRecord['status'],
+      timestamp: r.timestamp ? new Date(r.timestamp as string).toISOString() : '',
+      atendente: String(r.atendente ?? ''),
+    }))
   }
 }

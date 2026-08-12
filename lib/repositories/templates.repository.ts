@@ -1,134 +1,109 @@
-// ─────────────────────────────────────────────────────────────
 // lib/repositories/templates.repository.ts
-// FASE 5 — Repositório de respostas rápidas/templates.
-//
-// Aba "Templates" na planilha do tenant:
-// A: id | B: atalho | C: titulo | D: mensagem | E: categoria
-// F: criadoPor | G: createdAt | H: isActive
-// ─────────────────────────────────────────────────────────────
+// Migrado de Google Sheets → Supabase (schema do tenant)
 
-import { readRange, appendRows, updateRange, rowsToObjects } from '@/lib/sheets/client'
+import { query, queryOne, execute } from '@/lib/supabase/client'
 import { randomUUID } from 'crypto'
 
 export interface TemplateRecord {
-  id:         string
-  atalho:     string    // ex: /saudacao, /preco, /horario
-  titulo:     string    // nome curto para exibição
-  mensagem:   string    // texto completo da mensagem
-  categoria:  string    // ex: geral, vendas, suporte, follow-up
-  criadoPor:  string    // ID do supervisor que criou
-  createdAt:  string
-  isActive:   boolean
+  id:        string
+  atalho:    string
+  titulo:    string
+  mensagem:  string
+  categoria: string
+  criadoPor: string
+  createdAt: string
+  isActive:  boolean
 }
 
-const SHEET = 'Templates'
-const RANGE = `${SHEET}!A:H`
+function parse(row: Record<string, unknown>): TemplateRecord {
+  return {
+    id:        String(row.id),
+    atalho:    String(row.atalho ?? ''),
+    titulo:    String(row.titulo ?? ''),
+    mensagem:  String(row.mensagem ?? ''),
+    categoria: String(row.categoria ?? 'geral'),
+    criadoPor: String(row.criado_por ?? ''),
+    createdAt: row.created_at ? new Date(row.created_at as string).toISOString() : '',
+    isActive:  Boolean(row.is_active),
+  }
+}
 
 export class TemplatesRepository {
-  constructor(private spreadsheetId: string) {}
-
-  private parse(raw: Record<string, string>): TemplateRecord {
-    return {
-      id:        raw.id        ?? '',
-      atalho:    raw.atalho    ?? raw.Atalho    ?? '',
-      titulo:    raw.titulo    ?? raw.Titulo    ?? '',
-      mensagem:  raw.mensagem  ?? raw.Mensagem  ?? '',
-      categoria: raw.categoria ?? raw.Categoria ?? 'geral',
-      criadoPor: raw.criadoPor ?? raw.CriadoPor ?? '',
-      createdAt: raw.createdAt ?? raw.CreatedAt ?? '',
-      isActive:  raw.isActive !== 'FALSE',
-    }
-  }
+  constructor(private schema: string) {}
 
   async findAll(): Promise<TemplateRecord[]> {
     try {
-      const rows = await readRange(this.spreadsheetId, RANGE)
-      return rowsToObjects<Record<string, string>>(rows)
-        .map(r => this.parse(r))
-        .filter(t => t.isActive)
+      const rows = await query(
+        `SELECT * FROM ${this.schema}.templates WHERE is_active = true ORDER BY atalho`
+      )
+      return rows.map(parse)
     } catch {
-      return [] // Aba pode não existir ainda
+      return []
     }
   }
 
   async findByAtalho(atalho: string): Promise<TemplateRecord | null> {
-    const all = await this.findAll()
     const normalized = atalho.startsWith('/') ? atalho : `/${atalho}`
-    return all.find(t => t.atalho.toLowerCase() === normalized.toLowerCase()) ?? null
+    try {
+      const row = await queryOne(
+        `SELECT * FROM ${this.schema}.templates WHERE LOWER(atalho) = LOWER($1) AND is_active = true`,
+        [normalized]
+      )
+      return row ? parse(row) : null
+    } catch {
+      return null
+    }
   }
 
   async findByCategoria(categoria: string): Promise<TemplateRecord[]> {
-    const all = await this.findAll()
-    return all.filter(t => t.categoria.toLowerCase() === categoria.toLowerCase())
+    try {
+      const rows = await query(
+        `SELECT * FROM ${this.schema}.templates WHERE LOWER(categoria) = LOWER($1) AND is_active = true ORDER BY atalho`,
+        [categoria]
+      )
+      return rows.map(parse)
+    } catch {
+      return []
+    }
   }
 
   async create(data: {
     atalho: string; titulo: string; mensagem: string
     categoria?: string; criadoPor: string
   }): Promise<TemplateRecord> {
-    const template: TemplateRecord = {
-      id:        randomUUID(),
-      atalho:    data.atalho.startsWith('/') ? data.atalho : `/${data.atalho}`,
-      titulo:    data.titulo,
-      mensagem:  data.mensagem,
-      categoria: data.categoria ?? 'geral',
-      criadoPor: data.criadoPor,
-      createdAt: new Date().toISOString(),
-      isActive:  true,
+    const id     = randomUUID()
+    const atalho = data.atalho.startsWith('/') ? data.atalho : `/${data.atalho}`
+    const now    = new Date().toISOString()
+
+    await execute(
+      `INSERT INTO ${this.schema}.templates (id, atalho, titulo, mensagem, categoria, criado_por, created_at, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, true)`,
+      [id, atalho, data.titulo, data.mensagem, data.categoria ?? 'geral', data.criadoPor, now]
+    )
+
+    return {
+      id, atalho, titulo: data.titulo, mensagem: data.mensagem,
+      categoria: data.categoria ?? 'geral', criadoPor: data.criadoPor,
+      createdAt: now, isActive: true,
     }
-
-    await appendRows(this.spreadsheetId, RANGE, [[
-      template.id,
-      template.atalho,
-      template.titulo,
-      template.mensagem,
-      template.categoria,
-      template.criadoPor,
-      template.createdAt,
-      'TRUE',
-    ]])
-
-    return template
   }
 
   async update(id: string, updates: Partial<Pick<TemplateRecord, 'atalho' | 'titulo' | 'mensagem' | 'categoria'>>): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
+    const sets: string[]  = []
+    const vals: unknown[] = []
+    let   idx             = 1
 
-    const headers = rows[0]
-    const idCol = headers.findIndex(h => h.toLowerCase() === 'id')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === id)
-    if (rowIndex === -1) return
+    if (updates.atalho   !== undefined) { sets.push(`atalho = $${idx++}`);   vals.push(updates.atalho.startsWith('/') ? updates.atalho : `/${updates.atalho}`) }
+    if (updates.titulo   !== undefined) { sets.push(`titulo = $${idx++}`);   vals.push(updates.titulo) }
+    if (updates.mensagem !== undefined) { sets.push(`mensagem = $${idx++}`); vals.push(updates.mensagem) }
+    if (updates.categoria !== undefined) { sets.push(`categoria = $${idx++}`); vals.push(updates.categoria) }
 
-    const sheetRow = rowIndex + 1
-    const currentRow = [...rows[rowIndex]]
-    const fieldMap: Record<string, number> = {}
-    headers.forEach((h, i) => { fieldMap[h.toLowerCase()] = i })
-
-    if (updates.atalho !== undefined && fieldMap['atalho'] !== undefined)
-      currentRow[fieldMap['atalho']] = updates.atalho.startsWith('/') ? updates.atalho : `/${updates.atalho}`
-    if (updates.titulo !== undefined && fieldMap['titulo'] !== undefined)
-      currentRow[fieldMap['titulo']] = updates.titulo
-    if (updates.mensagem !== undefined && fieldMap['mensagem'] !== undefined)
-      currentRow[fieldMap['mensagem']] = updates.mensagem
-    if (updates.categoria !== undefined && fieldMap['categoria'] !== undefined)
-      currentRow[fieldMap['categoria']] = updates.categoria
-
-    await updateRange(this.spreadsheetId, `${SHEET}!A${sheetRow}:H${sheetRow}`, [currentRow])
+    if (sets.length === 0) return
+    vals.push(id)
+    await execute(`UPDATE ${this.schema}.templates SET ${sets.join(', ')} WHERE id = $${idx}`, vals)
   }
 
   async delete(id: string): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
-
-    const headers = rows[0]
-    const idCol = headers.findIndex(h => h.toLowerCase() === 'id')
-    const activeCol = headers.findIndex(h => h.toLowerCase() === 'isactive')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === id)
-    if (rowIndex === -1) return
-
-    const sheetRow = rowIndex + 1
-    const colLetter = String.fromCharCode(65 + activeCol)
-    await updateRange(this.spreadsheetId, `${SHEET}!${colLetter}${sheetRow}`, [['FALSE']])
+    await execute(`UPDATE ${this.schema}.templates SET is_active = false WHERE id = $1`, [id])
   }
 }

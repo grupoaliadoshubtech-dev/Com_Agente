@@ -1,30 +1,29 @@
-// ─────────────────────────────────────────────────────────────
 // app/api/tenants/route.ts
 // GET  /api/tenants     — master only
 // POST /api/tenants     — master only, provisionamento de novo tenant
-// ─────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import { UsersRepository } from '@/lib/repositories/users.repository'
+import { execute } from '@/lib/supabase/client'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { randomUUID } from 'crypto'
 import type { ApiResponse, UserRecord } from '@/types'
 
 const TenantSchema = z.object({
-  name:              z.string().min(2),
-  email:             z.string().email(),
-  phone:             z.string().min(8),
-  planId:            z.string().min(1),
-  supervisorName:    z.string().min(2),
-  supervisorEmail:   z.string().email(),
+  name:               z.string().min(2),
+  email:              z.string().email(),
+  phone:              z.string().min(8),
+  planId:             z.string().min(1),
+  supervisorName:     z.string().min(2),
+  supervisorEmail:    z.string().email(),
   supervisorPassword: z.string().min(8),
-  // ID da planilha Google Sheets criada para este tenant
-  spreadsheetId:     z.string().min(10),
-  evolutionInstance: z.string().optional(),
+  supabaseSchema:     z.string().min(3),          // ex: tenant_lucena
+  evolutionInstance:  z.string().optional(),
+  spreadsheetId:      z.string().optional(),      // legado — não obrigatório
 })
 
 const tenantsRepo = new TenantsRepository()
@@ -65,26 +64,35 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
   const d = parsed.data
 
   try {
-    // 1. Cria o tenant na planilha Master
-    //    id = spreadsheetId para que tenantsRepo.findById(tenantId) funcione
+    const tenantId = randomUUID()
+
+    // 1. Cria o schema do tenant no Supabase (se não existir)
+    try {
+      await execute(`SELECT create_tenant_schema($1)`, [d.supabaseSchema])
+    } catch {
+      // Schema pode já existir — ignorar
+    }
+
+    // 2. Cria o tenant na tabela app.empresas
     const tenant = await tenantsRepo.create({
-      id:                d.spreadsheetId,
+      id:                tenantId,
       name:              d.name,
       email:             d.email,
       phone:             d.phone,
       planId:            d.planId,
       status:            'active',
       evolutionInstance: d.evolutionInstance,
+      spreadsheetId:     d.spreadsheetId ?? '',
+      supabaseSchema:    d.supabaseSchema,
     })
 
-    // 2. Cria o usuário Supervisor na planilha MASTER (necessário para o login)
-    //    com tenantId = spreadsheetId da planilha do tenant
-    const usersRepo = new UsersRepository() // master
+    // 3. Cria o usuário Supervisor na tabela app.usuarios
+    const usersRepo    = new UsersRepository()
     const passwordHash = await bcrypt.hash(d.supervisorPassword, 12)
 
     const supervisor: UserRecord = {
       id:                  randomUUID(),
-      tenantId:            d.spreadsheetId, // aponta para a planilha do tenant
+      tenantId:            tenantId,
       email:               d.supervisorEmail,
       passwordHash,
       name:                d.supervisorName,
@@ -93,8 +101,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
       canViewDashboard:    true,
       canViewCRM:          true,
       canViewTranscricoes: true,
-      canViewSatisfacao:    true,
-      canViewAgendamentos:  false,
+      canViewSatisfacao:   true,
+      canViewAgendamentos: false,
       createdAt:           new Date().toISOString(),
       isActive:            true,
     }
@@ -103,7 +111,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     return NextResponse.json({
       success: true,
       message: 'Tenant provisionado com sucesso.',
-      data: { tenantId: tenant.id, supervisorId: supervisor.id },
+      data: { tenantId: tenant.id, supervisorId: supervisor.id, supabaseSchema: d.supabaseSchema },
     }, { status: 201 })
   } catch (err) {
     console.error('[/api/tenants POST]', err)

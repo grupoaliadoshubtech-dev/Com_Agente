@@ -31,6 +31,7 @@ export interface Tenant {
   createdAt: string
   evolutionInstance?: string
   spreadsheetId?: string
+  supabaseSchema?: string
 }
 
 // ── PLANO ─────────────────────────────────────────────────────

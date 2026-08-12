@@ -42,11 +42,12 @@ export async function PATCH(
   }
 
   try {
-    const tenantsRepo   = new TenantsRepository()
-    const tenant        = await tenantsRepo.findById(tenantId)
-    const spreadsheetId = tenant?.spreadsheetId || tenantId
+    const tenantsRepo = new TenantsRepository()
+    const tenant      = await tenantsRepo.findById(tenantId)
+    const schema      = tenant?.supabaseSchema
+    if (!schema) return NextResponse.json({ success: false, error: 'Schema do tenant não configurado' }, { status: 400 })
 
-    const repo = new AgendamentosRepository(spreadsheetId)
+    const repo = new AgendamentosRepository(schema)
     await repo.update(rowIndex, parsed.data.updates)
 
     return NextResponse.json({ success: true, message: 'Agendamento atualizado' })

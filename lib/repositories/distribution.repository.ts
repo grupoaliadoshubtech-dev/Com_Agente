@@ -1,68 +1,52 @@
-// ─────────────────────────────────────────────────────────────
 // lib/repositories/distribution.repository.ts
-// FASE 6 — Distribuição automática de atendimentos.
-//
-// Aba "Distribuicao" na planilha do tenant:
-// A: atendenteId | B: atendenteNome | C: atendentePhone
-// D: online | E: especialidade | F: maxConversas
-// G: conversasAtivas | H: ultimaAtribuicao | I: totalAtribuidos
-//
-// Lógica round-robin com regras:
-// - Só atribui para atendentes online
-// - Respeita capacidade máxima (maxConversas)
-// - Pode filtrar por especialidade
-// - Atribui para quem tem menos conversas ativas
-// - Em empate, usa quem foi atribuído há mais tempo
-// ─────────────────────────────────────────────────────────────
+// Migrado de Google Sheets → Supabase (schema do tenant)
 
-import { readRange, appendRows, updateRange, rowsToObjects } from '@/lib/sheets/client'
+import { query, execute } from '@/lib/supabase/client'
 import { UsersRepository } from './users.repository'
+import { randomUUID } from 'crypto'
 
 export interface DistributionRecord {
-  atendenteId:       string
-  atendenteNome:     string
-  atendentePhone:    string
-  online:            boolean
-  especialidade:     string    // ex: "vendas", "suporte", "geral"
-  maxConversas:      number
-  conversasAtivas:   number
-  ultimaAtribuicao:  string    // ISO date
-  totalAtribuidos:   number
+  atendenteId:      string
+  atendenteNome:    string
+  atendentePhone:   string
+  online:           boolean
+  especialidade:    string
+  maxConversas:     number
+  conversasAtivas:  number
+  ultimaAtribuicao: string
+  totalAtribuidos:  number
 }
 
 export interface AtribuicaoLog {
-  id:            string
+  id:              string
   telefoneCliente: string
-  atendenteId:   string
-  atendenteNome: string
-  timestamp:     string
-  motivo:        string    // "round-robin", "especialidade", "manual"
+  atendenteId:     string
+  atendenteNome:   string
+  timestamp:       string
+  motivo:          string
 }
 
-const SHEET = 'Distribuicao'
-const RANGE = `${SHEET}!A:I`
-const LOG_SHEET = 'Log_Distribuicao'
-const LOG_RANGE = `${LOG_SHEET}!A:F`
+function parse(row: Record<string, unknown>): DistributionRecord {
+  return {
+    atendenteId:      String(row.atendente_id ?? ''),
+    atendenteNome:    String(row.atendente_nome ?? ''),
+    atendentePhone:   String(row.atendente_phone ?? ''),
+    online:           Boolean(row.online),
+    especialidade:    String(row.especialidade ?? 'geral'),
+    maxConversas:     Number(row.max_conversas ?? 5),
+    conversasAtivas:  Number(row.conversas_ativas ?? 0),
+    ultimaAtribuicao: row.ultima_atribuicao ? new Date(row.ultima_atribuicao as string).toISOString() : '',
+    totalAtribuidos:  Number(row.total_atribuidos ?? 0),
+  }
+}
 
 export class DistributionRepository {
-  constructor(private spreadsheetId: string) {}
-
-  // ── Leitura ────────────────────────────────────────────────
+  constructor(private schema: string) {}
 
   async findAll(): Promise<DistributionRecord[]> {
     try {
-      const rows = await readRange(this.spreadsheetId, RANGE)
-      return rowsToObjects<Record<string, string>>(rows).map(r => ({
-        atendenteId:      r.atendenteId      ?? r.AtendenteId      ?? '',
-        atendenteNome:    r.atendenteNome    ?? r.AtendenteNome    ?? '',
-        atendentePhone:   r.atendentePhone   ?? r.AtendentePhone   ?? '',
-        online:           r.online === 'TRUE' || r.Online === 'TRUE',
-        especialidade:    r.especialidade    ?? r.Especialidade    ?? 'geral',
-        maxConversas:     Number(r.maxConversas ?? r.MaxConversas ?? 5),
-        conversasAtivas:  Number(r.conversasAtivas ?? r.ConversasAtivas ?? 0),
-        ultimaAtribuicao: r.ultimaAtribuicao ?? r.UltimaAtribuicao ?? '',
-        totalAtribuidos:  Number(r.totalAtribuidos ?? r.TotalAtribuidos ?? 0),
-      }))
+      const rows = await query(`SELECT * FROM ${this.schema}.distribuicao ORDER BY atendente_nome`)
+      return rows.map(parse)
     } catch {
       return []
     }
@@ -85,206 +69,121 @@ export class DistributionRepository {
     return available
   }
 
-  // ── Distribuição round-robin ───────────────────────────────
-
-  /**
-   * Seleciona o próximo atendente disponível usando round-robin.
-   * Prioridade: menos conversas ativas → última atribuição mais antiga.
-   */
   async getNextAttendant(especialidade?: string): Promise<DistributionRecord | null> {
     const available = await this.findAvailable(especialidade)
     if (available.length === 0) return null
-
-    // Ordena: menos conversas primeiro, em empate, quem foi atribuído há mais tempo
     available.sort((a, b) => {
-      if (a.conversasAtivas !== b.conversasAtivas) {
-        return a.conversasAtivas - b.conversasAtivas
-      }
+      if (a.conversasAtivas !== b.conversasAtivas) return a.conversasAtivas - b.conversasAtivas
       const tA = a.ultimaAtribuicao ? new Date(a.ultimaAtribuicao).getTime() : 0
       const tB = b.ultimaAtribuicao ? new Date(b.ultimaAtribuicao).getTime() : 0
       return tA - tB
     })
-
     return available[0]
   }
 
-  /**
-   * Atribui um cliente a um atendente.
-   * Incrementa conversas ativas e total, atualiza timestamp.
-   */
   async atribuir(atendenteId: string, telefoneCliente: string, motivo = 'round-robin'): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
+    const rows = await query(
+      `SELECT atendente_nome, conversas_ativas, total_atribuidos
+       FROM ${this.schema}.distribuicao WHERE atendente_id = $1`,
+      [atendenteId]
+    )
+    if (rows.length === 0) return
 
-    const headers = rows[0]
-    const idCol = headers.findIndex(h => h.toLowerCase() === 'atendenteid')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === atendenteId)
-    if (rowIndex === -1) return
-
-    const sheetRow = rowIndex + 1
-    const currentRow = [...rows[rowIndex]]
-    const fieldMap: Record<string, number> = {}
-    headers.forEach((h, i) => { fieldMap[h.toLowerCase()] = i })
-
-    const conversasAtivas = Number(currentRow[fieldMap['conversasativas'] ?? 6] ?? 0) + 1
-    const totalAtribuidos = Number(currentRow[fieldMap['totalatribuidos'] ?? 8] ?? 0) + 1
-
-    if (fieldMap['conversasativas'] !== undefined)
-      currentRow[fieldMap['conversasativas']] = String(conversasAtivas)
-    if (fieldMap['ultimaatribuicao'] !== undefined)
-      currentRow[fieldMap['ultimaatribuicao']] = new Date().toISOString()
-    if (fieldMap['totalatribuidos'] !== undefined)
-      currentRow[fieldMap['totalatribuidos']] = String(totalAtribuidos)
-
-    await updateRange(this.spreadsheetId, `${SHEET}!A${sheetRow}:I${sheetRow}`, [currentRow])
-
-    // Log da atribuição
-    await this.logAtribuicao(telefoneCliente, atendenteId, currentRow[fieldMap['atendentenome'] ?? 1] ?? '', motivo)
+    const nome = String(rows[0].atendente_nome ?? '')
+    await execute(
+      `UPDATE ${this.schema}.distribuicao
+       SET conversas_ativas  = conversas_ativas + 1,
+           total_atribuidos  = total_atribuidos + 1,
+           ultima_atribuicao = NOW()
+       WHERE atendente_id = $1`,
+      [atendenteId]
+    )
+    await this.logAtribuicao(telefoneCliente, atendenteId, nome, motivo)
   }
 
-  /**
-   * Libera uma conversa de um atendente (decrementa conversas ativas).
-   */
   async liberar(atendenteId: string): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
-
-    const headers = rows[0]
-    const idCol = headers.findIndex(h => h.toLowerCase() === 'atendenteid')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === atendenteId)
-    if (rowIndex === -1) return
-
-    const sheetRow = rowIndex + 1
-    const fieldMap: Record<string, number> = {}
-    headers.forEach((h, i) => { fieldMap[h.toLowerCase()] = i })
-
-    const col = fieldMap['conversasativas']
-    if (col === undefined) return
-    const current = Math.max(0, Number(rows[rowIndex][col] ?? 0) - 1)
-    const colLetter = String.fromCharCode(65 + col)
-    await updateRange(this.spreadsheetId, `${SHEET}!${colLetter}${sheetRow}`, [[String(current)]])
+    await execute(
+      `UPDATE ${this.schema}.distribuicao
+       SET conversas_ativas = GREATEST(0, conversas_ativas - 1)
+       WHERE atendente_id = $1`,
+      [atendenteId]
+    )
   }
-
-  // ── Status online/offline ──────────────────────────────────
 
   async setOnline(atendenteId: string, online: boolean): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
-
-    const headers = rows[0]
-    const idCol = headers.findIndex(h => h.toLowerCase() === 'atendenteid')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === atendenteId)
-    if (rowIndex === -1) return
-
-    const sheetRow = rowIndex + 1
-    const fieldMap: Record<string, number> = {}
-    headers.forEach((h, i) => { fieldMap[h.toLowerCase()] = i })
-
-    const col = fieldMap['online']
-    if (col === undefined) return
-    const colLetter = String.fromCharCode(65 + col)
-    await updateRange(this.spreadsheetId, `${SHEET}!${colLetter}${sheetRow}`, [[online ? 'TRUE' : 'FALSE']])
-
-    // Se ficou offline, zera conversas ativas
-    if (!online) {
-      const convCol = fieldMap['conversasativas']
-      if (convCol !== undefined) {
-        const convLetter = String.fromCharCode(65 + convCol)
-        await updateRange(this.spreadsheetId, `${SHEET}!${convLetter}${sheetRow}`, [['0']])
-      }
-    }
+    await execute(
+      `UPDATE ${this.schema}.distribuicao
+       SET online = $1,
+           conversas_ativas = CASE WHEN $1 = false THEN 0 ELSE conversas_ativas END
+       WHERE atendente_id = $2`,
+      [online, atendenteId]
+    )
   }
 
-  // ── Configuração ───────────────────────────────────────────
+  async updateConfig(atendenteId: string, updates: { especialidade?: string; maxConversas?: number }): Promise<void> {
+    const sets: string[]  = []
+    const vals: unknown[] = []
+    let   idx             = 1
 
-  async updateConfig(atendenteId: string, updates: {
-    especialidade?: string; maxConversas?: number
-  }): Promise<void> {
-    const rows = await readRange(this.spreadsheetId, RANGE)
-    if (rows.length < 2) return
+    if (updates.especialidade !== undefined) { sets.push(`especialidade = $${idx++}`);  vals.push(updates.especialidade) }
+    if (updates.maxConversas  !== undefined) { sets.push(`max_conversas = $${idx++}`);  vals.push(updates.maxConversas) }
 
-    const headers = rows[0]
-    const idCol = headers.findIndex(h => h.toLowerCase() === 'atendenteid')
-    const rowIndex = rows.findIndex((r, i) => i > 0 && r[idCol] === atendenteId)
-    if (rowIndex === -1) return
-
-    const sheetRow = rowIndex + 1
-    const currentRow = [...rows[rowIndex]]
-    const fieldMap: Record<string, number> = {}
-    headers.forEach((h, i) => { fieldMap[h.toLowerCase()] = i })
-
-    if (updates.especialidade !== undefined && fieldMap['especialidade'] !== undefined)
-      currentRow[fieldMap['especialidade']] = updates.especialidade
-    if (updates.maxConversas !== undefined && fieldMap['maxconversas'] !== undefined)
-      currentRow[fieldMap['maxconversas']] = String(updates.maxConversas)
-
-    await updateRange(this.spreadsheetId, `${SHEET}!A${sheetRow}:I${sheetRow}`, [currentRow])
+    if (sets.length === 0) return
+    vals.push(atendenteId)
+    await execute(`UPDATE ${this.schema}.distribuicao SET ${sets.join(', ')} WHERE atendente_id = $${idx}`, vals)
   }
-
-  // ── Sincroniza com a aba Usuarios ──────────────────────────
 
   async syncFromUsers(): Promise<void> {
-    const usersRepo = new UsersRepository(this.spreadsheetId)
-    const users = await usersRepo.findAll()
+    const usersRepo = new UsersRepository()
+    const users     = await usersRepo.findAll()
     const attendants = users.filter(u => u.role === 'atendente' || u.role === 'supervisor')
-    const existing = await this.findAll()
+    const existing   = await this.findAll()
     const existingIds = new Set(existing.map(e => e.atendenteId))
 
     for (const user of attendants) {
       if (existingIds.has(user.id)) continue
-      await appendRows(this.spreadsheetId, RANGE, [[
-        user.id,
-        user.name,
-        user.phone ?? '',
-        'FALSE',
-        'geral',
-        '5',
-        '0',
-        '',
-        '0',
-      ]])
+      await execute(
+        `INSERT INTO ${this.schema}.distribuicao
+           (atendente_id, atendente_nome, atendente_phone, online, especialidade, max_conversas, conversas_ativas, total_atribuidos)
+         VALUES ($1, $2, $3, false, 'geral', 5, 0, 0)
+         ON CONFLICT (atendente_id) DO NOTHING`,
+        [user.id, user.name, user.phone ?? '']
+      )
     }
   }
 
-  // ── Log de atribuição ──────────────────────────────────────
-
   private async logAtribuicao(telefoneCliente: string, atendenteId: string, atendenteNome: string, motivo: string): Promise<void> {
     try {
-      await appendRows(this.spreadsheetId, LOG_RANGE, [[
-        `dist_${Date.now()}`,
-        telefoneCliente,
-        atendenteId,
-        atendenteNome,
-        new Date().toISOString(),
-        motivo,
-      ]])
+      await execute(
+        `INSERT INTO ${this.schema}.log_distribuicao (id, telefone_cliente, atendente_id, atendente_nome, timestamp, motivo)
+         VALUES ($1, $2, $3, $4, NOW(), $5)`,
+        [randomUUID(), telefoneCliente, atendenteId, atendenteNome, motivo]
+      )
     } catch {
       console.error('[Distribution] Erro ao gravar log')
     }
   }
 
-  // ── Métricas ───────────────────────────────────────────────
-
   async getMetrics(): Promise<{
-    totalOnline: number
-    totalOffline: number
+    totalOnline:          number
+    totalOffline:         number
     totalConversasAtivas: number
-    capacidadeTotal: number
-    capacidadeUsada: number
-    atendentes: DistributionRecord[]
+    capacidadeTotal:      number
+    capacidadeUsada:      number
+    atendentes:           DistributionRecord[]
   }> {
-    const all = await this.findAll()
-    const online = all.filter(a => a.online)
+    const all     = await this.findAll()
+    const online  = all.filter(a => a.online)
     const totalConversas = all.reduce((s, a) => s + a.conversasAtivas, 0)
-    const capacidade = online.reduce((s, a) => s + a.maxConversas, 0)
+    const capacidade     = online.reduce((s, a) => s + a.maxConversas, 0)
 
     return {
-      totalOnline: online.length,
-      totalOffline: all.length - online.length,
+      totalOnline:          online.length,
+      totalOffline:         all.length - online.length,
       totalConversasAtivas: totalConversas,
-      capacidadeTotal: capacidade,
-      capacidadeUsada: capacidade > 0 ? Math.round((totalConversas / capacidade) * 100) : 0,
-      atendentes: all,
+      capacidadeTotal:      capacidade,
+      capacidadeUsada:      capacidade > 0 ? Math.round((totalConversas / capacidade) * 100) : 0,
+      atendentes:           all,
     }
   }
 }
