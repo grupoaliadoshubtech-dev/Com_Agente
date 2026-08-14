@@ -143,6 +143,8 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       }
 
       const phone = jidToNumber(phoneJid)
+      // Normaliza para remover sufixo de dispositivo (:0, :1, :2…) do JID multi-device
+      const canonicalJid = `${phone}@s.whatsapp.net`
       const clienteNome = clienteNames.get(phone) ?? null
       const lastMsg = chat.lastMessage
       const toMs = (ts: string) => new Date(ts.replace(' ', 'T')).getTime()
@@ -158,12 +160,12 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
         : chat.updatedAt ?? new Date().toISOString()
       const fromMe = lastMsg?.key?.fromMe ?? false
 
-      const existing = unified.get(phoneJid)
+      const existing = unified.get(canonicalJid)
       if (!existing || new Date(timestamp) > new Date(existing.timestamp)) {
         const invalidNames = new Set(['você', 'you', ''])
         const candidateName = (n?: string | null) =>
           n && !invalidNames.has(n.toLowerCase().trim()) ? n : null
-        unified.set(phoneJid, {
+        unified.set(canonicalJid, {
           telefone: phone,
           lidJid: lidJid ?? existing?.lidJid ?? null,
           nome: clienteNome
