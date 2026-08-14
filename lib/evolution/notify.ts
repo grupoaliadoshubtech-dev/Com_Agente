@@ -29,7 +29,7 @@ export async function pushNotification(instance: string, phone: string | null): 
     await ensureTable()
     await pool.query(
       'INSERT INTO _comagente_notify (instance, phone) VALUES ($1, $2)',
-      [instance, phone]
+      [instance, phone] as unknown[]
     )
     // Mantém a tabela pequena — descarta entradas com mais de 60 s
     pool.query(
