@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useHandoff } from '@/lib/hooks/use-handoff'
 import { useTemplates } from '@/lib/hooks/use-templates'
+import { useMessageStream } from '@/lib/hooks/use-message-stream'
 import { IcoMapPin, IcoUser, IcoBot, IcoBan, IcoMessageCircle } from '@/components/icons'
 import { TemplateMenu } from '@/components/template-menu'
 
@@ -28,8 +29,7 @@ interface ChatMessage {
 
 // ── Config ───────────────────────────────────────────────────
 
-const CHAT_POLL = 5000
-const MSG_POLL  = 3000
+const CHAT_POLL = 20000 // fallback — SSE dispara fetchChats em tempo real
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -333,11 +333,13 @@ export default function WorkspacePage() {
     } catch {} finally { setLoadingMsg(false) }
   }, [])
 
-  useEffect(() => {
-    if (!selected) return
-    const i = setInterval(() => { if (selectedRef.current) fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid) }, MSG_POLL)
-    return () => clearInterval(i)
-  }, [selected, fetchMessages])
+  // SSE — recebe sinal em tempo real quando chega mensagem nova no webhook
+  useMessageStream(true, () => {
+    if (selectedRef.current) {
+      fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid)
+    }
+    fetchChats()
+  })
 
   useEffect(() => {
     if (!isAtBottom.current) return

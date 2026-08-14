@@ -18,6 +18,7 @@ import {
 } from '@/lib/evolution/webhook-types'
 import { appendRows } from '@/lib/sheets/client'
 import { saveReceivedMessage } from '@/lib/evolution/db-client'
+import { pushNotification } from '@/lib/evolution/notify'
 
 const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
@@ -104,6 +105,15 @@ async function processWebhookEvent(
         await processor.process(msg).catch(err => {
           console.error(`[Webhook] Erro ao processar mensagem ${msg.key.id}:`, err)
         })
+      }
+
+      // Sinaliza ao frontend (SSE) que chegou mensagem nova
+      const firstMsg = messages[0]
+      if (firstMsg) {
+        const phone = firstMsg.key.remoteJid?.endsWith('@s.whatsapp.net')
+          ? firstMsg.key.remoteJid
+          : null
+        pushNotification(instance, phone).catch(() => {})
       }
       break
     }
