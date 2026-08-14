@@ -1,9 +1,13 @@
 // lib/evolution/notify.ts
-// Tabela leve no Neon usada para sinalizar novas mensagens ao frontend via SSE.
+// Tabela leve no Supabase do ComAgente usada para sinalizar novas mensagens ao frontend via SSE.
 // O webhook escreve aqui; o endpoint /api/evolution/stream faz long-poll.
+// Usa SUPABASE_DATABASE_URL (acessível do Vercel) — sem dependência do banco da Evolution API.
 import { Pool } from 'pg'
 
-const pool = new Pool({ connectionString: process.env.EVOLUTION_DB_URL })
+const pool = new Pool({
+  connectionString: process.env.SUPABASE_DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+})
 
 let tableReady = false
 
