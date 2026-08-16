@@ -43,7 +43,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { event, instance, data } = payload
+  const { event: rawEvent, instance, data } = payload
+  // Normaliza: 'messages.upsert' → 'MESSAGES_UPSERT' (webhook global usa dot-notation lowercase)
+  const event = rawEvent.toUpperCase().replace(/\./g, '_')
 
   // Responde imediatamente — processamento é async para não dar timeout
   // O Evolution API espera 200 em < 5s
