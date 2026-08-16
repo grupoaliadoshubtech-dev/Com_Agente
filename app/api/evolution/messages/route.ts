@@ -94,13 +94,15 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const phoneJid = numberToJid(phone)
     const client   = EvolutionClient.fromEnv(instanceName)
 
-    // Estratégia híbrida:
-    // 1. HTTP para mensagens enviadas + recebidas normais (Evolution API em tempo real)
-    // 2. DB direto para mensagens recebidas via @lid (remoteJidAlt não funciona via HTTP)
-    // Merge por key.id para deduplicar.
+    // Contatos @lid armazenam TODAS as mensagens (enviadas e recebidas) com remoteJid=@lid.
+    // Buscar por phoneJid retorna zero para esses contatos.
+    // Solução: quando lidJid é conhecido, ele é a chave primária na query HTTP.
+    // phoneJid é usado como fallback para contatos sem @lid.
+    const primaryJid = lidJid ?? phoneJid
     const jids = lidJid ? [phoneJid, lidJid] : [phoneJid]
+
     const [httpMessages, dbMessages] = await Promise.all([
-      client.findMessages(phoneJid, count).catch(() => [] as EvolutionMessage[]),
+      client.findMessages(primaryJid, count).catch(() => [] as EvolutionMessage[]),
       findAllMessages(jids, instanceName, count).catch(() => []),
     ])
 
