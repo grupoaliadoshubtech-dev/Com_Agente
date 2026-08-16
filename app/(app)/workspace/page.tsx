@@ -334,11 +334,24 @@ export default function WorkspacePage() {
   }, [])
 
   // SSE — recebe sinal em tempo real quando chega mensagem nova no webhook
-  useMessageStream(true, () => {
-    if (selectedRef.current) {
-      fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid)
+  useMessageStream(true, async () => {
+    try {
+      const r = await fetch('/api/evolution/chats', { cache: 'no-store' })
+      const d = await r.json()
+      if (d.success && d.data) {
+        setChats(d.data)
+        if (selectedRef.current) {
+          const fresh = (d.data as ChatContact[]).find(c => c.telefone === selectedRef.current!.telefone)
+          const lid = fresh?.lidJid ?? selectedRef.current.lidJid
+          // aguarda Evolution API confirmar no Supabase antes de buscar
+          await new Promise(res => setTimeout(res, 500))
+          if (selectedRef.current) fetchMessages(selectedRef.current.telefone, lid)
+        }
+      }
+    } catch {
+      fetchChats()
+      if (selectedRef.current) fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid)
     }
-    fetchChats()
   })
 
   useEffect(() => {

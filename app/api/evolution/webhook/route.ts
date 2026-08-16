@@ -17,7 +17,6 @@ import {
   type ConnectionUpdateData,
 } from '@/lib/evolution/webhook-types'
 import { appendRows } from '@/lib/sheets/client'
-import { saveReceivedMessage } from '@/lib/evolution/db-client'
 import { pushNotification } from '@/lib/evolution/notify'
 
 const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
@@ -102,15 +101,6 @@ async function processWebhookEvent(
         instanceName:        tenant.instanceName,
         attendantNumber:     tenant.attendantNumber,
       })
-
-      for (const msg of messages) {
-        if (!msg.key.fromMe) {
-          await saveReceivedMessage(
-            { ...msg, message: msg.message as Record<string, unknown> | undefined },
-            tenant.instanceName
-          ).catch(() => {})
-        }
-      }
 
       for (const msg of messages) {
         await processor.process(msg).catch(err => {
