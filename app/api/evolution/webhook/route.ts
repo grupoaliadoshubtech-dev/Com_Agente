@@ -30,9 +30,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Webhook não configurado no servidor' }, { status: 500 })
   }
   const token = req.headers.get('x-evolution-token') ??
-                req.headers.get('apikey') ?? ''
+                req.headers.get('apikey') ??
+                req.nextUrl.searchParams.get('secret') ?? ''
   if (token !== WEBHOOK_SECRET) {
-    console.error(`[Webhook] 401 — token recebido: "${token}" | esperado: "${WEBHOOK_SECRET}"`)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
