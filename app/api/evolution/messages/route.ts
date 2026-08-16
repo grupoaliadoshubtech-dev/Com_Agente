@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { numberToJid } from '@/lib/evolution/client'
+import { EvolutionClient, numberToJid } from '@/lib/evolution/client'
 import { findAllMessages } from '@/lib/evolution/db-client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import type { ApiResponse } from '@/types'
@@ -92,23 +92,35 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     }
 
     const phoneJid = numberToJid(phone)
+    const client   = EvolutionClient.fromEnv(instanceName)
 
-    // Busca diretamente no banco da Evolution API (Supabase).
-    // findAllMessages filtra por remoteJid E remoteJidAlt, cobrindo tanto
-    // mensagens enviadas (remoteJid=phone) quanto recebidas via @lid (remoteJidAlt=phone).
-    // O endpoint HTTP da Evolution API não suporta filtro por remoteJidAlt.
+    // Estratégia híbrida:
+    // 1. HTTP para mensagens enviadas + recebidas normais (Evolution API em tempo real)
+    // 2. DB direto para mensagens recebidas via @lid (remoteJidAlt não funciona via HTTP)
+    // Merge por key.id para deduplicar.
     const jids = lidJid ? [phoneJid, lidJid] : [phoneJid]
-    const dbRows = await findAllMessages(jids, instanceName, count)
+    const [httpMessages, dbMessages] = await Promise.all([
+      client.findMessages(phoneJid, count).catch(() => [] as typeof httpMessages),
+      findAllMessages(jids, instanceName, count).catch(() => []),
+    ])
 
     type MsgRow = { key: { id: string; fromMe: boolean; remoteJid: string }; pushName?: string; message?: Record<string, unknown>; messageTimestamp?: number; messageType?: string; status?: string }
-    const merged: MsgRow[] = dbRows.map(m => ({
-      key:              m.key,
-      pushName:         m.pushName,
-      message:          m.message,
-      messageTimestamp: m.messageTimestamp,
-      messageType:      m.messageType,
-      status:           m.status,
-    }))
+    const seen = new Set<string>()
+    const merged: MsgRow[] = []
+
+    for (const m of [...httpMessages, ...dbMessages]) {
+      if (!seen.has(m.key.id)) {
+        seen.add(m.key.id)
+        merged.push({
+          key:              m.key,
+          pushName:         m.pushName,
+          message:          m.message as Record<string, unknown> | undefined,
+          messageTimestamp: typeof m.messageTimestamp === 'string' ? parseInt(m.messageTimestamp, 10) : m.messageTimestamp,
+          messageType:      m.messageType,
+          status:           m.status,
+        })
+      }
+    }
 
     const rawMessages = merged
       .filter(msg => {
