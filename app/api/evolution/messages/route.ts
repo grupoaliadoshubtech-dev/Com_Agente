@@ -94,22 +94,23 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const client   = EvolutionClient.fromEnv(instanceName)
 
     // Solução 100% HTTP (documentada em v1.7 — 29/05/2026):
-    // - Contatos @lid: findMessages(lidJid) retorna TODAS as msgs (sent + received) sob o @lid
-    // - Contatos sem @lid: findMessages(phoneJid) retorna enviadas
-    // - findReceivedMessages(phoneJid) retorna recebidas via remoteJidAlt (complemento)
+    // 3 queries em paralelo para cobrir todos os casos de armazenamento:
+    // 1. remoteJid = phone@s.whatsapp.net → mensagens ENVIADAS
+    // 2. remoteJidAlt = phone@s.whatsapp.net → mensagens RECEBIDAS (contatos @lid)
+    // 3. remoteJid = @lid → todas as mensagens do contato @lid (enviadas + recebidas)
     // EVOLUTION_DB_URL não é usado aqui — apenas no chats route para getLidMapping().
-    const primaryJid = lidJid ?? phoneJid
-
-    const [httpPrimary, httpReceived] = await Promise.all([
-      client.findMessages(primaryJid, count).catch(() => [] as EvolutionMessage[]),
+    const [httpSent, httpReceived, httpByLid] = await Promise.all([
+      client.findMessages(phoneJid, count).catch(() => [] as EvolutionMessage[]),
       client.findReceivedMessages(phoneJid, count).catch(() => [] as EvolutionMessage[]),
+      lidJid ? client.findMessages(lidJid, count).catch(() => [] as EvolutionMessage[])
+             : Promise.resolve([] as EvolutionMessage[]),
     ])
 
     type MsgRow = { key: { id: string; fromMe: boolean; remoteJid: string }; pushName?: string; message?: Record<string, unknown>; messageTimestamp?: number; messageType?: string; status?: string }
     const seen = new Set<string>()
     const merged: MsgRow[] = []
 
-    for (const m of [...httpPrimary, ...httpReceived]) {
+    for (const m of [...httpSent, ...httpReceived, ...httpByLid]) {
       if (!seen.has(m.key.id)) {
         seen.add(m.key.id)
         merged.push({
