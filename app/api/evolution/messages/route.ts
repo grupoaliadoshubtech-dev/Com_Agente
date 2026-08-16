@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { EvolutionClient, numberToJid } from '@/lib/evolution/client'
+import { EvolutionClient, EvolutionMessage, numberToJid } from '@/lib/evolution/client'
 import { findAllMessages } from '@/lib/evolution/db-client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import type { ApiResponse } from '@/types'
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     // Merge por key.id para deduplicar.
     const jids = lidJid ? [phoneJid, lidJid] : [phoneJid]
     const [httpMessages, dbMessages] = await Promise.all([
-      client.findMessages(phoneJid, count).catch(() => [] as typeof httpMessages),
+      client.findMessages(phoneJid, count).catch(() => [] as EvolutionMessage[]),
       findAllMessages(jids, instanceName, count).catch(() => []),
     ])
 
