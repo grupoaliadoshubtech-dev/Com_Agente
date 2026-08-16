@@ -38,10 +38,11 @@ export interface EvolutionWebhookPayload {
 // ── Mensagem (MESSAGES_UPSERT) ────────────────────────────────
 
 export interface MessageKey {
-  remoteJid: string          // ex: "5571999999999@s.whatsapp.net"
-  fromMe:    boolean
-  id:        string          // ID único da mensagem
-  participant?: string       // em grupos
+  remoteJid:    string          // ex: "5571999999999@s.whatsapp.net" ou @lid
+  remoteJidAlt?: string         // JID alternativo (@s.whatsapp.net) quando remoteJid é @lid
+  fromMe:       boolean
+  id:           string          // ID único da mensagem
+  participant?: string          // em grupos
 }
 
 export interface MessageContent {
