@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { EvolutionClient, EvolutionMessage, numberToJid } from '@/lib/evolution/client'
-import { findAllMessages } from '@/lib/evolution/db-client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import type { ApiResponse } from '@/types'
 
@@ -94,23 +93,23 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     const phoneJid = numberToJid(phone)
     const client   = EvolutionClient.fromEnv(instanceName)
 
-    // Contatos @lid armazenam TODAS as mensagens (enviadas e recebidas) com remoteJid=@lid.
-    // Buscar por phoneJid retorna zero para esses contatos.
-    // Solução: quando lidJid é conhecido, ele é a chave primária na query HTTP.
-    // phoneJid é usado como fallback para contatos sem @lid.
+    // Solução 100% HTTP (documentada em v1.7 — 29/05/2026):
+    // - Contatos @lid: findMessages(lidJid) retorna TODAS as msgs (sent + received) sob o @lid
+    // - Contatos sem @lid: findMessages(phoneJid) retorna enviadas
+    // - findReceivedMessages(phoneJid) retorna recebidas via remoteJidAlt (complemento)
+    // EVOLUTION_DB_URL não é usado aqui — apenas no chats route para getLidMapping().
     const primaryJid = lidJid ?? phoneJid
-    const jids = lidJid ? [phoneJid, lidJid] : [phoneJid]
 
-    const [httpMessages, dbMessages] = await Promise.all([
+    const [httpPrimary, httpReceived] = await Promise.all([
       client.findMessages(primaryJid, count).catch(() => [] as EvolutionMessage[]),
-      findAllMessages(jids, instanceName, count).catch(() => []),
+      client.findReceivedMessages(phoneJid, count).catch(() => [] as EvolutionMessage[]),
     ])
 
     type MsgRow = { key: { id: string; fromMe: boolean; remoteJid: string }; pushName?: string; message?: Record<string, unknown>; messageTimestamp?: number; messageType?: string; status?: string }
     const seen = new Set<string>()
     const merged: MsgRow[] = []
 
-    for (const m of [...httpMessages, ...dbMessages]) {
+    for (const m of [...httpPrimary, ...httpReceived]) {
       if (!seen.has(m.key.id)) {
         seen.add(m.key.id)
         merged.push({
