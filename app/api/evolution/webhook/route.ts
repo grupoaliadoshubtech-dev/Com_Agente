@@ -79,6 +79,17 @@ async function processWebhookEvent(
     case 'MESSAGES_UPSERT': {
       const { messages } = data as MessagesUpsertData
 
+      // Sinaliza ao frontend (SSE) imediatamente — independente do tenant
+      const firstMsg = messages[0]
+      if (firstMsg) {
+        const phone = firstMsg.key.remoteJidAlt?.endsWith('@s.whatsapp.net')
+          ? firstMsg.key.remoteJidAlt
+          : firstMsg.key.remoteJid?.endsWith('@s.whatsapp.net')
+            ? firstMsg.key.remoteJid
+            : null
+        pushNotification(instance, phone).catch(() => {})
+      }
+
       // Resolve o tenant pela instância
       const tenant = await resolveTenant(instance)
       if (!tenant) {
@@ -92,8 +103,6 @@ async function processWebhookEvent(
         attendantNumber:     tenant.attendantNumber,
       })
 
-      // Persiste mensagens recebidas no PostgreSQL
-      // Read receipts (✓✓ azul) são enviados automaticamente via readMessages=true nas configurações da instância
       for (const msg of messages) {
         if (!msg.key.fromMe) {
           await saveReceivedMessage(
@@ -103,20 +112,10 @@ async function processWebhookEvent(
         }
       }
 
-      // Processa cada mensagem (normalmente só 1 por evento notify)
       for (const msg of messages) {
         await processor.process(msg).catch(err => {
           console.error(`[Webhook] Erro ao processar mensagem ${msg.key.id}:`, err)
         })
-      }
-
-      // Sinaliza ao frontend (SSE) que chegou mensagem nova
-      const firstMsg = messages[0]
-      if (firstMsg) {
-        const phone = firstMsg.key.remoteJid?.endsWith('@s.whatsapp.net')
-          ? firstMsg.key.remoteJid
-          : null
-        pushNotification(instance, phone).catch(() => {})
       }
       break
     }
