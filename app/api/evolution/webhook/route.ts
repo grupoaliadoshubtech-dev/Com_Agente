@@ -14,6 +14,7 @@ import { resolveTenant }       from '@/lib/evolution/tenant-resolver'
 import {
   type EvolutionWebhookPayload,
   type MessagesUpsertData,
+  type WebhookMessage,
   type ConnectionUpdateData,
 } from '@/lib/evolution/webhook-types'
 import { appendRows } from '@/lib/sheets/client'
@@ -76,7 +77,10 @@ async function processWebhookEvent(
   switch (event) {
 
     case 'MESSAGES_UPSERT': {
-      const { messages } = data as MessagesUpsertData
+      // Evolution API pode enviar { messages: [...] } ou o array direto
+      const raw = data as MessagesUpsertData | WebhookMessage[]
+      const messages: WebhookMessage[] = Array.isArray(raw) ? raw : (raw.messages ?? [])
+      if (!messages.length) break
 
       // Sinaliza ao frontend (SSE) imediatamente — independente do tenant
       const firstMsg = messages[0]
