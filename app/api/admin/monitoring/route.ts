@@ -163,7 +163,7 @@ async function getR2Metrics() {
   const json = await res.json()
 
   if (json?.errors?.length) {
-    throw new Error('permission_denied')
+    throw new Error(`CF_ERR: ${json.errors[0]?.message ?? 'unknown'} | account=${accountId?.slice(0,8)}...`)
   }
 
   const groups: Array<{ max: { objectCount: number; payloadSize: number; metadataSize: number } }> =
