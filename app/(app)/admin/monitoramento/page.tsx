@@ -208,10 +208,7 @@ export default function MonitoramentoPage() {
 
       {/* ── toolbar ── */}
       <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, background: 'var(--bg-card)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1 }}>
-          <div className="font-display" style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)' }}>Monitoramento</div>
-          <div style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 2 }}>Infraestrutura em tempo real — planos gratuitos Supabase &amp; Cloudflare R2</div>
-        </div>
+        <div style={{ flex: 1 }}/>
         {/* badge ao vivo */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, color: 'var(--neon)', letterSpacing: '.06em', textTransform: 'uppercase' as const }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--neon)', animation: 'blink 1.2s ease-in-out infinite' }}/>
@@ -228,7 +225,7 @@ export default function MonitoramentoPage() {
           </div>
           Auto 30s
         </label>
-        <button onClick={load} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>↻ Atualizar</button>
+        <button onClick={load} className="mon-btn-refresh" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>↻ <span className="mon-btn-refresh-label">Atualizar</span></button>
       </div>
 
       {/* ── main ── */}
@@ -497,6 +494,7 @@ export default function MonitoramentoPage() {
         @media (max-width: 560px) {
           .mon-storage-grid { grid-template-columns: 1fr; }
           .mon-metrics-grid { grid-template-columns: 1fr; }
+          .mon-btn-refresh-label { display: none; }
         }
 
         /* ── light mode: bordas e sombras nos cards ── */
