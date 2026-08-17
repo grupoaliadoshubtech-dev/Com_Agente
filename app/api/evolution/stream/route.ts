@@ -25,7 +25,6 @@ export async function GET(req: NextRequest): Promise<Response> {
   }
 
   const encoder = new TextEncoder()
-  console.log(`[Stream] polling _comagente_notify WHERE instance="${instanceName}"`)
   let lastId = await getLatestNotifyId(instanceName)
   let closed = false
 
