@@ -26,7 +26,7 @@ function makeSupabasePool() {
 }
 
 // Executa uma query com fallback seguro
-async function safeQuery<T>(client: PoolClient, sql: string, params: unknown[] = []): Promise<T[]> {
+async function safeQuery<T extends Record<string, unknown>>(client: PoolClient, sql: string, params: unknown[] = []): Promise<T[]> {
   try {
     const res = await client.query<T>(sql, params)
     return res.rows
