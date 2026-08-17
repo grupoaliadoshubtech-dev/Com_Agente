@@ -149,25 +149,39 @@ async function getR2Metrics() {
   }
 }
 
-// ─── Mensagens: volume e erros de upload ─────────────────────
+// ─── Mensagens: volume (_comagente_notify) e erros de upload (Message) ──
+// ATENÇÃO: _comagente_notify fica no SUPABASE_DATABASE_URL (banco do ComAgente)
+//          Message fica no EVOLUTION_DB_URL (banco da Evolution API)
 async function getMessageMetrics() {
-  const pool = makePool()
+  const notifyPool = new Pool({
+    connectionString: process.env.SUPABASE_DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    max: 1,
+    idleTimeoutMillis: 5000,
+    connectionTimeoutMillis: 8000,
+  })
+  const evolutionPool = makePool()
+
   try {
-    const client = await pool.connect()
+    const [notifyClient, evolutionClient] = await Promise.all([
+      notifyPool.connect(),
+      evolutionPool.connect(),
+    ])
+
     try {
       const [perMinRes, perHourRes, uploadErrRes] = await Promise.all([
-        client.query<{ count: string }>(`
+        notifyClient.query<{ count: string }>(`
           SELECT count(*) AS count
-          FROM "_comagente_notify"
+          FROM _comagente_notify
           WHERE created_at > now() - interval '1 minute'
         `),
-        client.query<{ count: string }>(`
+        notifyClient.query<{ count: string }>(`
           SELECT count(*) AS count
-          FROM "_comagente_notify"
+          FROM _comagente_notify
           WHERE created_at > now() - interval '1 hour'
         `),
-        // Mídias ainda em base64 = upload para R2 falhou (hoje)
-        client.query<{ count: string }>(`
+        // message já é jsonb — sem cast; mídias com base64 = upload ao R2 falhou
+        evolutionClient.query<{ count: string }>(`
           SELECT count(*) AS count
           FROM "Message"
           WHERE "messageTimestamp" > EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')
@@ -175,7 +189,7 @@ async function getMessageMetrics() {
               'imageMessage','audioMessage','videoMessage',
               'documentMessage','stickerMessage'
             )
-            AND message::jsonb ? 'base64'
+            AND message ? 'base64'
         `),
       ])
 
@@ -185,9 +199,10 @@ async function getMessageMetrics() {
         uploadErrors: parseInt(uploadErrRes.rows[0]?.count ?? '0'),
       }
     } finally {
-      client.release()
+      notifyClient.release()
+      evolutionClient.release()
     }
   } finally {
-    await pool.end()
+    await Promise.allSettled([notifyPool.end(), evolutionPool.end()])
   }
 }
