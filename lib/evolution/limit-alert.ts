@@ -12,7 +12,7 @@ import { pushSystemNotification }  from './notify'
 import { EvolutionClient }         from './client'
 import { sendMail, limitAlertTemplate } from '@/lib/email/mailer'
 
-interface TenantAlertData {
+interface TenantAlertData extends Record<string, unknown> {
   name:               string
   email:              string
   phone:              string

@@ -190,29 +190,6 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     return () => clearInterval(i)
   }, [])
 
-  // ── SSE: escuta alertas de sistema (uso_limite, etc.) ───────
-  useEffect(() => {
-    if (role === 'master') return  // master não tem tenant/instância
-    let es: EventSource
-    let retryTimer: ReturnType<typeof setTimeout>
-    function connect() {
-      es = new EventSource('/api/evolution/stream')
-      es.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data as string) as StreamSystemEvent & { type: string; phone?: string }
-          if (data.type === 'uso_limite' && data.payload) {
-            const p = data.payload as { current: number; limit: number; pct: number; company: string }
-            setLimitAlert(p)
-          }
-          if (data.type === 'reconnect') { es.close(); retryTimer = setTimeout(connect, 100) }
-        } catch {}
-      }
-      es.onerror = () => { es.close(); retryTimer = setTimeout(connect, 3000) }
-    }
-    connect()
-    return () => { clearTimeout(retryTimer); es?.close() }
-  }, [role])
-
   // Carrega dados do perfil ao abrir o modal
   useEffect(() => {
     if (!profileOpen) return
@@ -235,6 +212,30 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const user     = session?.user
   const role     = user?.role ?? 'atendente'
   const initials = user?.name?.split(' ').map((n:string)=>n[0]).slice(0,2).join('').toUpperCase() ?? 'AA'
+
+  // ── SSE: escuta alertas de sistema (uso_limite etc.) ─────────
+  // Colocado aqui para que 'role' já esteja declarado
+  useEffect(() => {
+    if (role === 'master') return
+    let es: EventSource
+    let retryTimer: ReturnType<typeof setTimeout>
+    function connect() {
+      es = new EventSource('/api/evolution/stream')
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data as string) as StreamSystemEvent & { type: string }
+          if (data.type === 'uso_limite' && data.payload) {
+            const p = data.payload as { current: number; limit: number; pct: number; company: string }
+            setLimitAlert(p)
+          }
+          if (data.type === 'reconnect') { es.close(); retryTimer = setTimeout(connect, 100) }
+        } catch {}
+      }
+      es.onerror = () => { es.close(); retryTimer = setTimeout(connect, 3000) }
+    }
+    connect()
+    return () => { clearTimeout(retryTimer); es?.close() }
+  }, [role])
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
