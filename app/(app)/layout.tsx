@@ -41,6 +41,8 @@ const IC = {
   inbox:          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22,12 16,12 14,15 10,15 8,12 2,12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>,
   clipboard:      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>,
   monitoramento:  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>,
+  // Base de Conhecimento
+  conhecimento:   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
 }
 
 const MAIN_NAV    = [
@@ -57,6 +59,7 @@ const CONFIG_NAV  = [
   { label:'Planos',            href:'/supervisor/planos',       icon:'planos',       badge:'', toggle:'' },
   { label:'Respostas Rápidas', href:'/supervisor/templates',    icon:'templates',    badge:'', toggle:'' },
   { label:'Distribuição',      href:'/supervisor/distribuicao', icon:'distribuicao', badge:'', toggle:'' },
+  { label:'Conhecimento',      href:'/supervisor/conhecimento', icon:'conhecimento', badge:'', toggle:'' },
 ]
 const MASTER_NAV  = [
   { label:'Monitoramento',   href:'/admin/monitoramento',icon:'monitoramento',badge:'', toggle:'' },
@@ -80,6 +83,7 @@ const PAGE_META: Record<string, [string, string]> = {
   '/supervisor/planos':       ['Planos',             'Assinatura atual'],
   '/supervisor/templates':    ['Respostas Rápidas',  'Templates de mensagem para atendentes'],
   '/supervisor/distribuicao': ['Distribuição',       'Atribuição automática de atendimentos'],
+  '/supervisor/conhecimento': ['Conhecimento',       'Base de conhecimento da IA'],
   '/admin/solicitacoes':      ['Solicitações',       'Leads e cadastros recebidos'],
   '/admin/diagnosticos':      ['Diagnósticos',       'Formulários de atendimento'],
   '/admin/empresas':          ['Empresas',           'Gestão de tenants'],

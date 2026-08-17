@@ -1,0 +1,102 @@
+// POST /api/knowledge/upload
+// Recebe arquivo (multipart) do supervisor, encaminha ao N8N para processamento com IA.
+// N8N extrai Q&As e devolve via POST /api/knowledge/import.
+
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import type { ApiResponse } from '@/types'
+
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'text/plain',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/msword', // .doc
+]
+const MAX_SIZE = 25 * 1024 * 1024 // 25 MB
+
+export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
+  const session = await getServerSession(authOptions)
+  if (!session?.user) {
+    return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 })
+  }
+  const role = session.user.role as string
+  if (role !== 'supervisor' && role !== 'master') {
+    return NextResponse.json({ success: false, error: 'Acesso restrito ao supervisor' }, { status: 403 })
+  }
+
+  const webhookUrl = process.env.N8N_KNOWLEDGE_WEBHOOK_URL
+  if (!webhookUrl) {
+    return NextResponse.json(
+      { success: false, error: 'Webhook N8N não configurado (N8N_KNOWLEDGE_WEBHOOK_URL)' },
+      { status: 503 }
+    )
+  }
+
+  let formData: FormData
+  try {
+    formData = await req.formData()
+  } catch {
+    return NextResponse.json({ success: false, error: 'Formato inválido — use multipart/form-data' }, { status: 400 })
+  }
+
+  const file = formData.get('file') as File | null
+  if (!file) {
+    return NextResponse.json({ success: false, error: 'Arquivo não encontrado no campo "file"' }, { status: 422 })
+  }
+
+  if (file.size > MAX_SIZE) {
+    return NextResponse.json({ success: false, error: 'Arquivo maior que 25 MB' }, { status: 413 })
+  }
+
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return NextResponse.json(
+      { success: false, error: 'Tipo de arquivo não suportado. Use PDF, TXT, imagem ou DOCX.' },
+      { status: 415 }
+    )
+  }
+
+  // Monta payload para N8N com metadados do tenant e callback URL
+  const appUrl   = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const schema   = session.user.tenantId
+  const secret   = process.env.KNOWLEDGE_SECRET ?? ''
+
+  const payload = new FormData()
+  payload.append('file',        file, file.name)
+  payload.append('schema',      schema)
+  payload.append('fileName',    file.name)
+  payload.append('fileType',    file.type)
+  payload.append('callbackUrl', `${appUrl}/api/knowledge/import`)
+  payload.append('secret',      secret)
+
+  try {
+    const n8nRes = await fetch(webhookUrl, {
+      method:  'POST',
+      body:    payload,
+      signal:  AbortSignal.timeout(30_000),
+    })
+
+    if (!n8nRes.ok) {
+      const txt = await n8nRes.text().catch(() => '')
+      console.error('[/api/knowledge/upload] N8N respondeu com erro:', n8nRes.status, txt)
+      return NextResponse.json(
+        { success: false, error: 'N8N retornou erro ao processar o arquivo' },
+        { status: 502 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Arquivo "${file.name}" enviado para processamento. As perguntas e respostas aparecerão em instantes.`,
+    })
+  } catch (err) {
+    console.error('[/api/knowledge/upload]', err)
+    return NextResponse.json(
+      { success: false, error: 'Falha ao conectar com o N8N — verifique o webhook configurado.' },
+      { status: 502 }
+    )
+  }
+}
