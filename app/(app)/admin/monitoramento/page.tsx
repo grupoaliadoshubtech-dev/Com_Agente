@@ -34,9 +34,9 @@ const CONN_LIMIT = 100
 // ─── sub-components ──────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.1em', color: 'var(--txt-3)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div className="font-display" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.12em', color: 'var(--neon)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
       {children}
-      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+      <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg,var(--neon-border),transparent)' }} />
     </div>
   )
 }
@@ -117,11 +117,11 @@ function MetricCard({ stripe, border, label, value, unit, maxLabel, barPct, barC
       {/* stripe topo */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: stripe, borderRadius: '14px 14px 0 0' }}/>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: 16, marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.08em', color: 'var(--txt-3)', lineHeight: 1.4 }} dangerouslySetInnerHTML={{ __html: label }}/>
+        <div className="font-display" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.09em', color: 'var(--txt-3)', lineHeight: 1.4 }} dangerouslySetInnerHTML={{ __html: label }}/>
         <Popover id={popId} title={popTitle} open={openPop === popId} onToggle={onTogglePop}>{children}</Popover>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 3 }}>
-        <span style={{ fontSize: 34, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-.02em', color: barColor }}>{value}</span>
+        <span className="font-display" style={{ fontSize: 34, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', letterSpacing: '-.02em', color: barColor }}>{value}</span>
         <span style={{ fontSize: 13, color: 'var(--txt-3)', fontWeight: 500 }}>{unit}</span>
         {maxLabel && <span style={{ fontSize: 12, color: 'var(--txt-3)' }}>{maxLabel}</span>}
       </div>
@@ -186,12 +186,12 @@ export default function MonitoramentoPage() {
 
   // ── connection color ──
   const connVal   = sb?.connections.total ?? 0
-  const connColor = connVal < 30 ? '#3ecf8e' : connVal < 80 ? '#f59e0b' : '#ef4444'
+  const connColor = connVal < 30 ? 'var(--neon)' : connVal < 80 ? '#f59e0b' : '#ef4444'
   const connPct   = pct(connVal, CONN_LIMIT)
 
   // ── upload error color ──
   const errVal   = msg?.uploadErrors ?? 0
-  const errColor = errVal === 0 ? '#10b981' : errVal < 5 ? '#f59e0b' : '#ef4444'
+  const errColor = errVal === 0 ? 'var(--neon)' : errVal < 5 ? '#f59e0b' : '#ef4444'
 
   // ── msg/min color ──
   const mpmVal   = msg?.perMinute ?? 0
@@ -258,36 +258,36 @@ export default function MonitoramentoPage() {
 
               {/* Supabase */}
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg,#3ecf8e,#1a9c6e)', borderRadius: '14px 14px 0 0' }}/>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg,var(--neon),rgba(163,230,53,.4))', borderRadius: '14px 14px 0 0' }}/>
                 {/* logo */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(62,207,142,.12)', border: '1px solid rgba(62,207,142,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="#3ecf8e"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#3ecf8e" strokeWidth="2" strokeLinecap="round"/></svg>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--neon-dim)', border: '1px solid var(--neon-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="#A3E635"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#A3E635" strokeWidth="2" strokeLinecap="round"/></svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt)' }}>Supabase — Banco de dados</div>
+                    <div className="font-display" style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt)' }}>Supabase — Banco de dados</div>
                     <div style={{ fontSize: 10, color: 'var(--txt-3)', marginTop: 1 }}>Free tier · limite 500 MB</div>
                   </div>
                 </div>
                 {/* ring + numbers */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-                  <Ring p={sbPct} color="#3ecf8e" label={`${sbPct}%`} sub="usado"/>
+                  <Ring p={sbPct} color="var(--neon)" label={`${sbPct}%`} sub="usado"/>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-                      <span style={{ fontSize: 40, fontWeight: 700, lineHeight: 1, color: '#3ecf8e', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.02em' }}>{sbUsedMB}</span>
+                      <span className="font-display" style={{ fontSize: 40, fontWeight: 700, lineHeight: 1, color: 'var(--neon)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.02em' }}>{sbUsedMB}</span>
                       <span style={{ fontSize: 18, fontWeight: 500, opacity: .6 }}>MB</span>
                       <span style={{ fontSize: 14, color: 'var(--txt-3)', fontWeight: 500 }}>/ 500 MB</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--txt-3)', marginBottom: 14 }}>
                       restam <strong style={{ color: 'var(--txt)' }}>{sbLeftMB} MB</strong> disponíveis
                     </div>
-                    <BarTrack value={sbPct} color="linear-gradient(90deg,#3ecf8e,#1a9c6e)"/>
+                    <BarTrack value={sbPct} color="linear-gradient(90deg,var(--neon),rgba(163,230,53,.45))"/>
                   </div>
                 </div>
                 {/* breakdown */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   {sb?.tables.slice(0, 3).map((t, i) => {
-                    const colors = ['#3ecf8e', '#1a9c6e', '#505a66']
+                    const colors = ['var(--neon)', 'rgba(163,230,53,.55)', 'var(--txt-3)']
                     const p2 = sb ? pct(t.totalBytes, sb.dbSizeBytes) : 0
                     return (
                       <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -314,7 +314,7 @@ export default function MonitoramentoPage() {
                     <svg width="15" height="13" viewBox="0 0 32 28" fill="none"><path d="M16 0L32 9v10L16 28 0 19V9L16 0z" fill="#f6821f" opacity=".25"/><path d="M16 0L32 9v10L16 28" stroke="#f6821f" strokeWidth="2"/><path d="M16 0L0 9v10l16 9" stroke="#f48120" strokeWidth="2"/><path d="M0 9l16 9 16-9" stroke="#f6821f" strokeWidth="2"/></svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt)' }}>Cloudflare R2 — Mídias</div>
+                    <div className="font-display" style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt)' }}>Cloudflare R2 — Mídias</div>
                     <div style={{ fontSize: 10, color: 'var(--txt-3)', marginTop: 1 }}>Free tier · limite 10 GB</div>
                   </div>
                 </div>
@@ -322,7 +322,7 @@ export default function MonitoramentoPage() {
                   <Ring p={r2Pct} color="#f6821f" label={`${r2Pct}%`} sub="usado"/>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-                      <span style={{ fontSize: 40, fontWeight: 700, lineHeight: 1, color: '#f6821f', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.02em' }}>{r2UsedGB}</span>
+                      <span className="font-display" style={{ fontSize: 40, fontWeight: 700, lineHeight: 1, color: '#f6821f', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.02em' }}>{r2UsedGB}</span>
                       <span style={{ fontSize: 18, fontWeight: 500, opacity: .6 }}>GB</span>
                       <span style={{ fontSize: 14, color: 'var(--txt-3)', fontWeight: 500 }}>/ 10 GB</span>
                     </div>
@@ -368,7 +368,7 @@ export default function MonitoramentoPage() {
             <div className="mon-metrics-grid">
 
               <MetricCard
-                stripe="linear-gradient(90deg,#3ecf8e,#1a9c6e)" border="rgba(62,207,142,.25)"
+                stripe="linear-gradient(90deg,var(--neon),rgba(163,230,53,.4))" border="var(--neon-border)"
                 label="Conexões<br/>banco de dados" value={String(connVal)} unit="" maxLabel={`/ ${CONN_LIMIT} simultâneas`}
                 barPct={connPct} barColor={connColor}
                 sub={`${connPct}% do limite · idle: ${sb?.connections.idle ?? '—'} · active: ${sb?.connections.active ?? '—'}`}
@@ -379,7 +379,7 @@ export default function MonitoramentoPage() {
               </MetricCard>
 
               <MetricCard
-                stripe="linear-gradient(90deg,#00ff9d,#00cc7a)" border="rgba(0,255,157,.25)"
+                stripe="linear-gradient(90deg,var(--neon),rgba(163,230,53,.4))" border="var(--neon-border)"
                 label="Mensagens<br/>último minuto" value={String(mpmVal)} unit="msgs/min" maxLabel=""
                 barPct={Math.min(mpmVal * 2, 100)} barColor={mpmColor}
                 sub={`${msg?.perHour ?? '—'} na última hora · ${mpmVal > 40 ? 'pico detectado' : 'volume normal'}`}
@@ -421,7 +421,7 @@ export default function MonitoramentoPage() {
               <MetricCard
                 stripe="linear-gradient(90deg,#f59e0b,#d97706)" border="rgba(245,158,11,.25)"
                 label="Instâncias<br/>conectadas" value={`${connectedInst}/${totalInst}`} unit="online" maxLabel=""
-                barPct={totalInst ? pct(connectedInst, totalInst) : 0} barColor={connectedInst < totalInst ? '#f59e0b' : '#10b981'}
+                barPct={totalInst ? pct(connectedInst, totalInst) : 0} barColor={connectedInst < totalInst ? '#f59e0b' : 'var(--neon)'}
                 sub={connectedInst < totalInst ? `${totalInst - connectedInst} instância(s) desconectada(s) — escanear QR` : 'Todas as instâncias conectadas'}
                 popTitle="Status das instâncias WhatsApp" popId="pop-inst" openPop={openPop} onTogglePop={togglePop}
               >
@@ -436,7 +436,7 @@ export default function MonitoramentoPage() {
             <SectionLabel>Instâncias WhatsApp — Evolution API</SectionLabel>
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--txt)' }}>Conexões ativas</h2>
+                <h2 className="font-display" style={{ fontSize: 13, fontWeight: 700, color: 'var(--txt)' }}>Conexões ativas</h2>
                 <span style={{ fontSize: 11, color: 'var(--txt-3)' }}>{connectedInst} de {totalInst} conectadas</span>
               </div>
               <div style={{ overflowX: 'auto' }}>
