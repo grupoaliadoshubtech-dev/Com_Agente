@@ -320,14 +320,14 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           display:'flex', alignItems:'center', gap:10, width:'100%',
           padding:'9px 10px', borderRadius:10, border:'1px solid transparent',
           cursor:'pointer', marginBottom:2, textAlign:'left',
-          background: active ? 'var(--nav-active-bg)' : (isMonitor ? 'rgba(163,230,53,.04)' : 'transparent'),
-          color:       active ? 'var(--nav-active-txt)' : (isMonitor ? 'var(--neon)' : 'var(--sidebar-txt)'),
-          borderColor: active ? 'var(--nav-active-border)' : (isMonitor ? 'rgba(163,230,53,.15)' : 'transparent'),
-          fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13, fontWeight: isMonitor ? 600 : 500,
+          background: active ? 'var(--nav-active-bg)' : 'transparent',
+          color:       active ? 'var(--nav-active-txt)' : 'var(--sidebar-txt)',
+          borderColor: active ? 'var(--nav-active-border)' : 'transparent',
+          fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13, fontWeight:500,
           position:'relative', whiteSpace:'nowrap',
         }}>
           {active && <span style={{position:'absolute',left:-8,top:'50%',transform:'translateY(-50%)',width:3,height:20,background:'var(--neon)',borderRadius:'0 3px 3px 0'}}/>}
-          <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:active?'rgba(163,230,53,.18)':(isMonitor?'rgba(163,230,53,.1)':'transparent'),color:isMonitor?'var(--neon)':undefined}}>{Icon}</span>
+          <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:active?'rgba(163,230,53,.18)':'transparent',color:(isMonitor&&!active)?'var(--neon)':undefined}}>{Icon}</span>
           <span style={{opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s',flex:1}}>{label}</span>
           {displayBadge && !collapsed && <span className="badge-neon">{displayBadge}</span>}
         </button>
