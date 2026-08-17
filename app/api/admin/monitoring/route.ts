@@ -125,14 +125,20 @@ async function getSupabaseMetrics() {
 
 // ─── Cloudflare R2: storage via Analytics GraphQL ────────────
 async function getR2Metrics() {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
-  const apiToken  = process.env.CLOUDFLARE_API_TOKEN
-  if (!accountId || !apiToken) {
-    const missing = [!accountId && 'CLOUDFLARE_ACCOUNT_ID', !apiToken && 'CLOUDFLARE_API_TOKEN'].filter(Boolean).join(', ')
-    throw new Error(`Variáveis não encontradas: ${missing}`)
-  }
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN
+  if (!apiToken) throw new Error('Variável não encontrada: CLOUDFLARE_API_TOKEN')
 
-  // Intervalo de 30 dias para garantir dados mesmo com buckets antigos
+  // Detecta o account ID automaticamente a partir do token — ignora CLOUDFLARE_ACCOUNT_ID
+  const accountsRes = await fetch('https://api.cloudflare.com/client/v4/accounts?per_page=1', {
+    headers: { Authorization: `Bearer ${apiToken}` },
+    signal: AbortSignal.timeout(8_000),
+  })
+  const accountsJson = await accountsRes.json()
+  if (!accountsJson?.result?.length) {
+    throw new Error('Token sem acesso a nenhuma conta Cloudflare — verifique as permissões')
+  }
+  const accountId: string = accountsJson.result[0].id
+
   const until = new Date()
   const since = new Date(Date.now() - 30 * 86_400_000)
   const fmt   = (d: Date) => d.toISOString().split('T')[0]
@@ -164,7 +170,6 @@ async function getR2Metrics() {
 
   const json = await res.json()
 
-  // Erros do GraphQL — lança para que Promise.allSettled capture
   if (json?.errors?.length) {
     throw new Error(json.errors[0]?.message ?? 'Cloudflare GraphQL error')
   }
