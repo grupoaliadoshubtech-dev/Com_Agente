@@ -122,13 +122,20 @@ async function processWebhookEvent(
     }
 
     case 'MESSAGES_UPDATE': {
-      // Atualização de status de mensagem (enviado, entregue, lido)
-      // Útil para métricas futuras
+      break
+    }
+
+    case 'CHATS_UPDATE':
+    case 'CHATS_UPSERT': {
+      // Chat atualizado = nova mensagem chegou — dispara SSE para o frontend
+      const chatArr = Array.isArray(data) ? data as Array<{ id?: string }> : [data as { id?: string }]
+      const chatJid = chatArr[0]?.id ?? ''
+      const phone = chatJid.endsWith('@s.whatsapp.net') ? chatJid : null
+      if (phone || chatJid) pushNotification(instance, phone).catch(() => {})
       break
     }
 
     default:
-      // Evento não tratado — apenas loga
       console.log(`[Webhook] Evento não tratado: ${event} (instância: ${instance})`)
   }
 }
