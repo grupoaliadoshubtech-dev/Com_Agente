@@ -133,26 +133,33 @@ function MetricCard({ stripe, border, label, value, unit, maxLabel, barPct, barC
 
 // ─── page ────────────────────────────────────────────────────
 export default function MonitoramentoPage() {
-  const [data,       setData]       = useState<MonitorData | null>(null)
-  const [loading,    setLoading]    = useState(true)
-  const [updatedAt,  setUpdatedAt]  = useState('')
-  const [autoOn,     setAutoOn]     = useState(true)
-  const [openPop,    setOpenPop]    = useState<string | null>(null)
+  const [data,        setData]       = useState<MonitorData | null>(null)
+  const [apiErrors,   setApiErrors]  = useState<Record<string, string | null>>({})
+  const [loading,     setLoading]    = useState(true)
+  const [refreshing,  setRefreshing] = useState(false)
+  const [updatedAt,   setUpdatedAt]  = useState('')
+  const [autoOn,      setAutoOn]     = useState(true)
+  const [openPop,     setOpenPop]    = useState<string | null>(null)
   const autoRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (manual = false) => {
+    if (manual) setRefreshing(true)
     try {
       const r = await fetch('/api/admin/monitoring', { cache: 'no-store' })
       const j = await r.json()
       if (j.success) {
         setData(j.data)
+        setApiErrors(j.errors ?? {})
         setUpdatedAt(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
       }
     } catch { /* silencia */ }
-    finally { setLoading(false) }
+    finally {
+      setLoading(false)
+      if (manual) setTimeout(() => setRefreshing(false), 600)
+    }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(false) }, [load])
 
   useEffect(() => {
     if (autoOn) { autoRef.current = setInterval(load, 30_000) }
@@ -207,25 +214,33 @@ export default function MonitoramentoPage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }} onClick={() => setOpenPop(null)}>
 
       {/* ── toolbar ── */}
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, background: 'var(--bg-card)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1 }}/>
-        {/* badge ao vivo */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, color: 'var(--neon)', letterSpacing: '.06em', textTransform: 'uppercase' as const }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--neon)', animation: 'blink 1.2s ease-in-out infinite' }}/>
-          Ao vivo
+      <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, background: 'var(--bg-card)', flexWrap: 'wrap' }}>
+        {/* lado esquerdo: subtitle + chips de seção */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+          <span style={{ fontSize: 11, color: 'var(--txt-3)', whiteSpace: 'nowrap' }}>Infraestrutura em tempo real</span>
+          <span style={{ fontSize: 10, color: 'var(--border)' }}>—</span>
+          {(['Supabase & R2', 'Métricas', 'Instâncias WhatsApp'] as const).map(s => (
+            <span key={s} style={{ fontSize: 10, fontWeight: 600, color: 'var(--txt-3)', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 99, padding: '2px 8px', whiteSpace: 'nowrap' }}>{s}</span>
+          ))}
         </div>
-        {updatedAt && <span style={{ fontSize: 10, color: 'var(--txt-3)', fontFamily: 'monospace' }}>atualizado {updatedAt}</span>}
-        {/* toggle auto */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--txt-2)', cursor: 'pointer', userSelect: 'none' }}>
-          <div
-            onClick={() => setAutoOn(a => !a)}
-            style={{ width: 32, height: 18, background: autoOn ? 'var(--neon)' : 'var(--bg-input)', border: `1px solid ${autoOn ? 'var(--neon)' : 'var(--border)'}`, borderRadius: 99, position: 'relative', flexShrink: 0, transition: 'background .2s, border-color .2s', cursor: 'pointer' }}
-          >
-            <div style={{ position: 'absolute', width: 12, height: 12, borderRadius: '50%', background: '#fff', top: 2, left: 2, transition: 'transform .2s', transform: autoOn ? 'translateX(14px)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }}/>
+        {/* lado direito: controles */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, color: 'var(--neon)', letterSpacing: '.06em', textTransform: 'uppercase' as const }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--neon)', animation: 'blink 1.2s ease-in-out infinite' }}/>
+            Ao vivo
           </div>
-          Auto 30s
-        </label>
-        <button onClick={load} className="mon-btn-refresh" style={{ padding: '8px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>↻ <span className="mon-btn-refresh-label">Atualizar</span></button>
+          {updatedAt && <span className="mon-ts" style={{ fontSize: 10, color: 'var(--txt-3)', fontFamily: 'monospace' }}>{updatedAt}</span>}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--txt-2)', cursor: 'pointer', userSelect: 'none' as const }}>
+            <div onClick={() => setAutoOn(a => !a)} style={{ width: 30, height: 17, background: autoOn ? 'var(--neon)' : 'var(--bg-input)', border: `1px solid ${autoOn ? 'var(--neon)' : 'var(--border)'}`, borderRadius: 99, position: 'relative', flexShrink: 0, transition: 'background .2s,border-color .2s', cursor: 'pointer' }}>
+              <div style={{ position: 'absolute', width: 11, height: 11, borderRadius: '50%', background: '#fff', top: 2, left: 2, transition: 'transform .2s', transform: autoOn ? 'translateX(13px)' : 'none', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }}/>
+            </div>
+            <span className="mon-btn-refresh-label">Auto 30s</span>
+          </label>
+          <button onClick={() => load(true)} className="mon-btn-refresh" style={{ padding: '7px 11px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: refreshing ? 'rgba(163,230,53,.1)' : 'var(--bg-input)', border: `1px solid ${refreshing ? 'var(--neon)' : 'var(--border)'}`, color: refreshing ? 'var(--neon)' : 'var(--txt-2)', fontFamily: "'Plus Jakarta Sans',sans-serif", transition: 'all .2s' }}>
+            <span style={{ display: 'inline-block', transition: 'transform .5s', transform: refreshing ? 'rotate(360deg)' : 'none' }}>↻</span>
+            <span className="mon-btn-refresh-label"> Atualizar</span>
+          </button>
+        </div>
       </div>
 
       {/* ── main ── */}
@@ -331,8 +346,11 @@ export default function MonitoramentoPage() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ fontSize: 12, color: 'var(--txt-3)', padding: '10px 0' }}>
-                    Configure <code style={{ fontSize: 11, background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4 }}>CLOUDFLARE_ACCOUNT_ID</code> e <code style={{ fontSize: 11, background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4 }}>CLOUDFLARE_API_TOKEN</code> para exibir dados reais.
+                  <div style={{ fontSize: 12, padding: '10px 0' }}>
+                    {apiErrors.r2
+                      ? <span style={{ color: '#ef4444' }}>Erro API: {apiErrors.r2}</span>
+                      : <span style={{ color: 'var(--txt-3)' }}>Configure <code style={{ fontSize: 11, background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4 }}>CLOUDFLARE_ACCOUNT_ID</code> e <code style={{ fontSize: 11, background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4 }}>CLOUDFLARE_API_TOKEN</code> nas variáveis de ambiente da Vercel.</span>
+                    }
                   </div>
                 )}
                 <AlertBanner pct={r2Pct} msgs={
@@ -495,6 +513,7 @@ export default function MonitoramentoPage() {
           .mon-storage-grid { grid-template-columns: 1fr; }
           .mon-metrics-grid { grid-template-columns: 1fr; }
           .mon-btn-refresh-label { display: none; }
+          .mon-ts { display: none; }
         }
 
         /* ── light mode: bordas e sombras nos cards ── */

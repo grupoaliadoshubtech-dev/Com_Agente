@@ -127,7 +127,10 @@ async function getSupabaseMetrics() {
 async function getR2Metrics() {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
   const apiToken  = process.env.CLOUDFLARE_API_TOKEN
-  if (!accountId || !apiToken) return null
+  if (!accountId || !apiToken) {
+    const missing = [!accountId && 'CLOUDFLARE_ACCOUNT_ID', !apiToken && 'CLOUDFLARE_API_TOKEN'].filter(Boolean).join(', ')
+    throw new Error(`Variáveis não encontradas: ${missing}`)
+  }
 
   // Intervalo de 30 dias para garantir dados mesmo com buckets antigos
   const until = new Date()

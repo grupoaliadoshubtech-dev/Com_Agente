@@ -85,7 +85,7 @@ const PAGE_META: Record<string, [string, string]> = {
   '/admin/planos':            ['Planos Master',      'CRUD de assinaturas'],
   '/admin/blacklist':         ['Blacklist Global',   'Números bloqueados'],
   '/admin/logs':              ['Log de Erros',       'Erros do sistema'],
-  '/admin/monitoramento':     ['Monitoramento',      'Infraestrutura em tempo real — Supabase & R2'],
+  '/admin/monitoramento':     ['Monitoramento',      ''],
 }
 
 // ── Helper: redimensiona imagem para base64 100x100 ──────────
@@ -125,6 +125,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [pausaGlobalAtiva, setPausaGlobalAtiva] = useState(false)
   const [aguardandoCount,  setAguardandoCount]  = useState(0)
   const [pausaWarningDismissed, setPausaWarningDismissed] = useState(false)
+  const [bellOpen, setBellOpen] = useState(false)
 
   // ── Modal: perfil do usuário ─────────────────────────────────
   const [profileOpen,    setProfileOpen]    = useState(false)
@@ -307,8 +308,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   function SidebarContent({ collapsed, showToggle, onClose }: { collapsed: boolean; showToggle?: boolean; onClose?: () => void }) {
     function NavBtn({ label, href, icon, badge, toggle }: typeof MAIN_NAV[0]) {
       if (!isVisible(toggle)) return null
-      const active = pathname.startsWith(href)
-      const Icon   = (IC as Record<string, React.ReactNode>)[icon]
+      const active      = pathname.startsWith(href)
+      const Icon        = (IC as Record<string, React.ReactNode>)[icon]
+      const isMonitor   = href === '/admin/monitoramento'
       // Badge dinâmico: Conversas mostra chats aguardando atendimento humano
       const displayBadge = href === '/workspace'
         ? (aguardandoCount > 0 ? String(aguardandoCount) : '')
@@ -318,14 +320,14 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           display:'flex', alignItems:'center', gap:10, width:'100%',
           padding:'9px 10px', borderRadius:10, border:'1px solid transparent',
           cursor:'pointer', marginBottom:2, textAlign:'left',
-          background: active ? 'var(--nav-active-bg)' : 'transparent',
-          color:       active ? 'var(--nav-active-txt)' : 'var(--sidebar-txt)',
-          borderColor: active ? 'var(--nav-active-border)' : 'transparent',
-          fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13, fontWeight:500,
+          background: active ? 'var(--nav-active-bg)' : (isMonitor ? 'rgba(163,230,53,.04)' : 'transparent'),
+          color:       active ? 'var(--nav-active-txt)' : (isMonitor ? 'var(--neon)' : 'var(--sidebar-txt)'),
+          borderColor: active ? 'var(--nav-active-border)' : (isMonitor ? 'rgba(163,230,53,.15)' : 'transparent'),
+          fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:13, fontWeight: isMonitor ? 600 : 500,
           position:'relative', whiteSpace:'nowrap',
         }}>
           {active && <span style={{position:'absolute',left:-8,top:'50%',transform:'translateY(-50%)',width:3,height:20,background:'var(--neon)',borderRadius:'0 3px 3px 0'}}/>}
-          <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:active?'rgba(163,230,53,.12)':'transparent'}}>{Icon}</span>
+          <span style={{width:34,height:34,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:active?'rgba(163,230,53,.18)':(isMonitor?'rgba(163,230,53,.1)':'transparent'),color:isMonitor?'var(--neon)':undefined}}>{Icon}</span>
           <span style={{opacity:collapsed?0:1,width:collapsed?0:'auto',overflow:'hidden',transition:'opacity .2s,width .2s',flex:1}}>{label}</span>
           {displayBadge && !collapsed && <span className="badge-neon">{displayBadge}</span>}
         </button>
@@ -419,7 +421,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         <SidebarContent collapsed={false} onClose={()=>setMobOpen(false)} />
       </aside>
 
-      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}} onClick={()=>setBellOpen(false)}>
         <header className="topbar-base" style={{height:58,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px',flexShrink:0,gap:12,zIndex:20}}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <button className="show-mobile btn-icon" onClick={()=>setMobOpen(o=>!o)} style={{display:'none'}}>{IC.menu}</button>
@@ -439,7 +441,34 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                 <span className="hide-mobile">{pausaGlobalAtiva ? 'Retornar Global' : 'Pausar Global'}</span>
               </button>
             )}
-            <button className="btn-icon hide-mobile">{IC.bell}</button>
+            <div style={{position:'relative'}} className="hide-mobile">
+              <button className="btn-icon" onClick={()=>setBellOpen(o=>!o)} style={{position:'relative'}}>
+                {IC.bell}
+                {aguardandoCount > 0 && <span style={{position:'absolute',top:4,right:4,width:7,height:7,borderRadius:'50%',background:'#ef4444',border:'2px solid var(--bg-card)'}}/>}
+              </button>
+              {bellOpen && (
+                <div onClick={e=>e.stopPropagation()} style={{position:'absolute',top:'calc(100% + 8px)',right:0,width:280,background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,.18)',zIndex:200,overflow:'hidden'}}>
+                  <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span style={{fontSize:13,fontWeight:700,color:'var(--txt)'}}>Notificações</span>
+                    <button onClick={()=>setBellOpen(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--txt-3)',fontSize:16,lineHeight:1,padding:2}}>✕</button>
+                  </div>
+                  {aguardandoCount > 0 ? (
+                    <div style={{padding:'12px 16px',display:'flex',alignItems:'flex-start',gap:10,borderBottom:'1px solid var(--border)'}}>
+                      <span style={{width:8,height:8,borderRadius:'50%',background:'#f59e0b',flexShrink:0,marginTop:5}}/>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:600,color:'var(--txt)'}}>{aguardandoCount} atendimento{aguardandoCount>1?'s':''} aguardando</div>
+                        <div style={{fontSize:11,color:'var(--txt-2)',marginTop:2}}>IA pausada — requer atenção humana</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{padding:'24px 16px',textAlign:'center',color:'var(--txt-3)',fontSize:12}}>
+                      <div style={{fontSize:24,marginBottom:8}}>🔔</div>
+                      Sem notificações no momento
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
