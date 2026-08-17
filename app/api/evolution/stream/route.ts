@@ -64,7 +64,7 @@ export async function GET(req: NextRequest): Promise<Response> {
           return
         }
 
-        if (!closed) timer = setTimeout(tick, 1000)
+        if (!closed) timer = setTimeout(tick, 3000)
       }
 
       timer = setTimeout(tick, 500) // primeira checagem rápida
