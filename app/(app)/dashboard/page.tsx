@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { IcoBot } from '@/components/icons'
+import type { Plan } from '@/types'
 
 // ── Tipos ────────────────────────────────────────────────────
 
@@ -132,7 +133,7 @@ function HourChart({ data }: { data: Record<string, number> }) {
   )
 }
 
-function UsageCard({ usage }: { usage: { current: number; limit: number | null; pct: number; anoMes: string } }) {
+function UsageCard({ usage, onUpgrade }: { usage: { current: number; limit: number | null; pct: number; anoMes: string }; onUpgrade?: () => void }) {
   const clr = usage.pct >= 100 ? '#EF4444' : usage.pct >= 90 ? '#F59E0B' : usage.pct >= 70 ? '#A3E635' : '#A3E635'
   const clrDim = usage.pct >= 100 ? 'rgba(239,68,68,.12)' : usage.pct >= 90 ? 'rgba(245,158,11,.12)' : 'rgba(163,230,53,.08)'
   const clrBorder = usage.pct >= 100 ? 'rgba(239,68,68,.25)' : usage.pct >= 90 ? 'rgba(245,158,11,.25)' : 'rgba(163,230,53,.18)'
@@ -236,12 +237,19 @@ function UsageCard({ usage }: { usage: { current: number; limit: number | null; 
             </div>
           </div>
 
-          {/* Alerta */}
+          {/* Alerta + CTA upgrade */}
           {usage.limit !== null && usage.pct >= 90 && (
-            <div style={{ fontSize: 11, color: clr, background: clrDim, border: `1px solid ${clrBorder}`, borderRadius: 8, padding: '7px 10px', lineHeight: 1.5 }}>
-              {usage.pct >= 100
-                ? '⛔ Limite atingido — mensagens não serão processadas até o próximo período.'
-                : '⚠️ Próximo do limite. Considere fazer upgrade do plano.'}
+            <div>
+              <div style={{ fontSize: 11, color: clr, background: clrDim, border: `1px solid ${clrBorder}`, borderRadius: 8, padding: '7px 10px', lineHeight: 1.5, marginBottom: 8 }}>
+                {usage.pct >= 100
+                  ? '⛔ Limite atingido — mensagens não serão processadas até o próximo período.'
+                  : '⚠️ Próximo do limite. Considere fazer upgrade do plano.'}
+              </div>
+              {onUpgrade && (
+                <button onClick={onUpgrade} style={{ width: '100%', padding: '7px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'var(--neon)', color: '#0a0a0a', border: 'none', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                  📈 Solicitar Upgrade de Plano
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -280,6 +288,11 @@ export default function DashboardPage() {
   const [exporting, setExporting] = useState(false)
   const [toast, setToast]         = useState('')
   const [usage, setUsage]         = useState<{ current: number; limit: number | null; pct: number; anoMes: string } | null>(null)
+  const [upgradeOpen,   setUpgradeOpen]   = useState(false)
+  const [upgradePlans,  setUpgradePlans]  = useState<Plan[]>([])
+  const [upgradePickId, setUpgradePickId] = useState('')
+  const [upgradeBusy,   setUpgradeBusy]   = useState(false)
+  const [upgradeDone,   setUpgradeDone]   = useState(false)
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
 
@@ -318,6 +331,35 @@ export default function DashboardPage() {
   useEffect(() => {
     fetch('/api/usage').then(r => r.json()).then(d => { if (d.success) setUsage(d.data) }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('upgrade') === '1') {
+      openUpgrade()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function openUpgrade() {
+    setUpgradeDone(false); setUpgradePickId(''); setUpgradeOpen(true)
+    if (upgradePlans.length === 0) {
+      const r = await fetch('/api/plans'); const d = await r.json()
+      if (d.success) setUpgradePlans(d.data)
+    }
+  }
+
+  async function submitUpgrade() {
+    const plan = upgradePlans.find(p => p.id === upgradePickId)
+    if (!plan) return
+    setUpgradeBusy(true)
+    try {
+      await fetch('/api/usage/upgrade-request', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetPlanId: plan.id, targetPlanName: plan.name, targetPlanPrice: plan.price }),
+      })
+      setUpgradeDone(true)
+    } catch { /* silent */ }
+    finally { setUpgradeBusy(false) }
+  }
 
   // ── Exportar relatório ─────────────────────────────────────
   async function exportReport(tipo: string, periodo: string) {
@@ -386,7 +428,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Card de consumo de mensagens ─────────────────────── */}
-        {usage && <UsageCard usage={usage} />}
+        {usage && <UsageCard usage={usage} onUpgrade={openUpgrade} />}
 
         {/* ── Faixa em tempo real ──────────────────────────────── */}
         <div style={{
@@ -555,6 +597,69 @@ export default function DashboardPage() {
           <LiveDot /> Atualizando a cada {REALTIME_POLL / 1000}s · Dados completos a cada {FULL_POLL / 1000}s
         </p>
       </div>
+
+      {/* ── Modal de Upgrade de Plano ───────────────────────────── */}
+      {upgradeOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9200, padding: 16 }}>
+          <div className="card animate-slide-up" style={{ width: 'min(520px, calc(100vw - 32px))', maxHeight: '90vh', overflowY: 'auto', padding: 0 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1 }}>
+              <div>
+                <div className="font-display" style={{ fontSize: 15, fontWeight: 700, color: 'var(--txt)' }}>📈 Solicitar Upgrade de Plano</div>
+                <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>Selecione o plano desejado. Nossa equipe entrará em contato.</div>
+              </div>
+              <button onClick={() => setUpgradeOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--txt-2)', lineHeight: 1 }}>×</button>
+            </div>
+
+            <div style={{ padding: 20 }}>
+              {upgradeDone ? (
+                <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                  <div style={{ fontSize: 40, marginBottom: 16 }}>✅</div>
+                  <div className="font-display" style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)', marginBottom: 8 }}>Solicitação enviada!</div>
+                  <p style={{ fontSize: 13, color: 'var(--txt-2)', lineHeight: 1.6 }}>Nossa equipe receberá sua solicitação e entrará em contato em breve.<br/>Você também receberá um e-mail de confirmação.</p>
+                  <button onClick={() => setUpgradeOpen(false)} className="btn-neon" style={{ marginTop: 20, padding: '10px 32px', fontSize: 13 }}>Fechar</button>
+                </div>
+              ) : upgradePlans.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '40px 0', color: 'var(--txt-3)' }}>
+                  <span className="spinner" style={{ width: 16, height: 16 }} /><span style={{ fontSize: 13 }}>Carregando planos...</span>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                    {upgradePlans.map(p => {
+                      const sel = upgradePickId === p.id
+                      return (
+                        <div key={p.id} onClick={() => setUpgradePickId(p.id)} style={{ cursor: 'pointer', padding: 14, borderRadius: 10, border: `2px solid ${sel ? 'var(--neon)' : 'var(--border)'}`, background: sel ? 'rgba(163,230,53,.06)' : 'var(--bg-input)', transition: 'border-color .15s, background .15s' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${sel ? 'var(--neon)' : 'var(--border)'}`, background: sel ? 'var(--neon)' : 'transparent', flexShrink: 0 }} />
+                              <span className="font-display" style={{ fontSize: 14, fontWeight: 700, color: 'var(--txt)' }}>{p.name}</span>
+                            </div>
+                            <span className="font-display" style={{ fontSize: 15, fontWeight: 700, color: 'var(--neon)' }}>
+                              {p.price > 0 ? `R$ ${(p.price / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês` : 'Sob consulta'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11, color: 'var(--txt-3)' }}>
+                            <span>{p.maxInstances} instância{p.maxInstances !== 1 ? 's' : ''} WA</span>
+                            <span>{p.maxAttendants === 999 ? 'Atendentes ilimitados' : `${p.maxAttendants} atendentes`}</span>
+                            <span>{p.maxMessages != null ? `${p.maxMessages.toLocaleString('pt-BR')} msgs/mês` : 'Msgs ilimitadas'}</span>
+                            {p.price > 0 && <span>Setup: R$ {((p.price / 100) * (p.setupFeePct / 100)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => setUpgradeOpen(false)} className="btn-outline" style={{ flex: 1, padding: '10px', fontSize: 13 }}>Cancelar</button>
+                    <button onClick={submitUpgrade} disabled={!upgradePickId || upgradeBusy} className="btn-neon" style={{ flex: 2, padding: '10px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: !upgradePickId || upgradeBusy ? .5 : 1 }}>
+                      {upgradeBusy ? <><span className="spinner" style={{ width: 14, height: 14 }} />Enviando...</> : 'Confirmar Solicitação'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (

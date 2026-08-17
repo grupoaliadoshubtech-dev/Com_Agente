@@ -573,7 +573,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
             <div style={{display:'flex',gap:8}}>
               <button onClick={()=>setLimitAlert(null)} className="btn-outline" style={{flex:1,padding:'9px',fontSize:13}}>Entendi</button>
-              <button onClick={()=>{setLimitAlert(null);nav('/supervisor/planos')}} className="btn-neon" style={{flex:1,padding:'9px',fontSize:13}}>Ver meu plano</button>
+              <button onClick={()=>{setLimitAlert(null);nav('/dashboard?upgrade=1')}} className="btn-neon" style={{flex:1,padding:'9px',fontSize:13}}>
+                📈 Solicitar Upgrade
+              </button>
             </div>
           </div>
         </div>

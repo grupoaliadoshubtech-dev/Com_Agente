@@ -43,6 +43,7 @@ export interface Plan {
   maxInstances: number
   maxAttendants: number
   maxMessages: number | null  // null = ilimitado
+  setupFeePct: number         // % do valor mensal cobrado na implementação
   features: string[]
   isActive: boolean
 }

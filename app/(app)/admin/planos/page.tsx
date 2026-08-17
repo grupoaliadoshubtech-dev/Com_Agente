@@ -12,6 +12,7 @@ function PlanModal({plan,onClose,onSaved}:{plan?:Plan;onClose:()=>void;onSaved:(
   const [maxI,    setMaxI]    =useState(String(plan?.maxInstances??1))
   const [maxA,    setMaxA]    =useState(String(plan?.maxAttendants??2))
   const [maxM,    setMaxM]    =useState(plan?.maxMessages!=null?String(plan.maxMessages):'')
+  const [setupFee,setSetupFee]=useState(String(plan?.setupFeePct??100))
   const [feats,   setFeats]   =useState(plan?.features.join('\n')??' ')
   const [loading, setLoading] =useState(false)
   const [error,   setError]   =useState('')
@@ -19,7 +20,8 @@ function PlanModal({plan,onClose,onSaved}:{plan?:Plan;onClose:()=>void;onSaved:(
   async function save(e:React.FormEvent){
     e.preventDefault();setError('');setLoading(true)
     const maxMessages=maxM.trim()===''?null:parseInt(maxM)||null
-    const body={name,price:Math.round(parseFloat(price)*100)||0,period,maxInstances:parseInt(maxI)||1,maxAttendants:parseInt(maxA)||2,maxMessages,features:feats.split('\n').map(f=>f.trim()).filter(Boolean),isActive:true}
+    const setupFeePct=Math.max(0,Math.min(200,parseInt(setupFee)||100))
+    const body={name,price:Math.round(parseFloat(price)*100)||0,period,maxInstances:parseInt(maxI)||1,maxAttendants:parseInt(maxA)||2,maxMessages,setupFeePct,features:feats.split('\n').map(f=>f.trim()).filter(Boolean),isActive:true}
     const url=plan?`/api/plans/${plan.id}`:'/api/plans'
     const r=await fetch(url,{method:plan?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     const d=await r.json();setLoading(false)
@@ -65,6 +67,20 @@ function PlanModal({plan,onClose,onSaved}:{plan?:Plan;onClose:()=>void;onSaved:(
                 Limite de mensagens/mês <span style={{color:'var(--txt-3)',fontWeight:400}}>(vazio = ilimitado)</span>
               </label>
               <input value={maxM} onChange={e=>setMaxM(e.target.value)} type="number" min="1" placeholder="Ex: 5000" style={{width:'100%',padding:'9px 12px'}}/>
+            </div>
+            <div style={{gridColumn:'1/-1'}}>
+              <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>
+                Taxa de setup <span style={{color:'var(--txt-3)',fontWeight:400}}>(% do valor mensal — cobrada uma vez na implementação)</span>
+              </label>
+              <div style={{position:'relative'}}>
+                <input value={setupFee} onChange={e=>setSetupFee(e.target.value)} type="number" min="0" max="200" placeholder="100" style={{width:'100%',padding:'9px 36px 9px 12px'}}/>
+                <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:13,color:'var(--txt-3)',pointerEvents:'none'}}>%</span>
+              </div>
+              {plan && parseInt(setupFee)>0 && plan.price>0 && (
+                <p style={{fontSize:11,color:'var(--txt-3)',marginTop:4}}>
+                  = R$ {((plan.price/100)*(parseInt(setupFee)/100)).toLocaleString('pt-BR',{minimumFractionDigits:2})} taxa única de implementação
+                </p>
+              )}
             </div>
             <div style={{gridColumn:'1/-1'}}>
               <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Features <span style={{color:'var(--txt-3)',fontWeight:400}}>(uma por linha)</span></label>
@@ -141,6 +157,9 @@ export default function PlanosPage(){
                   <div>↗ {p.maxInstances} instância{p.maxInstances!==1?'s':''} WhatsApp</div>
                   <div>↗ {p.maxAttendants===999?'Ilimitados':p.maxAttendants} atendentes</div>
                   <div>↗ {p.maxMessages!=null?`${p.maxMessages.toLocaleString('pt-BR')} mensagens/mês`:'Mensagens ilimitadas'}</div>
+                  {p.price>0&&<div style={{marginTop:4,color:'var(--txt-2)'}}>
+                    🔧 Taxa setup: {p.setupFeePct}% = R$ {((p.price/100)*(p.setupFeePct/100)).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                  </div>}
                 </div>
                 <ul style={{listStyle:'none',marginBottom:16}}>
                   {p.features.slice(0,4).map((f,i)=>(
