@@ -90,7 +90,8 @@ async function processWebhookEvent(
           : firstMsg.key.remoteJid?.endsWith('@s.whatsapp.net')
             ? firstMsg.key.remoteJid
             : null
-        pushNotification(instance, phone).catch(() => {})
+        console.log(`[Webhook] MESSAGES_UPSERT → pushNotification(instance="${instance}", phone="${phone}")`)
+        pushNotification(instance, phone).catch(err => console.error('[Webhook] pushNotification erro:', err))
       }
 
       // Resolve o tenant pela instância
@@ -131,7 +132,8 @@ async function processWebhookEvent(
       const chatArr = Array.isArray(data) ? data as Array<{ id?: string }> : [data as { id?: string }]
       const chatJid = chatArr[0]?.id ?? ''
       const phone = chatJid.endsWith('@s.whatsapp.net') ? chatJid : null
-      if (phone || chatJid) pushNotification(instance, phone).catch(() => {})
+      console.log(`[Webhook] ${event} → pushNotification(instance="${instance}", phone="${phone}", jid="${chatJid}")`)
+      pushNotification(instance, phone).catch(err => console.error('[Webhook] pushNotification erro:', err))
       break
     }
 
