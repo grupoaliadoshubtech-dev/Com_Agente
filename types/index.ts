@@ -42,6 +42,7 @@ export interface Plan {
   period: 'monthly' | 'yearly' | 'custom'
   maxInstances: number
   maxAttendants: number
+  maxMessages: number | null  // null = ilimitado
   features: string[]
   isActive: boolean
 }

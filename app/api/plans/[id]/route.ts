@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.period        !== undefined) { sets.push(`period = $${idx++}`);         vals.push(body.period) }
     if (body.maxInstances  !== undefined) { sets.push(`max_instances = $${idx++}`);  vals.push(body.maxInstances) }
     if (body.maxAttendants !== undefined) { sets.push(`max_attendants = $${idx++}`); vals.push(body.maxAttendants) }
+    if (body.maxMessages   !== undefined) { sets.push(`max_messages = $${idx++}`);   vals.push(body.maxMessages ?? null) }
     if (body.features      !== undefined) { sets.push(`features = $${idx++}`);       vals.push(JSON.stringify(body.features)) }
     if (body.isActive      !== undefined) { sets.push(`is_active = $${idx++}`);      vals.push(body.isActive) }
 

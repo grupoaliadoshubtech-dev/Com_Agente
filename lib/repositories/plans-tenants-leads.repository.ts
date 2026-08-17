@@ -20,6 +20,7 @@ export class PlansRepository {
       period:        String(row.period ?? 'monthly') as Plan['period'],
       maxInstances:  Number(row.max_instances ?? 1),
       maxAttendants: Number(row.max_attendants ?? 2),
+      maxMessages:   row.max_messages != null ? Number(row.max_messages) : null,
       features,
       isActive:      Boolean(row.is_active),
     }
@@ -38,9 +39,9 @@ export class PlansRepository {
   async create(plan: Omit<Plan, 'id'>): Promise<Plan> {
     const id = randomUUID()
     await execute(
-      `INSERT INTO app.planos (id, name, price, period, max_instances, max_attendants, features, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [id, plan.name, plan.price, plan.period, plan.maxInstances, plan.maxAttendants, JSON.stringify(plan.features), plan.isActive]
+      `INSERT INTO app.planos (id, name, price, period, max_instances, max_attendants, max_messages, features, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [id, plan.name, plan.price, plan.period, plan.maxInstances, plan.maxAttendants, plan.maxMessages ?? null, JSON.stringify(plan.features), plan.isActive]
     )
     return { id, ...plan }
   }

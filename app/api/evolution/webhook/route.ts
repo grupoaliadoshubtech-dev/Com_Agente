@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MessageProcessor }    from '@/lib/evolution/message-processor'
 import { resolveTenant }       from '@/lib/evolution/tenant-resolver'
+import { checkAndIncrement }   from '@/lib/evolution/message-limiter'
 import {
   type EvolutionWebhookPayload,
   type MessagesUpsertData,
@@ -98,6 +99,23 @@ async function processWebhookEvent(
       if (!tenant) {
         console.warn(`[Webhook] Instância "${instance}" sem tenant registrado.`)
         return
+      }
+
+      // Verifica limite mensal de mensagens do plano
+      if (tenant.tenantId) {
+        try {
+          const limitCheck = await checkAndIncrement(tenant.tenantId)
+          if (limitCheck.blocked) {
+            console.warn(`[Webhook] Tenant ${tenant.tenantId} bloqueado — limite de ${limitCheck.limit} mensagens/mês atingido.`)
+            return
+          }
+          if (limitCheck.nearLimit) {
+            console.warn(`[Webhook] Tenant ${tenant.tenantId} em ${limitCheck.current}/${limitCheck.limit} mensagens este mês (>= 90%).`)
+          }
+        } catch (err) {
+          // Falha no contador não bloqueia o processamento
+          console.error('[Webhook] Erro ao verificar limite de mensagens:', err)
+        }
       }
 
       const processor = new MessageProcessor({

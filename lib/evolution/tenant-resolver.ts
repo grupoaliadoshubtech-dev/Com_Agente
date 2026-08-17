@@ -1,21 +1,21 @@
 // ─────────────────────────────────────────────────────────────
 // lib/evolution/tenant-resolver.ts
 //
-// Resolve qual tenant/planilha corresponde a uma instância
-// Evolution API. Lê a aba Empresas da planilha Master.
+// Resolve qual tenant corresponde a uma instância Evolution API.
+// Migrado de Google Sheets (aba Empresas) → Supabase (app.empresas).
 //
-// Cache em memória simples (TTL 5 min) para não bater no
-// Sheets a cada mensagem recebida.
+// Cache em memória simples (TTL 5 min) para não bater no banco
+// a cada mensagem recebida.
 // ─────────────────────────────────────────────────────────────
 
-import { readRange, rowsToObjects } from '@/lib/sheets/client'
+import { query } from '@/lib/supabase/client'
 
-const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 const CACHE_TTL = 5 * 60 * 1000  // 5 minutos
 
-interface TenantInfo {
-  spreadsheetId:     string
-  attendantNumber:   string  // número do atendente principal do tenant
+export interface TenantInfo {
+  tenantId:          string  // UUID de app.empresas.id
+  spreadsheetId:     string  // Google Sheets ID do tenant (dados operacionais)
+  attendantNumber:   string  // número do atendente principal
   instanceName:      string
 }
 
@@ -27,22 +27,29 @@ interface CacheEntry {
 let cache: CacheEntry | null = null
 
 async function loadTenants(): Promise<Map<string, TenantInfo>> {
-  if (cache && Date.now() < cache.expiresAt) {
-    return cache.data
-  }
+  if (cache && Date.now() < cache.expiresAt) return cache.data
 
-  const rows    = await readRange(MASTER_ID, 'Empresas!A:H')
-  const records = rowsToObjects<Record<string, string>>(rows)
+  const rows = await query<{
+    id: string
+    evolution_instance: string
+    spreadsheet_id: string
+    phone: string
+  }>(`
+    SELECT id, evolution_instance, spreadsheet_id, phone
+    FROM app.empresas
+    WHERE status != 'inactive'
+      AND evolution_instance IS NOT NULL
+      AND evolution_instance <> ''
+  `)
 
   const map = new Map<string, TenantInfo>()
-
-  for (const r of records) {
-    const instanceName = r.evolutionInstance ?? r.EvolutionInstance ?? ''
+  for (const r of rows) {
+    const instanceName = String(r.evolution_instance ?? '')
     if (!instanceName) continue
-
     map.set(instanceName, {
-      spreadsheetId:   r.id,             // ID da planilha do tenant = ID lógico
-      attendantNumber: r.phone ?? r.Phone ?? '',
+      tenantId:        String(r.id),
+      spreadsheetId:   String(r.spreadsheet_id ?? ''),
+      attendantNumber: String(r.phone ?? ''),
       instanceName,
     })
   }
