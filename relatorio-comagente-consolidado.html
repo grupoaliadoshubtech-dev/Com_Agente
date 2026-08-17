@@ -1512,11 +1512,39 @@ curl -I http://localhost:3001</pre>
   <p style="margin-top:10px"><strong>Atenção:</strong> migrar o P1 (<code>tenant-resolver.ts</code>) primeiro é fundamental — ele passa o <code>supabase_schema</code> correto para todos os outros pontos. Após a migração completa, remover <code>lib/sheets/client.ts</code>, as rotas <code>/api/admin/sheet-inspect</code> e <code>/api/admin/diagnostico-sheets</code>, e as variáveis <code>GOOGLE_SERVICE_ACCOUNT_EMAIL</code>, <code>GOOGLE_PRIVATE_KEY</code> e <code>GOOGLE_MASTER_SHEET_ID</code>.</p>
 </div>
 
+<div class="section">
+  <h3>6.80 a 6.82 — Bug: mensagens recebidas não apareciam no chat aberto — 16-17/08/2026</h3>
+
+  <p>
+    <span class="badge" style="background:#7c3aed;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">BUG</span>
+    <span class="badge" style="background:#0f766e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px">SUPABASE</span>
+    Após a migração da Evolution API para o Supabase (session pooler), mensagens recebidas chegavam no histórico lateral mas <strong>não atualizavam o chat aberto</strong>. O usuário precisava sair e entrar no chat para ver a mensagem.
+  </p>
+
+  <h4>6.80 <span class="badge" style="background:#7c3aed;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">BUG</span> saveReceivedMessage bloqueava save completo da Evolution API</h4>
+  <p><strong>Causa:</strong> Com SSL ativo no <code>db-client.ts</code>, o <code>saveReceivedMessage</code> no webhook passou a funcionar e gravava a mensagem <em>sem</em> o campo <code>remoteJidAlt</code> no JSONB <code>key</code>. O <code>ON CONFLICT DO NOTHING</code> bloqueava o save subsequente da Evolution API (que incluiria o <code>remoteJidAlt</code>). Resultado: <code>getLidMapping()</code> retornava mapa vazio → <code>lidJid</code> sempre <code>null</code> → query 3 (<code>findMessages(lidJid)</code>) nunca executava → mensagem não encontrada.</p>
+  <p><strong>Correção:</strong> Removido o bloco <code>saveReceivedMessage</code> do webhook. Com SSL configurado, a Evolution API já persiste corretamente no Supabase com <code>remoteJidAlt</code> preenchido. O save manual era redundante e destrutivo.</p>
+  <p><strong>Arquivo:</strong> <code>app/api/evolution/webhook/route.ts</code> | <strong>Commit:</strong> <code>92862d6</code></p>
+
+  <h4>6.81 <span class="badge" style="background:#7c3aed;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">BUG</span> Callback SSE usava lidJid stale — chat não atualizava</h4>
+  <p><strong>Causa:</strong> O callback do SSE chamava <code>fetchMessages(selectedRef.current.telefone, selectedRef.current.lidJid)</code> em paralelo com <code>fetchChats()</code>. O <code>lidJid</code> atualizado que o <code>fetchChats</code> traria nunca chegava ao <code>fetchMessages</code>. Além disso, havia race condition: o SSE disparava antes da Evolution API confirmar a mensagem no Supabase (latência do session pooler).</p>
+  <p><strong>Correção:</strong> Callback SSE reescrito para sequenciar: (1) aguarda retorno do <code>fetchChats</code>, (2) extrai <code>lidJid</code> atualizado do contato aberto, (3) aguarda 500ms para a Evolution API confirmar no Supabase, (4) chama <code>fetchMessages</code> com o <code>lidJid</code> correto.</p>
+  <p><strong>Arquivo:</strong> <code>app/(app)/workspace/page.tsx</code> | <strong>Commit:</strong> <code>92862d6</code></p>
+
+  <h4>6.82 <span class="badge" style="background:#7c3aed;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">BUG</span> Webhook crashava em MESSAGES_UPSERT + CHATS_UPDATE não tratado</h4>
+  <p><strong>Causa 1:</strong> A Evolution API envia o payload de <code>MESSAGES_UPSERT</code> ora como <code>{ messages: [...] }</code> ora como array direto. O acesso <code>messages[0]</code> sem guard quebrava com <code>TypeError: Cannot read properties of undefined (reading '0')</code>, impedindo o <code>pushNotification</code> de disparar e quebrando todo o fluxo SSE.</p>
+  <p><strong>Causa 2:</strong> A Evolution API envia <code>CHATS_UPDATE</code> (e não <code>MESSAGES_UPSERT</code>) na chegada de mensagens recebidas. Esse evento caía no <code>default</code> do switch e <code>pushNotification</code> nunca era chamado.</p>
+  <p><strong>Correção:</strong> (1) Normalização do payload: <code>Array.isArray(raw) ? raw : (raw.messages ?? [])</code> com guard <code>if (!messages.length) break</code>. (2) Adicionado handler para <code>CHATS_UPDATE</code> e <code>CHATS_UPSERT</code> que extrai o JID do chat atualizado e chama <code>pushNotification</code>.</p>
+  <p><strong>Arquivo:</strong> <code>app/api/evolution/webhook/route.ts</code> | <strong>Commits:</strong> <code>b5f83c5</code>, <code>6b10abe</code></p>
+
+  <p style="margin-top:12px"><strong>Resultado:</strong> Mensagens recebidas aparecem automaticamente no chat aberto em tempo real, sem necessidade de sair e reentrar na conversa. Verificado via SSE EventStream no DevTools e código de monitoramento no console do browser.</p>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 2.8 | 01 de agosto de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 2.9 | 17 de agosto de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
