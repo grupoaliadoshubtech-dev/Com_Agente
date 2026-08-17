@@ -242,7 +242,7 @@ export default function MonitoramentoPage() {
           {/* ══ 1. STORAGE ══ */}
           <div>
             <SectionLabel>Limites do plano gratuito</SectionLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="mon-storage-grid">
 
               {/* Supabase */}
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, position: 'relative', overflow: 'hidden' }}>
@@ -350,7 +350,7 @@ export default function MonitoramentoPage() {
           {/* ══ 2. MÉTRICAS ══ */}
           <div>
             <SectionLabel>Métricas do sistema</SectionLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+            <div className="mon-metrics-grid">
 
               <MetricCard
                 stripe="linear-gradient(90deg,#3ecf8e,#1a9c6e)" border="rgba(62,207,142,.25)"
@@ -428,9 +428,10 @@ export default function MonitoramentoPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      {['Empresa', 'Instância Evolution', 'Status', 'Número'].map(h => (
-                        <th key={h} style={th}>{h}</th>
-                      ))}
+                      <th style={th}>Empresa</th>
+                      <th style={th} className="mon-col-instance">Instância Evolution</th>
+                      <th style={th}>Status</th>
+                      <th style={th} className="mon-col-number">Número</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -448,7 +449,7 @@ export default function MonitoramentoPage() {
                           <td style={td}>
                             <div style={{ fontWeight: 600, color: 'var(--txt)', fontSize: 13 }}>{inst.name}</div>
                           </td>
-                          <td style={{ ...td, fontFamily: 'monospace', fontSize: 11, color: '#60a5fa' }}>{inst.name}</td>
+                          <td style={{ ...td, fontFamily: 'monospace', fontSize: 11, color: '#60a5fa' }} className="mon-col-instance">{inst.name}</td>
                           <td style={td}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: bg, border: `1px solid ${border}`, color, textTransform: 'uppercase' as const, letterSpacing: '.02em' }}>
                               <span style={{ width: 7, height: 7, borderRadius: '50%', background: color }}/>
@@ -456,7 +457,7 @@ export default function MonitoramentoPage() {
                             </span>
                             {!connected && <div style={{ fontSize: 10, color: 'var(--txt-3)', marginTop: 4 }}>QR Code necessário</div>}
                           </td>
-                          <td style={{ ...td, fontFamily: 'monospace', fontSize: 11 }}>—</td>
+                          <td style={{ ...td, fontFamily: 'monospace', fontSize: 11 }} className="mon-col-number">—</td>
                         </tr>
                       )
                     })}
@@ -474,6 +475,46 @@ export default function MonitoramentoPage() {
 
       <style>{`
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+
+        /* ── grids responsivos ── */
+        .mon-storage-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+        }
+        .mon-metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+        }
+
+        /* tablet */
+        @media (max-width: 860px) {
+          .mon-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* mobile */
+        @media (max-width: 560px) {
+          .mon-storage-grid { grid-template-columns: 1fr; }
+          .mon-metrics-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── light mode: bordas e sombras nos cards ── */
+        :root[data-theme="light"] .mon-storage-grid > div,
+        :root[data-theme="light"] .mon-metrics-grid > div {
+          box-shadow: 0 1px 4px rgba(0,0,0,.07);
+        }
+
+        /* ── toolbar mobile ── */
+        @media (max-width: 560px) {
+          .mon-toolbar-right { display: none !important; }
+          .mon-toolbar-refresh { display: flex !important; }
+        }
+
+        /* ── tabela instâncias: esconder colunas secundárias no mobile ── */
+        @media (max-width: 560px) {
+          .mon-col-instance, .mon-col-number { display: none; }
+        }
       `}</style>
     </div>
   )
