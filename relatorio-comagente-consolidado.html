@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>01 de agosto de 2026</strong> (v2.8)<br>
+    Documento consolidado e atualizado — <strong>17 de agosto de 2026</strong> (v2.9)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -190,6 +190,7 @@
       <tr><td>30/07/2026</td><td>2.6</td><td>Scroll instantâneo ao abrir conversa, badge dinâmico (chats pausados), indicador colorido de estado na lista, sync de badges, timestamps handoff no fuso de Brasília</td></tr>
       <tr><td>31/07/2026</td><td>2.7</td><td>Botão Pausar/Retornar Global redesenhado (sólido + pulse animation, 4 modos), pausa automática ao redefinir senha do cliente, modal de aviso ao logar com IA pausada</td></tr>
       <tr><td>01/08/2026</td><td>2.8</td><td>Migração completa de dados operacionais para Supabase PostgreSQL: 4 migrações SQL (006–009), import completo Lucena Decorações e TrackerMap, 3 novos repositórios TypeScript, auto-provisionamento de schema ao cadastrar empresa, função create_tenant_schema() com 14 tabelas padronizadas</td></tr>
+      <tr><td>17/08/2026</td><td>2.9</td><td>Migração Evolution API: banco local → Neon PostgreSQL (nuvem). Correção de 3 bugs críticos gerados pela migração: saveReceivedMessage bloqueando save da Evolution API (6.80), callback SSE com lidJid stale + race condition Neon (6.81), webhook crashando em MESSAGES_UPSERT + CHATS_UPDATE não tratado (6.82). Documentação completa da migração com guia de diagnóstico futuro (6.83).</td></tr>
     </tbody>
   </table>
 </div>
