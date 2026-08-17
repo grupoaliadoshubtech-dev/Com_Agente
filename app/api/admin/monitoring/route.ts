@@ -128,16 +128,8 @@ async function getR2Metrics() {
   const apiToken = process.env.CLOUDFLARE_API_TOKEN
   if (!apiToken) throw new Error('Variável não encontrada: CLOUDFLARE_API_TOKEN')
 
-  // Detecta o account ID automaticamente a partir do token — ignora CLOUDFLARE_ACCOUNT_ID
-  const accountsRes = await fetch('https://api.cloudflare.com/client/v4/accounts?per_page=1', {
-    headers: { Authorization: `Bearer ${apiToken}` },
-    signal: AbortSignal.timeout(8_000),
-  })
-  const accountsJson = await accountsRes.json()
-  if (!accountsJson?.result?.length) {
-    throw new Error('Token sem acesso a nenhuma conta Cloudflare — verifique as permissões')
-  }
-  const accountId: string = accountsJson.result[0].id
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
+  if (!accountId) throw new Error('Variável não encontrada: CLOUDFLARE_ACCOUNT_ID')
 
   const until = new Date()
   const since = new Date(Date.now() - 30 * 86_400_000)
