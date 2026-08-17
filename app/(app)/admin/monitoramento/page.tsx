@@ -348,7 +348,13 @@ export default function MonitoramentoPage() {
                 ) : (
                   <div style={{ fontSize: 12, padding: '10px 0' }}>
                     {apiErrors.r2
-                      ? <span style={{ color: '#ef4444' }}>Erro API: {apiErrors.r2}</span>
+                      ? <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                          <div>
+                            <div style={{ color: 'var(--txt-2)', fontWeight: 600, marginBottom: 2 }}>Cloudflare R2 indisponível</div>
+                            <div style={{ color: 'var(--txt-3)', fontSize: 11, lineHeight: 1.5 }}>Verifique se o token <code style={{ background: 'var(--bg-input)', padding: '1px 5px', borderRadius: 3 }}>CLOUDFLARE_API_TOKEN</code> tem permissão <strong>Account Analytics: Read</strong> e se o <code style={{ background: 'var(--bg-input)', padding: '1px 5px', borderRadius: 3 }}>CLOUDFLARE_ACCOUNT_ID</code> está correto na Vercel.</div>
+                          </div>
+                        </div>
                       : <span style={{ color: 'var(--txt-3)' }}>Configure <code style={{ fontSize: 11, background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4 }}>CLOUDFLARE_ACCOUNT_ID</code> e <code style={{ fontSize: 11, background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4 }}>CLOUDFLARE_API_TOKEN</code> nas variáveis de ambiente da Vercel.</span>
                     }
                   </div>
