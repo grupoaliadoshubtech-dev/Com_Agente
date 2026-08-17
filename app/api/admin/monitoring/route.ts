@@ -71,10 +71,10 @@ async function getSupabaseMetrics() {
     const [connRows, dbSizeRows, tablesRows, instanceRows] = await Promise.all([
       safeQuery<{ active: string; idle: string; waiting: string; total: string }>(client, `
         SELECT
-          count(*) FILTER (WHERE state = 'active')              AS active,
-          count(*) FILTER (WHERE state = 'idle')                AS idle,
-          count(*) FILTER (WHERE state = 'idle in transaction') AS waiting,
-          count(*)                                              AS total
+          count(*) FILTER (WHERE state = 'active'              AND pid <> pg_backend_pid()) AS active,
+          count(*) FILTER (WHERE state = 'idle'                AND pid <> pg_backend_pid()) AS idle,
+          count(*) FILTER (WHERE state = 'idle in transaction' AND pid <> pg_backend_pid()) AS waiting,
+          count(*) FILTER (WHERE pid <> pg_backend_pid())                                   AS total
         FROM pg_stat_activity
         WHERE datname = current_database()
       `),
