@@ -11,13 +11,15 @@ function PlanModal({plan,onClose,onSaved}:{plan?:Plan;onClose:()=>void;onSaved:(
   const [period,  setPeriod]  =useState<Plan['period']>(plan?.period??'monthly')
   const [maxI,    setMaxI]    =useState(String(plan?.maxInstances??1))
   const [maxA,    setMaxA]    =useState(String(plan?.maxAttendants??2))
+  const [maxM,    setMaxM]    =useState(plan?.maxMessages!=null?String(plan.maxMessages):'')
   const [feats,   setFeats]   =useState(plan?.features.join('\n')??' ')
   const [loading, setLoading] =useState(false)
   const [error,   setError]   =useState('')
 
   async function save(e:React.FormEvent){
     e.preventDefault();setError('');setLoading(true)
-    const body={name,price:Math.round(parseFloat(price)*100)||0,period,maxInstances:parseInt(maxI)||1,maxAttendants:parseInt(maxA)||2,features:feats.split('\n').map(f=>f.trim()).filter(Boolean),isActive:true}
+    const maxMessages=maxM.trim()===''?null:parseInt(maxM)||null
+    const body={name,price:Math.round(parseFloat(price)*100)||0,period,maxInstances:parseInt(maxI)||1,maxAttendants:parseInt(maxA)||2,maxMessages,features:feats.split('\n').map(f=>f.trim()).filter(Boolean),isActive:true}
     const url=plan?`/api/plans/${plan.id}`:'/api/plans'
     const r=await fetch(url,{method:plan?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     const d=await r.json();setLoading(false)
@@ -57,6 +59,12 @@ function PlanModal({plan,onClose,onSaved}:{plan?:Plan;onClose:()=>void;onSaved:(
             <div>
               <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Máx. atendentes</label>
               <input value={maxA} onChange={e=>setMaxA(e.target.value)} type="number" min="1" style={{width:'100%',padding:'9px 12px'}}/>
+            </div>
+            <div style={{gridColumn:'1/-1'}}>
+              <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>
+                Limite de mensagens/mês <span style={{color:'var(--txt-3)',fontWeight:400}}>(vazio = ilimitado)</span>
+              </label>
+              <input value={maxM} onChange={e=>setMaxM(e.target.value)} type="number" min="1" placeholder="Ex: 5000" style={{width:'100%',padding:'9px 12px'}}/>
             </div>
             <div style={{gridColumn:'1/-1'}}>
               <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--txt-2)',marginBottom:5}}>Features <span style={{color:'var(--txt-3)',fontWeight:400}}>(uma por linha)</span></label>
@@ -132,6 +140,7 @@ export default function PlanosPage(){
                 <div style={{fontSize:11,color:'var(--txt-3)',marginBottom:12}}>
                   <div>↗ {p.maxInstances} instância{p.maxInstances!==1?'s':''} WhatsApp</div>
                   <div>↗ {p.maxAttendants===999?'Ilimitados':p.maxAttendants} atendentes</div>
+                  <div>↗ {p.maxMessages!=null?`${p.maxMessages.toLocaleString('pt-BR')} mensagens/mês`:'Mensagens ilimitadas'}</div>
                 </div>
                 <ul style={{listStyle:'none',marginBottom:16}}>
                   {p.features.slice(0,4).map((f,i)=>(

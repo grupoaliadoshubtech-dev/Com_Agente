@@ -51,7 +51,12 @@ export async function GET(req: NextRequest): Promise<Response> {
           if (rows.length > 0) {
             lastId = rows[rows.length - 1].id
             for (const row of rows) {
-              send({ type: 'new_message', phone: row.phone })
+              if (row.type === 'message') {
+                send({ type: 'new_message', phone: row.phone })
+              } else {
+                // Repassa alertas de sistema (uso_limite, etc.) com payload
+                send({ type: row.type, payload: row.payload })
+              }
             }
           }
         } catch {}

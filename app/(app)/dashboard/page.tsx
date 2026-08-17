@@ -161,6 +161,7 @@ export default function DashboardPage() {
   const [updated, setUpdated]     = useState('')
   const [exporting, setExporting] = useState(false)
   const [toast, setToast]         = useState('')
+  const [usage, setUsage]         = useState<{ current: number; limit: number | null; pct: number; anoMes: string } | null>(null)
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
 
@@ -195,6 +196,10 @@ export default function DashboardPage() {
     const rtInterval = setInterval(loadRealtime, REALTIME_POLL)
     return () => { clearInterval(fullInterval); clearInterval(rtInterval) }
   }, [loadFull, loadRealtime])
+
+  useEffect(() => {
+    fetch('/api/usage').then(r => r.json()).then(d => { if (d.success) setUsage(d.data) }).catch(() => {})
+  }, [])
 
   // ── Exportar relatório ─────────────────────────────────────
   async function exportReport(tipo: string, periodo: string) {
@@ -391,6 +396,71 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* ── Card de uso mensal de mensagens ─────────────────── */}
+        {usage && (
+          <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)' }}>Uso de Mensagens — Plano</p>
+                <p style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>Período: {usage.anoMes}</p>
+              </div>
+              {usage.limit !== null && (
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 100,
+                  background: usage.pct >= 100 ? 'rgba(239,68,68,.1)' : usage.pct >= 90 ? 'rgba(245,158,11,.1)' : 'rgba(163,230,53,.08)',
+                  color:      usage.pct >= 100 ? 'var(--danger)'      : usage.pct >= 90 ? 'var(--warning)'      : 'var(--neon)',
+                  border:     `1px solid ${usage.pct>=100?'rgba(239,68,68,.25)':usage.pct>=90?'rgba(245,158,11,.25)':'rgba(163,230,53,.2)'}`,
+                }}>
+                  {usage.pct >= 100 ? 'Limite atingido' : usage.pct >= 90 ? 'Atenção' : 'Normal'}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, color: 'var(--txt-2)' }}>Mensagens processadas</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt)' }}>
+                    {usage.current.toLocaleString('pt-BR')}
+                    {usage.limit !== null && <> / {usage.limit.toLocaleString('pt-BR')}</>}
+                    {usage.limit === null && <span style={{ color: 'var(--txt-3)', fontWeight: 400 }}> (ilimitado)</span>}
+                  </span>
+                </div>
+                {usage.limit !== null && (
+                  <>
+                    <div style={{ background: 'var(--bg-input)', borderRadius: 6, height: 10, overflow: 'hidden' }}>
+                      <div style={{
+                        background: usage.pct >= 100 ? 'var(--danger)' : usage.pct >= 90 ? 'var(--warning)' : 'var(--neon)',
+                        width: `${Math.min(usage.pct, 100)}%`, height: '100%', borderRadius: 6, transition: 'width .7s ease',
+                      }} />
+                    </div>
+                    <div style={{ textAlign: 'right', marginTop: 4 }}>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700,
+                        color: usage.pct >= 100 ? 'var(--danger)' : usage.pct >= 90 ? 'var(--warning)' : 'var(--txt-3)',
+                      }}>{usage.pct}% utilizado</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              {usage.limit !== null && (
+                <div style={{ textAlign: 'center', minWidth: 60 }}>
+                  <div className="font-display" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: usage.pct >= 100 ? 'var(--danger)' : usage.pct >= 90 ? 'var(--warning)' : 'var(--neon)' }}>
+                    {usage.pct}%
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--txt-3)', marginTop: 2 }}>do limite</div>
+                </div>
+              )}
+            </div>
+            {usage.limit !== null && usage.pct >= 90 && (
+              <p style={{ fontSize: 12, color: 'var(--warning)', background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 8, padding: '8px 12px' }}>
+                {usage.pct >= 100
+                  ? '⛔ Limite atingido. Novas mensagens não serão processadas pela IA até o próximo período.'
+                  : '⚠️ Você está próximo do limite. Considere fazer upgrade do plano para evitar interrupções.'}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Ranking atendentes */}
         <div className="card" style={{ padding: 20, marginBottom: 16 }}>

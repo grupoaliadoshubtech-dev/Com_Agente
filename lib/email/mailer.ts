@@ -142,6 +142,54 @@ export function aprovacaoTemplate(name: string, company: string, email: string, 
 </html>`.trim()
 }
 
+export function limitAlertTemplate(company: string, current: number, limit: number, pct: number): string {
+  const barWidth = Math.min(pct, 100)
+  const barColor = pct >= 100 ? '#EF4444' : pct >= 90 ? '#F59E0B' : '#A3E635'
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0f1117;font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:28px;font-weight:900;color:#ffffff;">Com</span><span style="font-size:28px;font-weight:900;color:#a3e635;">Agente</span>
+    </div>
+    <div style="background:#1a1d27;border-radius:16px;padding:32px 28px;border:1px solid rgba(255,255,255,.08);">
+      <div style="text-align:center;margin-bottom:24px;">
+        <span style="display:inline-block;font-size:36px;">⚠️</span>
+        <h2 style="color:#f0f0f0;font-size:18px;margin:12px 0 4px;">Aviso de Limite de Mensagens</h2>
+        <p style="color:#9ca3af;font-size:14px;margin:0;">${company}</p>
+      </div>
+      <p style="color:#9ca3af;font-size:14px;line-height:1.7;margin:0 0 20px;">
+        Sua empresa atingiu <strong style="color:#f0f0f0;">${pct}%</strong> do limite de mensagens do plano este mês.
+      </p>
+      <div style="background:#0f1117;border-radius:10px;padding:20px;margin-bottom:24px;border:1px solid rgba(255,255,255,.06);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <span style="color:#9ca3af;font-size:13px;">Mensagens utilizadas</span>
+          <span style="color:#f0f0f0;font-size:13px;font-weight:700;">${current.toLocaleString('pt-BR')} / ${limit.toLocaleString('pt-BR')}</span>
+        </div>
+        <div style="background:#1f2937;border-radius:6px;height:10px;overflow:hidden;">
+          <div style="background:${barColor};width:${barWidth}%;height:100%;border-radius:6px;"></div>
+        </div>
+        <div style="text-align:right;margin-top:6px;">
+          <span style="color:${barColor};font-size:12px;font-weight:700;">${pct}% utilizado</span>
+        </div>
+      </div>
+      <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:0 0 20px;">
+        Quando o limite for atingido, novas mensagens recebidas <strong style="color:#f0f0f0;">não serão processadas</strong> pela IA até o início do próximo período.
+      </p>
+      <p style="color:#9ca3af;font-size:13px;margin:0;border-top:1px solid rgba(255,255,255,.06);padding-top:16px;">
+        Para fazer upgrade do seu plano, entre em contato com o suporte do ComAgente.
+      </p>
+    </div>
+    <p style="text-align:center;color:#4b5563;font-size:11px;margin-top:24px;">
+      © ${new Date().getFullYear()} ComAgente · Todos os direitos reservados
+    </p>
+  </div>
+</body>
+</html>`.trim()
+}
+
 export function resetPasswordTemplate(name: string, resetUrl: string): string {
   const firstName = name.split(' ')[0]
   return `

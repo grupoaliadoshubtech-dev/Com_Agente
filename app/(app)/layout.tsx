@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { useHandoff } from '@/lib/hooks/use-handoff'
 import { ThemeProvider, useTheme } from '@/lib/context/theme-context'
+import type { StreamSystemEvent } from '@/lib/hooks/use-message-stream'
 
 // SVG icons
 const IC = {
@@ -127,6 +128,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [pausaWarningDismissed, setPausaWarningDismissed] = useState(false)
   const [bellOpen, setBellOpen] = useState(false)
 
+  // ── Alerta de limite de mensagens ────────────────────────────
+  const [limitAlert, setLimitAlert] = useState<{ current: number; limit: number; pct: number; company: string } | null>(null)
+
   // ── Modal: perfil do usuário ─────────────────────────────────
   const [profileOpen,    setProfileOpen]    = useState(false)
   const [profileSaving,  setProfileSaving]  = useState(false)
@@ -185,6 +189,29 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     const i = setInterval(fetchAguardando, 10000)
     return () => clearInterval(i)
   }, [])
+
+  // ── SSE: escuta alertas de sistema (uso_limite, etc.) ───────
+  useEffect(() => {
+    if (role === 'master') return  // master não tem tenant/instância
+    let es: EventSource
+    let retryTimer: ReturnType<typeof setTimeout>
+    function connect() {
+      es = new EventSource('/api/evolution/stream')
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data as string) as StreamSystemEvent & { type: string; phone?: string }
+          if (data.type === 'uso_limite' && data.payload) {
+            const p = data.payload as { current: number; limit: number; pct: number; company: string }
+            setLimitAlert(p)
+          }
+          if (data.type === 'reconnect') { es.close(); retryTimer = setTimeout(connect, 100) }
+        } catch {}
+      }
+      es.onerror = () => { es.close(); retryTimer = setTimeout(connect, 3000) }
+    }
+    connect()
+    return () => { clearTimeout(retryTimer); es?.close() }
+  }, [role])
 
   // Carrega dados do perfil ao abrir o modal
   useEffect(() => {
@@ -504,6 +531,52 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       )}
 
       {toast && <div className="toast-base">{toast}</div>}
+
+      {/* ── Modal: Alerta de Limite de Mensagens (90%) ───────── */}
+      {limitAlert && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.72)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9100,padding:'16px'}}>
+          <div className="card animate-slide-up" style={{width:'min(420px, calc(100vw - 32px))',padding:'28px 24px',position:'relative'}}>
+            <button onClick={()=>setLimitAlert(null)} style={{position:'absolute',top:14,right:14,width:28,height:28,borderRadius:7,background:'var(--bg-input)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'var(--txt-2)',fontSize:17,lineHeight:1}}>×</button>
+
+            <div style={{textAlign:'center',marginBottom:20}}>
+              <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
+              <div className="font-display" style={{fontSize:17,fontWeight:700,color:'var(--warning)',marginBottom:6}}>Limite de Mensagens</div>
+              <p style={{fontSize:13,color:'var(--txt-2)',margin:0,lineHeight:1.6}}>
+                Você utilizou <strong style={{color:'var(--txt)'}}>{limitAlert.pct}%</strong> do limite de mensagens do plano este mês.
+              </p>
+            </div>
+
+            {/* Barra de progresso */}
+            <div style={{marginBottom:20}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{fontSize:12,color:'var(--txt-3)'}}>Mensagens usadas</span>
+                <span style={{fontSize:12,fontWeight:700,color:'var(--txt)'}}>{limitAlert.current.toLocaleString('pt-BR')} / {limitAlert.limit.toLocaleString('pt-BR')}</span>
+              </div>
+              <div style={{background:'var(--bg-input)',borderRadius:6,height:10,overflow:'hidden'}}>
+                <div style={{
+                  background: limitAlert.pct >= 100 ? 'var(--danger)' : 'var(--warning)',
+                  width:`${Math.min(limitAlert.pct,100)}%`,
+                  height:'100%',
+                  borderRadius:6,
+                  transition:'width .5s ease',
+                }}/>
+              </div>
+              <div style={{textAlign:'right',marginTop:4}}>
+                <span style={{fontSize:11,color:'var(--warning)',fontWeight:700}}>{limitAlert.pct}% utilizado</span>
+              </div>
+            </div>
+
+            <p style={{fontSize:12,color:'var(--txt-3)',lineHeight:1.6,marginBottom:20}}>
+              Quando o limite for atingido, mensagens recebidas não serão processadas pela IA. O contador reinicia no início do próximo mês.
+            </p>
+
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>setLimitAlert(null)} className="btn-outline" style={{flex:1,padding:'9px',fontSize:13}}>Entendi</button>
+              <button onClick={()=>{setLimitAlert(null);nav('/supervisor/planos')}} className="btn-neon" style={{flex:1,padding:'9px',fontSize:13}}>Ver meu plano</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: Aviso de IA Pausada Globalmente ─────────── */}
       {pausaGlobalAtiva && !pausaWarningDismissed && !mustChangePw && (
