@@ -206,19 +206,6 @@ function UsageCard({ usage }: { usage: { current: number; limit: number | null; 
         {/* Detalhes */}
         <div style={{ flex: 1, minWidth: 160, paddingLeft: usage.limit !== null ? 16 : 0, display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
 
-          {/* Barra linear */}
-          {usage.limit !== null && (
-            <div>
-              <div style={{ background: 'var(--bg-input)', borderRadius: 4, height: 6, overflow: 'hidden', marginBottom: 5 }}>
-                <div style={{ background: clr, width: `${Math.min(usage.pct, 100)}%`, height: '100%', borderRadius: 4, transition: 'width .8s ease', boxShadow: `0 0 8px ${clr}66` }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: 'var(--txt-3)' }}>0</span>
-                <span style={{ fontSize: 11, color: 'var(--txt-3)' }}>{usage.limit.toLocaleString('pt-BR')}</span>
-              </div>
-            </div>
-          )}
-
           {/* Grid de stats */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px' }}>
             <div>
