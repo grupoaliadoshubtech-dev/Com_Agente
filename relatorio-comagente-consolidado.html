@@ -285,22 +285,35 @@
   <li><strong>atendente</strong> — workspace + toggles liberados pelo supervisor</li>
 </ul>
 
-<h3>2.5 PostgreSQL da Evolution API — Migrado para a nuvem (11/08/2026)</h3>
+<h3>2.5 Migração da Evolution API: VPS local → Supabase + Cloudflare R2 (11/08/2026)</h3>
 
-<p>O banco de dados da Evolution API foi migrado do servidor local (VPS) para o <strong>Neon PostgreSQL</strong> — um banco na nuvem acessível de qualquer lugar, incluindo o Vercel.</p>
+<p>A infraestrutura da Evolution API foi migrada completamente do servidor local (VPS) para a nuvem, seguindo o plano de migração em 4 fases.</p>
 
 <table>
-  <thead><tr><th>Situação</th><th>Onde estava</th><th>Onde está agora</th></tr></thead>
+  <thead><tr><th>Componente</th><th>Antes (VPS local)</th><th>Depois (nuvem)</th><th>Status</th></tr></thead>
   <tbody>
     <tr>
-      <td>Banco da Evolution API</td>
-      <td>Servidor local (VPS) — inacessível pelo Vercel</td>
-      <td><strong>Neon PostgreSQL</strong> (nuvem) — acessível pelo Vercel e pela VPS</td>
+      <td>Banco de dados</td>
+      <td>PostgreSQL local na VPS — inacessível pelo Vercel</td>
+      <td><strong>Supabase PostgreSQL</strong> — acessível pelo Vercel e pela VPS</td>
+      <td>✅ Migrado</td>
+    </tr>
+    <tr>
+      <td>Armazenamento de mídia</td>
+      <td>Base64 dentro do banco (imagens, áudio, vídeo)</td>
+      <td><strong>Cloudflare R2</strong> — mídia nova vai direto para o R2</td>
+      <td>✅ Configurado e testado</td>
     </tr>
   </tbody>
 </table>
 
-<p><strong>Variável de ambiente:</strong> <code>EVOLUTION_DB_URL</code> | O ComAgente usa esse banco para: (1) mapeamento <code>@lid → phone</code> via <code>getLidMapping()</code> e (2) tabela <code>_comagente_notify</code> para notificações SSE em tempo real.</p>
+<p><strong>Variável de ambiente:</strong> <code>EVOLUTION_DB_URL</code> → Supabase session pooler (porta 6543). O ComAgente usa esse banco para: (1) mapeamento <code>@lid → phone</code> via <code>getLidMapping()</code> e (2) tabela <code>_comagente_notify</code> para notificações SSE em tempo real.</p>
+
+<p><strong>Pendências da migração ainda em aberto:</strong></p>
+<ul>
+  <li><strong>Fase 3 — Limpeza da mídia histórica:</strong> base64 antigo ainda está no banco Supabase. Precisa ser extraído para o R2 e removido do banco para liberar storage.</li>
+  <li><strong>Fase 4 — Operação contínua:</strong> monitoramento (dashboards Supabase + R2), política de lifecycle no R2, backup dual configurado.</li>
+</ul>
 
 <div style="background:rgba(239,68,68,0.08);border-left:4px solid #ef4444;padding:10px 14px;margin:12px 0;border-radius:0 6px 6px 0">
   <strong style="color:#ef4444">⚠ SSL obrigatório após a migração para a nuvem:</strong>
@@ -1568,26 +1581,28 @@ curl -I http://localhost:3001</pre>
 </div>
 
 <div class="section">
-  <h3>6.83 Migração Evolution API: Docker local → Neon PostgreSQL — Documentação Completa (11/08/2026)</h3>
+  <h3>6.83 Migração Evolution API: VPS local → Supabase + Cloudflare R2 — Documentação Completa (11/08/2026)</h3>
 
   <p>
     <span class="badge" style="background:#0369a1;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">MIGRAÇÃO</span>
     <span class="badge" style="background:#0f766e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px">SUPABASE</span>
-    Documentação completa da migração do banco de dados da Evolution API de Docker local (VPS) para Neon PostgreSQL externo, incluindo os bugs gerados e as lições aprendidas.
+    <span class="badge" style="background:#7c3aed;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px">R2</span>
+    Documentação completa da migração da Evolution API de servidor local (VPS) para nuvem: banco para Supabase PostgreSQL e mídias para Cloudflare R2, incluindo os bugs gerados e as lições aprendidas.
   </p>
 
   <h4>Contexto da migração</h4>
-  <p>Até 11/08/2026, a Evolution API rodava com PostgreSQL em Docker local na VPS (<code>agenciadia_evolution-api-db:5432</code>). Esse banco era <strong>inacessível pelo Vercel</strong> (rede Docker interna), então o ComAgente só conseguia acessá-lo quando rodava no EasyPanel/VPS. A migração para o Neon tornou o banco acessível de qualquer origem, incluindo o Vercel.</p>
+  <p>Até 11/08/2026, a Evolution API rodava com PostgreSQL local na VPS (<code>agenciadia_evolution-api-db:5432</code>) e armazenava mídias (imagens, áudio, vídeo) como base64 diretamente no banco. Esse banco era <strong>inacessível pelo Vercel</strong> (rede Docker interna). A migração para Supabase tornou o banco acessível de qualquer origem, e o Cloudflare R2 passou a receber todas as mídias novas — parando o crescimento acelerado do banco.</p>
 
   <h4>O que mudou na prática</h4>
   <table>
-    <thead><tr><th>Componente</th><th>Antes (Docker)</th><th>Depois (Neon)</th></tr></thead>
+    <thead><tr><th>Componente</th><th>Antes (VPS local)</th><th>Depois (nuvem)</th></tr></thead>
     <tbody>
-      <tr><td><code>EVOLUTION_DB_URL</code></td><td><code>postgres://...@agenciadia_evolution-api-db:5432/agenciadia</code></td><td><code>postgresql://neondb_owner:...@ep-hidden-butterfly-avmh8wyn-pooler...neon.tech/neondb?sslmode=require</code></td></tr>
-      <tr><td>SSL</td><td>Não necessário (rede interna)</td><td><strong>Obrigatório</strong> — sem SSL, conexão recusada</td></tr>
-      <tr><td>Latência de commit</td><td>&lt;5ms</td><td>50–150ms (round-trip EUA)</td></tr>
+      <tr><td><code>EVOLUTION_DB_URL</code></td><td><code>postgres://...@agenciadia_evolution-api-db:5432/agenciadia</code></td><td>Supabase session pooler (porta 6543, SSL obrigatório)</td></tr>
+      <tr><td>Armazenamento de mídia</td><td>Base64 no banco PostgreSQL</td><td><strong>Cloudflare R2</strong> — URL no banco, arquivo no bucket</td></tr>
+      <tr><td>SSL</td><td>Não necessário (rede interna)</td><td><strong>Obrigatório</strong> — <code>ssl: { rejectUnauthorized: false }</code> no pool</td></tr>
+      <tr><td>Latência de commit</td><td>&lt;5ms</td><td>50–150ms (rede externa)</td></tr>
       <tr><td>Acesso pelo Vercel</td><td>❌ Impossível</td><td>✅ Disponível</td></tr>
-      <tr><td><code>saveReceivedMessage</code></td><td>Falhava silenciosamente</td><td>Passou a funcionar → gerou bug 6.80</td></tr>
+      <tr><td><code>saveReceivedMessage</code></td><td>Falhava silenciosamente (sem SSL)</td><td>Passou a funcionar → gerou bug 6.80</td></tr>
     </tbody>
   </table>
 
