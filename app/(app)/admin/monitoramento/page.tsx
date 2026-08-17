@@ -353,7 +353,6 @@ export default function MonitoramentoPage() {
                           <div>
                             <div style={{ color: 'var(--txt-2)', fontWeight: 600, marginBottom: 2 }}>Cloudflare R2 indisponível</div>
                             <div style={{ color: 'var(--txt-3)', fontSize: 11, lineHeight: 1.5 }}>Verifique se o token <code style={{ background: 'var(--bg-input)', padding: '1px 5px', borderRadius: 3 }}>CLOUDFLARE_API_TOKEN</code> tem permissão <strong>Account Analytics: Read</strong> e se o <code style={{ background: 'var(--bg-input)', padding: '1px 5px', borderRadius: 3 }}>CLOUDFLARE_ACCOUNT_ID</code> está correto na Vercel.</div>
-                          <div style={{ marginTop: 6, fontFamily: 'monospace', fontSize: 10, color: 'var(--txt-3)', wordBreak: 'break-all' as const }}>{apiErrors.r2}</div>
                           </div>
                         </div>
                       : <span style={{ color: 'var(--txt-3)' }}>Configure <code style={{ fontSize: 11, background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4 }}>CLOUDFLARE_ACCOUNT_ID</code> e <code style={{ fontSize: 11, background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4 }}>CLOUDFLARE_API_TOKEN</code> nas variáveis de ambiente da Vercel.</span>

@@ -140,8 +140,7 @@ async function getR2Metrics() {
       accounts(filter: { accountTag: "${accountId}" }) {
         r2StorageAdaptiveGroups(
           filter: { date_geq: "${fmt(since)}", date_leq: "${fmt(until)}" }
-          limit: 10000
-          orderBy: [date_DESC]
+          limit: 1
         ) {
           max {
             objectCount
@@ -163,7 +162,7 @@ async function getR2Metrics() {
   const json = await res.json()
 
   if (json?.errors?.length) {
-    throw new Error(`CF_ERR: ${json.errors[0]?.message ?? 'unknown'} | account=${accountId?.slice(0,8)}...`)
+    throw new Error('permission_denied')
   }
 
   const groups: Array<{ max: { objectCount: number; payloadSize: number; metadataSize: number } }> =
