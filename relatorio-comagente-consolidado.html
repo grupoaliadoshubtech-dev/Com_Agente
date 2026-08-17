@@ -284,54 +284,36 @@
   <li><strong>atendente</strong> — workspace + toggles liberados pelo supervisor</li>
 </ul>
 
-<h3>2.5 PostgreSQL da Evolution API — Migrado para Neon (11/08/2026)</h3>
+<h3>2.5 PostgreSQL da Evolution API — Migrado para a nuvem (11/08/2026)</h3>
+
+<p>O banco de dados da Evolution API foi migrado do servidor local (VPS) para o <strong>Neon PostgreSQL</strong> — um banco na nuvem acessível de qualquer lugar, incluindo o Vercel.</p>
 
 <table>
-  <thead><tr><th>Período</th><th>Banco</th><th>Host</th><th>SSL</th></tr></thead>
+  <thead><tr><th>Situação</th><th>Onde estava</th><th>Onde está agora</th></tr></thead>
   <tbody>
     <tr>
-      <td>Até 11/08/2026</td>
-      <td>Docker local (VPS)</td>
-      <td><code>agenciadia_evolution-api-db:5432</code></td>
-      <td>Não (rede interna Docker)</td>
-    </tr>
-    <tr>
-      <td>A partir de 11/08/2026</td>
-      <td><strong>Neon PostgreSQL</strong> (externo, acessível pelo Vercel)</td>
-      <td><code>ep-hidden-butterfly-avmh8wyn-pooler.c-11.us-east-1.aws.neon.tech</code></td>
-      <td><strong>Obrigatório</strong> (<code>sslmode=require</code>)</td>
+      <td>Banco da Evolution API</td>
+      <td>Servidor local (VPS) — inacessível pelo Vercel</td>
+      <td><strong>Neon PostgreSQL</strong> (nuvem) — acessível pelo Vercel e pela VPS</td>
     </tr>
   </tbody>
 </table>
 
-<p>Variável de ambiente: <code>EVOLUTION_DB_URL</code> | Banco: <code>neondb</code></p>
-<p>O ComAgente acessa diretamente o Neon para: (1) mapeamento <code>@lid → phone</code> via <code>getLidMapping()</code> e (2) tabela <code>_comagente_notify</code> para sinalização SSE em tempo real.</p>
+<p><strong>Variável de ambiente:</strong> <code>EVOLUTION_DB_URL</code> | O ComAgente usa esse banco para: (1) mapeamento <code>@lid → phone</code> via <code>getLidMapping()</code> e (2) tabela <code>_comagente_notify</code> para notificações SSE em tempo real.</p>
 
 <div style="background:rgba(239,68,68,0.08);border-left:4px solid #ef4444;padding:10px 14px;margin:12px 0;border-radius:0 6px 6px 0">
-  <strong style="color:#ef4444">⚠ Atenção — SSL obrigatório no Neon:</strong>
-  <p style="margin:6px 0 0">O pool de conexões em <code>lib/evolution/db-client.ts</code> <strong>deve</strong> ter <code>ssl: { rejectUnauthorized: false }</code>. Sem isso, todas as queries ao Neon falham silenciosamente e o mapeamento <code>@lid → phone</code> retorna mapa vazio — causando quebra no fluxo de mensagens. Ver item <strong>6.80</strong> para o bug gerado quando o SSL foi adicionado sem remover o <code>saveReceivedMessage</code>.</p>
+  <strong style="color:#ef4444">⚠ SSL obrigatório após a migração para a nuvem:</strong>
+  <p style="margin:6px 0 0">O banco local (VPS) não exigia SSL. O Neon exige. O arquivo <code>lib/evolution/db-client.ts</code> <strong>deve</strong> ter <code>ssl: { rejectUnauthorized: false }</code> — sem isso, todas as conexões falham silenciosamente e o sistema para de funcionar. Ver bugs <strong>6.80 e 6.81</strong>.</p>
   <pre style="margin:8px 0 0">const pool = new Pool({
   connectionString: process.env.EVOLUTION_DB_URL,
-  ssl: { rejectUnauthorized: false },  // ← obrigatório para Neon
+  ssl: { rejectUnauthorized: false },  // ← obrigatório para banco em nuvem
 })</pre>
 </div>
 
 <div style="background:rgba(234,179,8,0.08);border-left:4px solid #eab308;padding:10px 14px;margin:12px 0;border-radius:0 6px 6px 0">
-  <strong style="color:#eab308">⚠ ON CONFLICT com dados incompletos:</strong>
-  <p style="margin:6px 0 0">Nunca inserir manualmente na tabela <code>Message</code> da Evolution API sem incluir <strong>todos</strong> os campos do <code>key</code> JSONB (especialmente <code>remoteJidAlt</code> para mensagens @lid). Um INSERT parcial com <code>ON CONFLICT DO NOTHING</code> bloqueia o INSERT completo da Evolution API e corrompe o mapeamento @lid. Ver item <strong>6.80</strong>.</p>
+  <strong style="color:#eab308">⚠ Nunca inserir na tabela Message sem o campo remoteJidAlt:</strong>
+  <p style="margin:6px 0 0">Um INSERT manual sem <code>remoteJidAlt</code> no JSONB <code>key</code> bloqueia o INSERT completo da Evolution API via <code>ON CONFLICT DO NOTHING</code>, corrompendo o mapeamento @lid. Ver bug <strong>6.80</strong>.</p>
 </div>
-
-<h4 style="margin-top:14px">Diferença crítica entre Docker local e Neon externo</h4>
-<table>
-  <thead><tr><th>Aspecto</th><th>Docker local (antes)</th><th>Neon externo (atual)</th></tr></thead>
-  <tbody>
-    <tr><td>SSL</td><td>Não precisava</td><td><strong>Obrigatório</strong></td></tr>
-    <tr><td>Latência de commit</td><td>&lt; 5ms (rede local)</td><td>50–150ms (rede externa)</td></tr>
-    <tr><td>Disponibilidade no Vercel</td><td>Não (Docker interno)</td><td><strong>Sim</strong> (acessível externamente)</td></tr>
-    <tr><td>saveReceivedMessage</td><td>Falhava silenciosamente (sem SSL)</td><td>Passou a funcionar → causou bug 6.80</td></tr>
-    <tr><td>Race condition SSE</td><td>Improvável (&lt;5ms commit)</td><td>Possível (50–150ms) → bug 6.81</td></tr>
-  </tbody>
-</table>
 
 <h3>2.6 Supabase PostgreSQL — Banco Operacional (adicionado em 01/08/2026)</h3>
 <p>Banco de dados principal para dados operacionais de cada tenant. Usa <strong>schemas separados por empresa</strong> (Separate Schema Multi-tenancy). A função <code>public.create_tenant_schema(schema_name TEXT)</code> provisiona automaticamente as 14 tabelas padrão ao cadastrar uma nova empresa.</p>
