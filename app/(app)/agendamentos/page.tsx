@@ -183,8 +183,8 @@ export default function AgendamentosPage() {
       {/* ── Barra de controles ──────────────────────────────────── */}
       <div style={{ padding:'10px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:10, flexShrink:0, background:'var(--bg-card)', flexWrap:'wrap' }}>
 
-        {/* Navegação mês/semana */}
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        {/* Linha 1: navegação mês/semana + ↻ */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, width:'100%' }}>
           <button style={btnArrow} onClick={() => view==='week' ? navWeek(-1) : view==='month' ? navMonth(-1) : setYear(y=>y-1)}>◀</button>
           <div style={{ minWidth:120, textAlign:'center' }}>
             <span className="font-display" style={{ fontSize:14, fontWeight:700, color:'var(--txt)' }}>
@@ -194,30 +194,28 @@ export default function AgendamentosPage() {
             </span>
           </div>
           <button style={btnArrow} onClick={() => view==='week' ? navWeek(1) : view==='month' ? navMonth(1) : setYear(y=>y+1)}>▶</button>
+          <button onClick={load} style={{ ...btnArrow, fontSize:14 }}>↻</button>
         </div>
 
-        {/* Seletor de visão */}
-        <div style={{ display:'flex', gap:2, background:'var(--bg-input)', borderRadius:8, padding:2 }}>
-          {(['month','week','year'] as const).map(v => (
-            <button key={v} onClick={() => setView(v)} style={{
-              padding:'5px 12px', borderRadius:6, fontSize:12, fontWeight:600,
-              border:'none', cursor:'pointer', fontFamily:"'Plus Jakarta Sans',sans-serif",
-              background: view===v ? 'var(--neon)' : 'transparent',
-              color:       view===v ? '#0a1400'     : 'var(--txt-2)',
-              transition: 'background .15s',
-            }}>
-              {v==='month' ? 'Mês' : v==='week' ? 'Semana' : 'Ano'}
-            </button>
-          ))}
-        </div>
-
-        {/* Toggle + ↻ justificados à direita */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginLeft:'auto' }}>
+        {/* Linha 2: seletor de visão + toggle somente agendados */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, width:'100%' }}>
+          <div style={{ display:'flex', gap:2, background:'var(--bg-input)', borderRadius:8, padding:2 }}>
+            {(['month','week','year'] as const).map(v => (
+              <button key={v} onClick={() => setView(v)} style={{
+                padding:'5px 12px', borderRadius:6, fontSize:12, fontWeight:600,
+                border:'none', cursor:'pointer', fontFamily:"'Plus Jakarta Sans',sans-serif",
+                background: view===v ? 'var(--neon)' : 'transparent',
+                color:       view===v ? '#0a1400'     : 'var(--txt-2)',
+                transition: 'background .15s',
+              }}>
+                {v==='month' ? 'Mês' : v==='week' ? 'Semana' : 'Ano'}
+              </button>
+            ))}
+          </div>
           <label style={{ display:'flex', alignItems:'center', gap:7, cursor:'pointer' }}>
             <div className={`ia-toggle ${onlyScheduled ? 'ia-toggle-on' : 'ia-toggle-off'}`} onClick={() => setOnlyScheduled(o=>!o)}/>
             <span style={{ fontSize:12, color:'var(--txt-2)' }}>Somente agendados</span>
           </label>
-          <button onClick={load} style={{ ...btnArrow, fontSize:14 }}>↻</button>
         </div>
 
       </div>
