@@ -440,7 +440,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Controles — desktop: à direita via space-between | mobile: esquerda ao envolver */}
-          <div ref={visRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div ref={visRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
             {/* Exportar relatório — sem emoji */}
             <select
               onChange={e => { if (e.target.value) { const [t, p] = e.target.value.split(':'); exportReport(t, p); e.target.value = '' } }}

@@ -260,19 +260,21 @@ export default function CRMPage() {
             </select>
           )}
 
-          {/* Lista | Funil | ↻ agrupados */}
+          {/* Lista | Funil agrupados */}
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={() => setView('table')} style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: view === 'table' ? 'var(--neon-dim)' : 'var(--bg-input)', border: `1px solid ${view === 'table' ? 'var(--neon-border)' : 'var(--border)'}`, color: view === 'table' ? 'var(--neon)' : 'var(--txt-2)' }}>Lista</button>
             <button onClick={() => setView('funnel')} style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: view === 'funnel' ? 'var(--neon-dim)' : 'var(--bg-input)', border: `1px solid ${view === 'funnel' ? 'var(--neon-border)' : 'var(--border)'}`, color: view === 'funnel' ? 'var(--neon)' : 'var(--txt-2)' }}>Funil</button>
-            <button onClick={load} style={{ padding: '7px 10px', borderRadius: 8, fontSize: 13, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)' }}>↻</button>
           </div>
 
-          {/* Busca desce para ficar ao lado do Follow-up */}
+          {/* Busca */}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, flex: 1, minWidth: 130 }} />
 
           <button onClick={() => { setBulkMode(!bulkMode); setBulkSelected(new Set()) }} style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', background: bulkMode ? 'var(--neon)' : 'var(--bg-input)', border: `1px solid ${bulkMode ? 'var(--neon)' : 'var(--border)'}`, color: bulkMode ? '#0a0a0a' : 'var(--txt-2)' }}>
             {bulkMode ? '✕ Cancelar' : <><IcoSend size={13} style={{verticalAlign:'middle',marginRight:5}}/> Follow-up em lote</>}
           </button>
+
+          {/* ↻ extrema direita — após a busca e o Follow-up */}
+          <button onClick={load} className="btn-outline" style={{ padding: '7px 10px', fontSize: 14 }}>↻</button>
         </div>
 
         {/* ── Funil Visual ──────────────────────────────────── */}

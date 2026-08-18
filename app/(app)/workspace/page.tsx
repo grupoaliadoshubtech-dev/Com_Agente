@@ -553,7 +553,7 @@ export default function WorkspacePage() {
                   {chats.filter(c => c.iaStatus === 'pausado').length}
                 </span>
               )}
-              <button onClick={fetchChats} className="text-[11px] px-2 py-0.5 rounded border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
+              <button onClick={fetchChats} className="btn-outline" style={{ padding: '4px 8px', fontSize: 14 }} title="Atualizar">↻</button>
             </div>
           </div>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome ou número..."
@@ -670,7 +670,7 @@ export default function WorkspacePage() {
                 title={blocked.has(selected.telefone) ? 'Desbloquear' : 'Bloquear'}>
                 <IcoBan size={14}/>
               </button>
-              <button onClick={() => fetchMessages(selected.telefone, selected.lidJid)} className="chat-header-refresh px-2 py-1.5 rounded-lg text-[12px] border border-transparent hover:border-neon text-muted hover:text-neon transition-all" title="Atualizar">↻</button>
+              <button onClick={() => fetchMessages(selected.telefone, selected.lidJid)} className="btn-outline" style={{ padding: '4px 8px', fontSize: 14 }} title="Atualizar">↻</button>
             </div>
           </div>
 
