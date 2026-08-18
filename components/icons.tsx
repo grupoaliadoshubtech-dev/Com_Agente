@@ -277,6 +277,16 @@ export function IcoWifi({ size = 16, style, className }: P) {
   )
 }
 
+export function IcoMoreVertical({ size = 16, style, className }: P) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style} className={className}>
+      <circle cx="12" cy="5"  r="1.5" fill="currentColor"/>
+      <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+      <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
+    </svg>
+  )
+}
+
 export function IcoDatabase({ size = 16, style, className }: P) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...S} style={style} className={className}>

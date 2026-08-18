@@ -5,8 +5,8 @@
 // métricas ao vivo, gráficos e exportação de relatórios.
 // ─────────────────────────────────────────────────────────────
 
-import { useEffect, useState, useCallback } from 'react'
-import { IcoBot } from '@/components/icons'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { IcoBot, IcoMoreVertical } from '@/components/icons'
 import type { Plan } from '@/types'
 
 // ── Tipos ────────────────────────────────────────────────────
@@ -42,6 +42,17 @@ interface FullMetrics {
 
 const REALTIME_POLL = 10000  // Dados ao vivo a cada 10s
 const FULL_POLL     = 60000  // Dados completos a cada 60s
+
+const VIS_LABELS: Record<string, string> = {
+  consumo:   'Consumo de Mensagens',
+  realtime:  'Métricas em Tempo Real',
+  kpis:      'KPIs Principais',
+  kpis2:     'Métricas Secundárias',
+  graficos:  'Gráficos de Análise',
+  tendencia: 'Tendência e Equipe',
+  ranking:   'Ranking por Responsável',
+}
+type VisKey = keyof typeof VIS_LABELS
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -293,6 +304,12 @@ export default function DashboardPage() {
   const [upgradePickId, setUpgradePickId] = useState('')
   const [upgradeBusy,   setUpgradeBusy]   = useState(false)
   const [upgradeDone,   setUpgradeDone]   = useState(false)
+  const [showVisMenu,   setShowVisMenu]   = useState(false)
+  const [vis, setVis] = useState<Record<VisKey, boolean>>({
+    consumo: true, realtime: true, kpis: true, kpis2: true,
+    graficos: true, tendencia: true, ranking: true,
+  })
+  const visRef = useRef<HTMLDivElement>(null)
 
   function showToast(m: string) { setToast(m); setTimeout(() => setToast(''), 3500) }
 
@@ -338,6 +355,15 @@ export default function DashboardPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!showVisMenu) return
+    function handler(e: MouseEvent) {
+      if (visRef.current && !visRef.current.contains(e.target as Node)) setShowVisMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showVisMenu])
 
   async function openUpgrade() {
     setUpgradeDone(false); setUpgradePickId(''); setUpgradeOpen(true)
@@ -403,7 +429,7 @@ export default function DashboardPage() {
       <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--txt)' }}>
               <LiveDot />Dashboard em Tempo Real
@@ -412,35 +438,81 @@ export default function DashboardPage() {
               Atualização automática · último: {updated}
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            {/* Exportar */}
-            <select onChange={e => { if (e.target.value) { const [t, p] = e.target.value.split(':'); exportReport(t, p); e.target.value = '' } }} disabled={exporting}
-              style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, width: 180 }}>
-              <option value="">{exporting ? 'Exportando...' : '📥 Exportar relatório'}</option>
+
+          {/* Controles — ficam na extrema direita e no mobile se alinham com os cards */}
+          <div ref={visRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+            {/* Exportar relatório — sem emoji */}
+            <select
+              onChange={e => { if (e.target.value) { const [t, p] = e.target.value.split(':'); exportReport(t, p); e.target.value = '' } }}
+              disabled={exporting}
+              style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12 }}>
+              <option value="">{exporting ? 'Exportando...' : 'Exportar relatório'}</option>
               <option value="atendimentos:7d">Atendimentos (7 dias)</option>
               <option value="atendimentos:30d">Atendimentos (30 dias)</option>
               <option value="atendimentos:all">Atendimentos (tudo)</option>
               <option value="satisfacao:30d">Satisfação (30 dias)</option>
               <option value="satisfacao:all">Satisfação (tudo)</option>
             </select>
-            <button onClick={loadFull} className="btn-outline" style={{ padding: '7px 14px', fontSize: 12 }}>↻</button>
+
+            {/* Filtro de visibilidade */}
+            <button
+              onClick={() => setShowVisMenu(v => !v)}
+              className="btn-outline"
+              title="Personalizar seções"
+              style={{ padding: '7px 10px', fontSize: 13, background: showVisMenu ? 'var(--neon-dim)' : undefined, borderColor: showVisMenu ? 'var(--neon-border)' : undefined, color: showVisMenu ? 'var(--neon)' : undefined }}>
+              <IcoMoreVertical size={15}/>
+            </button>
+
+            {/* Atualizar — somente ícone, sempre */}
+            <button onClick={loadFull} className="btn-outline" style={{ padding: '7px 10px', fontSize: 14 }}>↻</button>
+
+            {/* Dropdown de visibilidade de seções */}
+            {showVisMenu && (
+              <div style={{
+                position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 200,
+                background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10,
+                padding: '6px 0', minWidth: 230, boxShadow: '0 8px 32px rgba(0,0,0,.4)',
+              }}>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--txt-3)', padding: '4px 14px 8px' }}>
+                  Mostrar seções
+                </p>
+                {(Object.entries(VIS_LABELS) as [VisKey, string][]).map(([key, label]) => (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer' }}
+                    onClick={() => setVis(v => ({ ...v, [key]: !v[key] }))}>
+                    <div style={{
+                      width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                      border: `2px solid ${vis[key] ? 'var(--neon)' : 'var(--border)'}`,
+                      background: vis[key] ? 'var(--neon)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {vis[key] && (
+                        <svg width={9} height={9} viewBox="0 0 9 9" fill="none">
+                          <polyline points="1.5,4.5 3.5,7 7.5,2" stroke="#0a1400" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 13, color: 'var(--txt)', userSelect: 'none' }}>{label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* ── Card de consumo de mensagens ─────────────────────── */}
-        {usage && <UsageCard usage={usage} onUpgrade={openUpgrade} />}
+        {vis.consumo && usage && <UsageCard usage={usage} onUpgrade={openUpgrade} />}
 
         {/* ── Faixa em tempo real ──────────────────────────────── */}
-        <div style={{
+        {vis.realtime && <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
           gap: 10, marginBottom: 20, padding: 14, borderRadius: 12,
           background: 'rgba(163,230,53,0.04)', border: '1px solid rgba(163,230,53,0.12)',
         }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 4 }}>WhatsApp</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: wsColor(rt.whatsappStatus) }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: wsColor(rt.whatsappStatus) }}>{wsLabel(rt.whatsappStatus)}</span>
+            <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 6 }}>WhatsApp</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: wsColor(rt.whatsappStatus), flexShrink: 0 }} />
+              <span style={{ fontSize: 18, fontWeight: 700, color: wsColor(rt.whatsappStatus), lineHeight: 1 }}>{wsLabel(rt.whatsappStatus)}</span>
             </div>
           </div>
           <div style={{ textAlign: 'center' }}>
@@ -459,25 +531,25 @@ export default function DashboardPage() {
             <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 4 }}>Capacidade</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: rt.capacidadeUsada > 80 ? '#EF4444' : 'var(--neon)' }}>{rt.capacidadeUsada}%</div>
           </div>
-        </div>
+        </div>}
 
         {/* ── KPIs principais ─────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 10 }}>
+        {vis.kpis && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 10 }}>
           <KPI label="Total de atendimentos" value={m.atendimentos.total} accent large />
           <KPI label="Hoje" value={m.atendimentos.hoje} sub="atendimentos" />
           <KPI label="Semana" value={m.atendimentos.semana} sub="últimos 7 dias" />
           <KPI label="Satisfação média" value={m.satisfacao.media > 0 ? `${m.satisfacao.media}/5` : '—'} sub={`${m.satisfacao.total} avaliações`} accent={m.satisfacao.media >= 4} />
-        </div>
+        </div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 24 }}>
+        {vis.kpis2 && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 24 }}>
           <KPI label="Tempo médio" value={`${m.atendimentos.mediaMinutos}min`} sub="por atendimento" />
           <KPI label="Handoff humano" value={`${m.atendimentos.taxaHumano}%`} sub="dos atendimentos" />
           <KPI label="Resolvido pela IA" value={`${100 - m.atendimentos.taxaHumano}%`} sub="automático" color={100 - m.atendimentos.taxaHumano > 70 ? '#10B981' : undefined} />
           <KPI label="Avaliações" value={m.satisfacao.total} sub="respostas" />
-        </div>
+        </div>}
 
         {/* ── Gráficos ────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
+        {vis.graficos && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
 
           {/* Atendimentos por hora */}
           <div className="card" style={{ padding: 20 }}>
@@ -522,9 +594,9 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </div>
+        </div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
+        {vis.tendencia && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
 
           {/* Tendência */}
           <div className="card" style={{ padding: 20 }}>
@@ -558,10 +630,10 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </div>
+        </div>}
 
         {/* Ranking atendentes */}
-        <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+        {vis.ranking && <div className="card" style={{ padding: 20, marginBottom: 16 }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)', marginBottom: 16 }}>Atendimentos por responsável</p>
           {atds.length === 0 ? (
             <p style={{ fontSize: 12, color: 'var(--txt-3)' }}>Sem dados</p>
@@ -591,7 +663,7 @@ export default function DashboardPage() {
               })}
             </div>
           )}
-        </div>
+        </div>}
 
         <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--txt-3)', paddingBottom: 8 }}>
           <LiveDot /> Atualizando a cada {REALTIME_POLL / 1000}s · Dados completos a cada {FULL_POLL / 1000}s
