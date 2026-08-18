@@ -183,7 +183,7 @@ export default function AgendamentosPage() {
       {/* ── Barra de controles ──────────────────────────────────── */}
       <div style={{ padding:'10px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:10, flexShrink:0, background:'var(--bg-card)', flexWrap:'wrap' }}>
 
-        {/* Navegação mês/semana + ↻ agrupados */}
+        {/* Navegação mês/semana */}
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <button style={btnArrow} onClick={() => view==='week' ? navWeek(-1) : view==='month' ? navMonth(-1) : setYear(y=>y-1)}>◀</button>
           <div style={{ minWidth:120, textAlign:'center' }}>
@@ -194,7 +194,6 @@ export default function AgendamentosPage() {
             </span>
           </div>
           <button style={btnArrow} onClick={() => view==='week' ? navWeek(1) : view==='month' ? navMonth(1) : setYear(y=>y+1)}>▶</button>
-          <button onClick={load} style={{ ...btnArrow, padding:'0 10px', width:'auto', fontSize:13 }}>↻</button>
         </div>
 
         {/* Seletor de visão */}
@@ -212,11 +211,14 @@ export default function AgendamentosPage() {
           ))}
         </div>
 
-        {/* Filtro somente agendados */}
-        <label style={{ display:'flex', alignItems:'center', gap:7, cursor:'pointer', marginLeft:'auto' }}>
-          <div className={`ia-toggle ${onlyScheduled ? 'ia-toggle-on' : 'ia-toggle-off'}`} onClick={() => setOnlyScheduled(o=>!o)}/>
-          <span style={{ fontSize:12, color:'var(--txt-2)' }}>Somente agendados</span>
-        </label>
+        {/* Toggle + ↻ justificados à direita */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginLeft:'auto' }}>
+          <label style={{ display:'flex', alignItems:'center', gap:7, cursor:'pointer' }}>
+            <div className={`ia-toggle ${onlyScheduled ? 'ia-toggle-on' : 'ia-toggle-off'}`} onClick={() => setOnlyScheduled(o=>!o)}/>
+            <span style={{ fontSize:12, color:'var(--txt-2)' }}>Somente agendados</span>
+          </label>
+          <button onClick={load} style={{ ...btnArrow, fontSize:14 }}>↻</button>
+        </div>
 
       </div>
 

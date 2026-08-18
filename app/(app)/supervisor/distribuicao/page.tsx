@@ -90,14 +90,14 @@ export default function DistribuicaoPage() {
   return (
     <div style={{ height: '100%', overflow: 'auto', padding: 20 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontFamily: "'Syne',sans-serif", fontSize: 18, fontWeight: 700, color: 'var(--txt)', margin: 0 }}>Distribuição de Atendimentos</h1>
           <p style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 4 }}>Round-robin automático com regras de especialidade e capacidade</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
           <button onClick={syncUsers} style={{ padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)' }}>↻ Sincronizar Equipe</button>
-          <button onClick={load} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)' }}>↻</button>
+          <button onClick={load} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 14, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)' }}>↻</button>
         </div>
       </div>
 

@@ -103,9 +103,12 @@ export default function TemplatesPage() {
             {templates.length} templates · Atendentes usam digitando <code style={{ background: 'var(--bg-input)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>/atalho</code> no chat
           </p>
         </div>
-        <button onClick={openNew} style={{ padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'var(--neon)', border: 'none', color: '#0a0a0a' }}>
-          + Novo Template
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={openNew} style={{ padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: 'var(--neon)', border: 'none', color: '#0a0a0a' }}>
+            + Novo Template
+          </button>
+          <button onClick={load} style={{ padding: '9px 12px', borderRadius: 8, fontSize: 14, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)' }}>↻</button>
+        </div>
       </div>
 
       {/* Lista de templates */}

@@ -66,7 +66,7 @@ export default function TranscricoesPage(){
               </button>
             ))}
           </div>
-          <button onClick={load} style={{padding:'8px 12px',borderRadius:8,fontSize:12,cursor:'pointer',background:'var(--bg-input)',border:'1px solid var(--border)',color:'var(--txt-2)',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>↻</button>
+          <button onClick={load} style={{padding:'8px 12px',borderRadius:8,fontSize:14,cursor:'pointer',background:'var(--bg-input)',border:'1px solid var(--border)',color:'var(--txt-2)',fontFamily:"'Plus Jakarta Sans',sans-serif",marginLeft:'auto'}}>↻</button>
         </div>
 
         <div style={{flex:1,overflowY:'auto'}}>

@@ -223,8 +223,8 @@ export default function ConhecimentoPage() {
           </p>
         </div>
         <div style={{ display:'flex', gap:8 }}>
-          <button onClick={load} style={{ padding:'9px 12px', borderRadius:8, fontSize:12, cursor:'pointer', background:'var(--bg-input)', border:'1px solid var(--border)', color:'var(--txt-2)', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>↻</button>
           <button onClick={() => setShowNew(true)} className="btn-neon" style={{ padding:'9px 18px', fontSize:13 }}>+ Adicionar</button>
+          <button onClick={load} style={{ padding:'9px 12px', borderRadius:8, fontSize:14, cursor:'pointer', background:'var(--bg-input)', border:'1px solid var(--border)', color:'var(--txt-2)', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>↻</button>
         </div>
       </div>
 

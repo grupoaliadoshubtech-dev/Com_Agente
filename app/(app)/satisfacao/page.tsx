@@ -85,7 +85,7 @@ export default function SatisfacaoPage(){
             <h1 className="font-display" style={{fontSize:20,fontWeight:700,color:'var(--txt)'}}>Satisfação</h1>
             <p style={{fontSize:12,color:'var(--txt-2)',marginTop:2}}>{tot} avaliações · somente leitura</p>
           </div>
-          <button onClick={load} className="btn-outline" style={{padding:'7px 14px',fontSize:12}}>↻ Atualizar</button>
+          <button onClick={load} className="btn-outline" style={{padding:'7px 12px',fontSize:14,marginLeft:'auto'}}>↻</button>
         </div>
 
         {/* Score + distribuição */}

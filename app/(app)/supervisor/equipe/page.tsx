@@ -81,7 +81,7 @@ export default function EquipePage() {
           <div style={{ fontSize: 11, color: 'var(--txt-2)', marginTop: 2 }}>{team.length} atendentes cadastrados</div>
         </div>
         <button onClick={() => setShowNew(true)} className="btn-neon" style={{ padding: '9px 16px', fontSize: 13 }}>+ Novo Atendente</button>
-        <button onClick={load} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)', fontFamily: "'Plus Jakarta Sans',sans-serif" }}>↻</button>
+        <button onClick={load} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 14, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)', fontFamily: "'Plus Jakarta Sans',sans-serif", marginLeft: 'auto' }}>↻</button>
       </div>
 
       {/* Tabela */}

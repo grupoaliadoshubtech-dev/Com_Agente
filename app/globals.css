@@ -202,6 +202,8 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 .ia-toggle { position:relative; width:34px; height:19px; border-radius:100px; cursor:pointer; flex-shrink:0; }
 .ia-toggle-on  { background: var(--neon); }
 .ia-toggle-off { background: rgba(255,255,255,.15); }
+@media (prefers-color-scheme: light) { .ia-toggle-off { background: rgba(0,0,0,.18); } }
+[data-theme='light'] .ia-toggle-off { background: rgba(0,0,0,.18); }
 .ia-toggle::after { content:''; position:absolute; top:2px; width:15px; height:15px; border-radius:50%; background:white; transition:left .2s; }
 .ia-toggle-on::after  { left:17px; }
 .ia-toggle-off::after { left:2px; }
