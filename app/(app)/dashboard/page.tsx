@@ -429,8 +429,8 @@ export default function DashboardPage() {
       <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
             <h1 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--txt)' }}>
               <LiveDot />Dashboard em Tempo Real
             </h1>
@@ -439,9 +439,8 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Controles — desktop: à direita via space-between | mobile: esquerda ao envolver */}
-          <div ref={visRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-            {/* Exportar relatório — sem emoji */}
+          {/* Exportar + filtro de seções (agrupa porque o dropdown precisa de position:relative) */}
+          <div ref={visRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
             <select
               onChange={e => { if (e.target.value) { const [t, p] = e.target.value.split(':'); exportReport(t, p); e.target.value = '' } }}
               disabled={exporting}
@@ -454,7 +453,6 @@ export default function DashboardPage() {
               <option value="satisfacao:all">Satisfação (tudo)</option>
             </select>
 
-            {/* Filtro de visibilidade */}
             <button
               onClick={() => setShowVisMenu(v => !v)}
               className="btn-outline"
@@ -462,9 +460,6 @@ export default function DashboardPage() {
               style={{ padding: '7px 10px', fontSize: 13, background: showVisMenu ? 'var(--neon-dim)' : undefined, borderColor: showVisMenu ? 'var(--neon-border)' : undefined, color: showVisMenu ? 'var(--neon)' : undefined }}>
               <IcoMoreVertical size={15}/>
             </button>
-
-            {/* Atualizar — somente ícone, sempre */}
-            <button onClick={loadFull} className="btn-outline" style={{ padding: '7px 10px', fontSize: 14 }}>↻</button>
 
             {/* Dropdown de visibilidade de seções */}
             {showVisMenu && (
@@ -497,6 +492,9 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* ↻ fora do grupo — extrema direita */}
+          <button onClick={loadFull} className="btn-outline" style={{ padding: '7px 10px', fontSize: 14, marginLeft: 'auto' }}>↻</button>
         </div>
 
         {/* ── Card de consumo de mensagens ─────────────────────── */}
