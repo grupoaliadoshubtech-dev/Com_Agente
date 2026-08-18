@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { execute, query } from '@/lib/supabase/client'
+import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import type { ApiResponse } from '@/types'
 
 const ALLOWED_TYPES = [
@@ -61,9 +62,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     )
   }
 
-  // ── Gera nonce vinculado ao schema do tenant autenticado ──────
-  // O schema nunca é enviado ao N8N — apenas o token de uso único.
-  const schema = session.user.tenantId
+  // ── Resolve o supabaseSchema do tenant (NÃO usa tenantId diretamente) ─
+  const tenant = await new TenantsRepository().findById(session.user.tenantId)
+  const schema = tenant?.supabaseSchema
+  if (!schema) {
+    return NextResponse.json({ success: false, error: 'Schema do tenant não configurado' }, { status: 404 })
+  }
+
+  // ── Gera nonce vinculado ao schema — nunca enviado ao N8N ─────
   const token  = crypto.randomUUID()
 
   try {

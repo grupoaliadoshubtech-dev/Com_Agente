@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { ConhecimentoRepository } from '@/lib/repositories/conhecimento.repository'
+import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import type { ApiResponse } from '@/types'
 
 type Ctx = { params: { id: string } }
+
+async function resolveSchema(tenantId: string): Promise<string | null> {
+  const tenant = await new TenantsRepository().findById(tenantId)
+  return tenant?.supabaseSchema || null
+}
 
 export async function PATCH(req: NextRequest, { params }: Ctx): Promise<NextResponse<ApiResponse>> {
   const session = await getServerSession(authOptions)
@@ -26,7 +32,11 @@ export async function PATCH(req: NextRequest, { params }: Ctx): Promise<NextResp
     return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })
   }
 
-  const repo = new ConhecimentoRepository(session.user.tenantId)
+  const schema = await resolveSchema(session.user.tenantId)
+  if (!schema) {
+    return NextResponse.json({ success: false, error: 'Schema do tenant não encontrado' }, { status: 404 })
+  }
+  const repo = new ConhecimentoRepository(schema)
   try {
     await repo.update(id, body)
     return NextResponse.json({ success: true })
@@ -51,7 +61,11 @@ export async function DELETE(_req: NextRequest, { params }: Ctx): Promise<NextRe
     return NextResponse.json({ success: false, error: 'ID inválido' }, { status: 400 })
   }
 
-  const repo = new ConhecimentoRepository(session.user.tenantId)
+  const schema = await resolveSchema(session.user.tenantId)
+  if (!schema) {
+    return NextResponse.json({ success: false, error: 'Schema do tenant não encontrado' }, { status: 404 })
+  }
+  const repo = new ConhecimentoRepository(schema)
   try {
     await repo.delete(id)
     return NextResponse.json({ success: true })

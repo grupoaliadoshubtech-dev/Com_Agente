@@ -46,20 +46,20 @@ const IC = {
 }
 
 const MAIN_NAV    = [
-  { label:'Conversas',     href:'/workspace',    icon:'workspace',    badge:'', toggle:'' },
-  { label:'Dashboard',     href:'/dashboard',    icon:'dashboard',    badge:'',  toggle:'canViewDashboard' },
-  { label:'CRM / Clientes',href:'/crm',          icon:'crm',          badge:'',  toggle:'canViewCRM' },
-  { label:'Transcrições',  href:'/transcricoes', icon:'transcricoes', badge:'',  toggle:'canViewTranscricoes' },
-  { label:'Satisfação',    href:'/satisfacao',    icon:'satisfacao',    badge:'', toggle:'canViewSatisfacao'    },
-  { label:'Agendamentos',  href:'/agendamentos',  icon:'agendamentos',  badge:'', toggle:'canViewAgendamentos'  },
+  { label:'Conversas',      href:'/workspace',              icon:'workspace',    badge:'', toggle:'' },
+  { label:'Dashboard',      href:'/dashboard',              icon:'dashboard',    badge:'', toggle:'canViewDashboard' },
+  { label:'CRM / Clientes', href:'/crm',                   icon:'crm',          badge:'', toggle:'canViewCRM' },
+  { label:'Transcrições',   href:'/transcricoes',           icon:'transcricoes', badge:'', toggle:'canViewTranscricoes' },
+  { label:'Satisfação',     href:'/satisfacao',             icon:'satisfacao',   badge:'', toggle:'canViewSatisfacao' },
+  { label:'Agendamentos',   href:'/agendamentos',           icon:'agendamentos', badge:'', toggle:'canViewAgendamentos' },
+  { label:'Conhecimento',   href:'/supervisor/conhecimento',icon:'conhecimento', badge:'', toggle:'isSupervisor' },
+  { label:'Respostas Rápidas',href:'/supervisor/templates', icon:'templates',    badge:'', toggle:'isSupervisor' },
 ]
 const CONFIG_NAV  = [
-  { label:'Conexão WhatsApp',  href:'/supervisor/conexao',      icon:'conexao',      badge:'', toggle:'' },
-  { label:'Equipe',            href:'/supervisor/equipe',       icon:'equipe',       badge:'', toggle:'' },
-  { label:'Planos',            href:'/supervisor/planos',       icon:'planos',       badge:'', toggle:'' },
-  { label:'Respostas Rápidas', href:'/supervisor/templates',    icon:'templates',    badge:'', toggle:'' },
-  { label:'Distribuição',      href:'/supervisor/distribuicao', icon:'distribuicao', badge:'', toggle:'' },
-  { label:'Conhecimento',      href:'/supervisor/conhecimento', icon:'conhecimento', badge:'', toggle:'' },
+  { label:'Conexão WhatsApp', href:'/supervisor/conexao',      icon:'conexao',      badge:'', toggle:'' },
+  { label:'Equipe',           href:'/supervisor/equipe',       icon:'equipe',       badge:'', toggle:'' },
+  { label:'Planos',           href:'/supervisor/planos',       icon:'planos',       badge:'', toggle:'' },
+  { label:'Distribuição',     href:'/supervisor/distribuicao', icon:'distribuicao', badge:'', toggle:'' },
 ]
 const MASTER_NAV  = [
   { label:'Monitoramento',   href:'/admin/monitoramento',icon:'monitoramento',badge:'', toggle:'' },
@@ -332,8 +332,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   function isVisible(toggle: string): boolean {
     if (!toggle) return true
-    // Agendamentos: supervisor e master sempre têm acesso, independente do toggle
     if (toggle === 'canViewAgendamentos' && (role === 'supervisor' || role === 'master')) return true
+    if (toggle === 'isSupervisor') return role === 'supervisor' || role === 'master'
     return !!(user as Record<string, unknown>)?.[toggle]
   }
 
