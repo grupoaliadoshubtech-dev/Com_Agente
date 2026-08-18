@@ -194,7 +194,7 @@ export default function AgendamentosPage() {
             </span>
           </div>
           <button style={btnArrow} onClick={() => view==='week' ? navWeek(1) : view==='month' ? navMonth(1) : setYear(y=>y+1)}>▶</button>
-          <button onClick={load} style={{ ...btnArrow, fontSize:14 }}>↻</button>
+          <button onClick={load} style={{ ...btnArrow, fontSize:14, marginLeft:'auto' }}>↻</button>
         </div>
 
         {/* Linha 2: seletor de visão + toggle somente agendados */}
@@ -212,7 +212,7 @@ export default function AgendamentosPage() {
               </button>
             ))}
           </div>
-          <label style={{ display:'flex', alignItems:'center', gap:7, cursor:'pointer' }}>
+          <label style={{ display:'flex', alignItems:'center', gap:7, cursor:'pointer', marginLeft:'auto' }}>
             <div className={`ia-toggle ${onlyScheduled ? 'ia-toggle-on' : 'ia-toggle-off'}`} onClick={() => setOnlyScheduled(o=>!o)}/>
             <span style={{ fontSize:12, color:'var(--txt-2)' }}>Somente agendados</span>
           </label>
