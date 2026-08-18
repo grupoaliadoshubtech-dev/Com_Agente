@@ -439,8 +439,8 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Controles — ficam na extrema direita e no mobile se alinham com os cards */}
-          <div ref={visRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+          {/* Controles — desktop: à direita via space-between | mobile: esquerda ao envolver */}
+          <div ref={visRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
             {/* Exportar relatório — sem emoji */}
             <select
               onChange={e => { if (e.target.value) { const [t, p] = e.target.value.split(':'); exportReport(t, p); e.target.value = '' } }}
@@ -502,36 +502,48 @@ export default function DashboardPage() {
         {/* ── Card de consumo de mensagens ─────────────────────── */}
         {vis.consumo && usage && <UsageCard usage={usage} onUpgrade={openUpgrade} />}
 
-        {/* ── Faixa em tempo real ──────────────────────────────── */}
-        {vis.realtime && <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: 10, marginBottom: 20, padding: 14, borderRadius: 12,
-          background: 'rgba(163,230,53,0.04)', border: '1px solid rgba(163,230,53,0.12)',
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 6 }}>WhatsApp</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: wsColor(rt.whatsappStatus), flexShrink: 0 }} />
-              <span style={{ fontSize: 18, fontWeight: 700, color: wsColor(rt.whatsappStatus), lineHeight: 1 }}>{wsLabel(rt.whatsappStatus)}</span>
+        {/* ── Métricas em Tempo Real — mesmo layout do UsageCard ── */}
+        {vis.realtime && (
+          <div className="card" style={{ padding: 0, marginBottom: 20, overflow: 'hidden', border: '1px solid rgba(163,230,53,.18)' }}>
+            {/* Cabeçalho */}
+            <div style={{ padding: '14px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--txt)' }}>Métricas em Tempo Real</p>
+                <p style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>Última atualização: {updated}</p>
+              </div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 100, background: 'rgba(163,230,53,.08)', color: 'var(--neon)', border: '1px solid rgba(163,230,53,.18)' }}>
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'pulseDot 2s ease-in-out infinite' }}/>
+                Ao vivo
+              </span>
+            </div>
+            {/* Grid de métricas */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', padding: '4px 0 16px' }}>
+              <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+                <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 6 }}>WhatsApp</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: wsColor(rt.whatsappStatus), flexShrink: 0 }} />
+                  <span style={{ fontSize: 18, fontWeight: 700, color: wsColor(rt.whatsappStatus), lineHeight: 1 }}>{wsLabel(rt.whatsappStatus)}</span>
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+                <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 6 }}>Atendentes Online</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#10B981' }}>{rt.atendentesOnline}</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+                <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 6 }}>Conversas Ativas</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#3B82F6' }}>{rt.conversasAtivas}</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+                <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 6 }}>Fila Humana</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: rt.filaHumana > 0 ? '#EF4444' : 'var(--txt-3)' }}>{rt.filaHumana}</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+                <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 6 }}>Capacidade</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: rt.capacidadeUsada > 80 ? '#EF4444' : 'var(--neon)' }}>{rt.capacidadeUsada}%</div>
+              </div>
             </div>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 4 }}>Atendentes Online</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#10B981' }}>{rt.atendentesOnline}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 4 }}>Conversas Ativas</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#3B82F6' }}>{rt.conversasAtivas}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 4 }}>Fila Humana</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: rt.filaHumana > 0 ? '#EF4444' : 'var(--txt-3)' }}>{rt.filaHumana}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'var(--txt-3)', marginBottom: 4 }}>Capacidade</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: rt.capacidadeUsada > 80 ? '#EF4444' : 'var(--neon)' }}>{rt.capacidadeUsada}%</div>
-          </div>
-        </div>}
+        )}
 
         {/* ── KPIs principais ─────────────────────────────────── */}
         {vis.kpis && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 10 }}>

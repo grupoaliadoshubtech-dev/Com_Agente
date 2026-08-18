@@ -183,7 +183,7 @@ export default function AgendamentosPage() {
       {/* ── Barra de controles ──────────────────────────────────── */}
       <div style={{ padding:'10px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:10, flexShrink:0, background:'var(--bg-card)', flexWrap:'wrap' }}>
 
-        {/* Navegação mês/semana */}
+        {/* Navegação mês/semana + ↻ agrupados */}
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <button style={btnArrow} onClick={() => view==='week' ? navWeek(-1) : view==='month' ? navMonth(-1) : setYear(y=>y-1)}>◀</button>
           <div style={{ minWidth:120, textAlign:'center' }}>
@@ -194,6 +194,7 @@ export default function AgendamentosPage() {
             </span>
           </div>
           <button style={btnArrow} onClick={() => view==='week' ? navWeek(1) : view==='month' ? navMonth(1) : setYear(y=>y+1)}>▶</button>
+          <button onClick={load} style={{ ...btnArrow, padding:'0 10px', width:'auto', fontSize:13 }}>↻</button>
         </div>
 
         {/* Seletor de visão */}
@@ -217,7 +218,6 @@ export default function AgendamentosPage() {
           <span style={{ fontSize:12, color:'var(--txt-2)' }}>Somente agendados</span>
         </label>
 
-        <button onClick={load} style={{ ...btnArrow, width:'auto', padding:'0 10px', fontSize:13 }}>↻</button>
       </div>
 
       {/* ── Área principal: calendário + painel lateral ──────────── */}
