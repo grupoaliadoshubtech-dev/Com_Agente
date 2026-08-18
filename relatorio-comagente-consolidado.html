@@ -163,7 +163,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>17 de agosto de 2026</strong> (v2.9)<br>
+    Documento consolidado e atualizado — <strong>17 de agosto de 2026</strong> (v3.0)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -191,6 +191,7 @@
       <tr><td>31/07/2026</td><td>2.7</td><td>Botão Pausar/Retornar Global redesenhado (sólido + pulse animation, 4 modos), pausa automática ao redefinir senha do cliente, modal de aviso ao logar com IA pausada</td></tr>
       <tr><td>01/08/2026</td><td>2.8</td><td>Migração completa de dados operacionais para Supabase PostgreSQL: 4 migrações SQL (006–009), import completo Lucena Decorações e TrackerMap, 3 novos repositórios TypeScript, auto-provisionamento de schema ao cadastrar empresa, função create_tenant_schema() com 14 tabelas padronizadas</td></tr>
       <tr><td>17/08/2026</td><td>2.9</td><td>Migração Evolution API: banco local → Neon PostgreSQL (nuvem). Correção de 3 bugs críticos gerados pela migração: saveReceivedMessage bloqueando save da Evolution API (6.80), callback SSE com lidJid stale + race condition Neon (6.81), webhook crashando em MESSAGES_UPSERT + CHATS_UPDATE não tratado (6.82). Documentação completa da migração com guia de diagnóstico futuro (6.83).</td></tr>
+      <tr><td>17/08/2026</td><td>3.0</td><td>Base de Conhecimento (RAG Enterprise) completa: upload de documentos (PDF/DOCX/TXT/imagem até 25 MB), processamento IA via N8N, Q&amp;A por tenant no Supabase, painel supervisor com busca/filtro/edição. Sistema de nonce multi-tenant (tabela app.knowledge_nonces, TTL 10 min) — N8N nunca recebe o schema, apenas token de uso único. Endpoint /api/knowledge/search criado e imediatamente removido (N8N já consulta Supabase diretamente há +1 ano). Correções de segurança Supabase Advisor: RLS habilitado em public._comagente_notify (6.87) e SET search_path='' em create_tenant_schema() (6.88).</td></tr>
     </tbody>
   </table>
 </div>
@@ -509,6 +510,8 @@ await execute(`INSERT INTO ${d.supabaseSchema}.instancia (empresa) VALUES ($1) O
     <tr><td>SMTP_*</td><td><span class="fail">✗ NÃO configurado</span></td><td>Pendente</td></tr>
     <tr><td>SUPABASE_URL</td><td><span class="ok">✓ Configurada</span></td><td>URL do projeto Supabase (adicionada em 01/08/2026)</td></tr>
     <tr><td>SUPABASE_SERVICE_KEY</td><td><span class="ok">✓ Configurada</span></td><td>Service role key — acesso pleno ao Supabase</td></tr>
+    <tr><td>KNOWLEDGE_SECRET</td><td><span class="fail">✗ Pendente</span></td><td>Segredo compartilhado entre ComAgente e N8N para autenticar chamadas ao <code>/api/knowledge/import</code> (header <code>X-Knowledge-Secret</code>)</td></tr>
+    <tr><td>N8N_KNOWLEDGE_WEBHOOK_URL</td><td><span class="fail">✗ Pendente</span></td><td>URL do webhook N8N que recebe arquivos para processamento com IA (Base de Conhecimento). Exemplo: <code>https://n8n.exemplo.com/webhook/conhecimento</code></td></tr>
   </tbody>
 </table>
 
@@ -1668,10 +1671,113 @@ fetch('/api/evolution/chats').then(r=>r.json()).then(d=>{
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
+     6.84 a 6.89 — BASE DE CONHECIMENTO + SEGURANÇA (v3.0)
+══════════════════════════════════════════════════════════ -->
+
+<div class="card-feature">
+  <h4>6.84 Base de Conhecimento (RAG Enterprise) — 17/08/2026</h4>
+  <p>
+    <span class="badge" style="background:#0369a1;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">NOVA FUNCIONALIDADE</span>
+    <span class="badge" style="background:#0f766e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px">SUPABASE</span>
+    <span class="badge" style="background:#7c3aed;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px">N8N IA</span>
+    Implementação completa do módulo de Base de Conhecimento para alimentar a IA do agente com Q&A por empresa (tenant).
+  </p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Fluxo implementado</h4>
+  <table>
+    <thead><tr><th>Etapa</th><th>Ação</th><th>Arquivo</th></tr></thead>
+    <tbody>
+      <tr><td>1. Upload</td><td>Supervisor faz upload de PDF/DOCX/TXT/imagem (máx. 25 MB) no painel</td><td><code>app/api/knowledge/upload/route.ts</code></td></tr>
+      <tr><td>2. Nonce</td><td>ComAgente gera UUID, persiste <code>{token, schema, expires_at}</code> em <code>app.knowledge_nonces</code> e envia apenas o token ao N8N</td><td><code>supabase/migrations/20260817_knowledge_nonces.sql</code></td></tr>
+      <tr><td>3. IA (N8N)</td><td>N8N processa o arquivo com IA (Gemini/Groq) e gera pares pergunta/resposta + categoria</td><td>Workflow N8N (pendente de configuração)</td></tr>
+      <tr><td>4. Import</td><td>N8N envia os Q&A de volta via <code>POST /api/knowledge/import</code> com o token recebido</td><td><code>app/api/knowledge/import/route.ts</code></td></tr>
+      <tr><td>5. Gravação</td><td>ComAgente valida token, resolve schema, descarta token (uso único) e grava na tabela <code>conhecimento</code> do tenant</td><td><code>lib/repositories/conhecimento.repository.ts</code></td></tr>
+    </tbody>
+  </table>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Arquivos criados</h4>
+  <ul>
+    <li><code>lib/repositories/conhecimento.repository.ts</code> — CRUD + busca ILIKE + bulkCreate com ON CONFLICT (pergunta) DO UPDATE</li>
+    <li><code>app/api/knowledge/route.ts</code> — GET (lista) + POST (cria manual)</li>
+    <li><code>app/api/knowledge/[id]/route.ts</code> — PATCH (edita) + DELETE (remove)</li>
+    <li><code>app/api/knowledge/upload/route.ts</code> — recebe arquivo, gera nonce, encaminha ao N8N</li>
+    <li><code>app/api/knowledge/import/route.ts</code> — recebe Q&A do N8N, valida nonce, grava no tenant</li>
+    <li><code>app/(app)/supervisor/conhecimento/page.tsx</code> — painel supervisor com drag-drop, tabela, busca, filtro por categoria, edição inline, ativar/desativar/excluir</li>
+  </ul>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Tabela <code>conhecimento</code> (já existia em cada schema de tenant)</h4>
+  <p>A tabela já existia como padrão no <code>create_tenant_schema()</code>. Colunas: <code>id</code> (BIGSERIAL PK), <code>pergunta</code> (TEXT NOT NULL, UNIQUE), <code>resposta</code> (TEXT NOT NULL), <code>categoria</code> (TEXT DEFAULT 'geral'), <code>data</code>, <code>created_at</code>, <code>is_active</code> (BOOLEAN DEFAULT true).</p>
+  <p style="margin-top:8px"><strong>Nota operacional:</strong> O N8N já consulta a tabela <code>conhecimento</code> diretamente no Supabase há mais de 1 ano durante o atendimento. Nenhuma alteração foi necessária no fluxo de busca — apenas alimentar a tabela com dados agora é suficiente para o agente usar o conhecimento.</p>
+</div>
+
+<div class="card-feature">
+  <h4>6.85 Segurança Nonce Multi-Tenant para Upload de Documentos — 17/08/2026</h4>
+  <p>Sistema de token de uso único para garantir que documentos enviados por uma empresa (tenant) não possam ser importados para a base de conhecimento de outra empresa, mesmo em uploads concorrentes.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Problema resolvido</h4>
+  <p>Na abordagem anterior, o nome do schema trafegava no payload enviado ao N8N e retornava no callback. Em uploads simultâneos de empresas diferentes, havia risco de o N8N misturar schemas — dados da empresa A cairiam na base da empresa B.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Solução implementada</h4>
+  <table>
+    <thead><tr><th>Ponto</th><th>Comportamento</th></tr></thead>
+    <tbody>
+      <tr><td>Upload</td><td>Schema lido da sessão autenticada (NextAuth server-side) → UUID gerado → <code>{token, schema, expires_at: now+10min}</code> gravado em <code>app.knowledge_nonces</code> → N8N recebe <strong>apenas o token</strong></td></tr>
+      <tr><td>Import (callback)</td><td>N8N envia token de volta → ComAgente valida no banco (token existe + não expirou) → resolve schema → <strong>deleta token</strong> (uso único) → grava Q&A no tenant correto</td></tr>
+      <tr><td>Falha N8N</td><td>Nonce deletado imediatamente para não deixar token órfão</td></tr>
+      <tr><td>Token expirado</td><td>Rejeitado com HTTP 401</td></tr>
+      <tr><td>Uploads simultâneos</td><td>Cada upload gera UUID independente — impossível colisão entre tenants</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Migration executada com sucesso:</strong> <code>supabase/migrations/20260817_knowledge_nonces.sql</code> — tabela <code>app.knowledge_nonces</code> criada com índice em <code>expires_at</code>.</p>
+</div>
+
+<div class="pend-card resolved">
+  <h4>6.86 Endpoint /api/knowledge/search — Criado e Removido — 17/08/2026</h4>
+  <p>Um endpoint GET para o N8N buscar Q&A durante o atendimento foi criado inicialmente. Após análise, constatou-se que o N8N já consulta a tabela <code>conhecimento</code> diretamente no Supabase há mais de 1 ano — o endpoint era desnecessário.</p>
+  <p style="margin-top:8px"><strong>Ação:</strong> Arquivo <code>app/api/knowledge/search/route.ts</code> criado e imediatamente deletado. Código preservado no histórico git no commit <code>66f0336</code> — pode ser recuperado se necessário no futuro.</p>
+  <p style="margin-top:8px"><em>Lição: verificar sempre se o N8N já possui um fluxo equivalente antes de criar endpoints de consulta para ele.</em></p>
+</div>
+
+<div class="pend-card resolved">
+  <h4>6.87 Correção Supabase Security Advisor — RLS em public._comagente_notify — 17/08/2026</h4>
+  <p>O Supabase Security Advisor reportou alerta <strong>CRITICAL</strong>: tabela <code>public._comagente_notify</code> sem Row Level Security (RLS), exposta via API REST (PostgREST) para roles <code>anon</code> e <code>authenticated</code>.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Análise de impacto</h4>
+  <ul>
+    <li><strong>Positivo:</strong> Bloqueia acesso não autorizado via API REST. O <code>service_role</code> (usado pelo ComAgente) bypassa RLS por padrão — nenhuma alteração no código da aplicação foi necessária.</li>
+    <li><strong>Positivo:</strong> Segue a política de mínimo privilégio (principle of least privilege).</li>
+    <li><strong>Negativo potencial:</strong> Se algum cliente/processo usar <code>anon</code> ou <code>authenticated</code> para acessar essa tabela, o acesso será bloqueado. (Improvável, pois é tabela interna do sistema.)</li>
+  </ul>
+  <p><strong>Fix:</strong> <code>ALTER TABLE public._comagente_notify ENABLE ROW LEVEL SECURITY;</code></p>
+  <p><strong>Migration:</strong> <code>supabase/migrations/20260817_security_fixes.sql</code> — executada com sucesso ("Nenhuma linha retornada").</p>
+</div>
+
+<div class="pend-card resolved">
+  <h4>6.88 Correção Supabase Security Advisor — search_path em create_tenant_schema() — 17/08/2026</h4>
+  <p>O Supabase Security Advisor reportou alerta <strong>WARNING</strong>: função <code>public.create_tenant_schema()</code> sem <code>SET search_path</code>, vulnerável a ataques de search_path injection onde uma função ou schema malicioso poderia interceptar chamadas internas.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Análise de impacto</h4>
+  <ul>
+    <li><strong>Positivo:</strong> Elimina vetor de ataque de search_path injection. Com <code>SET search_path = ''</code>, todas as referências devem ser totalmente qualificadas — o que já era o caso (corpo da função usa <code>EXECUTE format('%I.tabela', schema_name)</code> em todos os CREATEs).</li>
+    <li><strong>Positivo:</strong> A função já estava segura na prática; a correção apenas formaliza a intenção e satisfaz o advisor.</li>
+    <li><strong>Negativo:</strong> Nenhum — o corpo da função não depende de search_path implícito.</li>
+  </ul>
+  <p><strong>Fix:</strong> <code>CREATE OR REPLACE FUNCTION public.create_tenant_schema(...) ... LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';</code></p>
+  <p><strong>Migration:</strong> <code>supabase/migrations/20260817_security_fixes.sql</code> — executada com sucesso.</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.89 Configuração Pendente — Base de Conhecimento (Vercel + N8N) — 17/08/2026</h4>
+  <p>A funcionalidade de Base de Conhecimento está implementada e deployada, mas requer configuração de ambiente e do workflow N8N para entrar em operação.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Checklist de configuração</h4>
+  <ul>
+    <li>[ ] Adicionar <code>KNOWLEDGE_SECRET=&lt;segredo-forte&gt;</code> nas variáveis de ambiente do Vercel</li>
+    <li>[ ] Criar webhook no N8N para receber arquivo + token do ComAgente</li>
+    <li>[ ] Configurar N8N para processar o arquivo com IA (Gemini/Groq) e gerar pares <code>{pergunta, resposta, categoria}</code></li>
+    <li>[ ] Configurar N8N para fazer POST em <code>https://&lt;app-url&gt;/api/knowledge/import</code> com header <code>X-Knowledge-Secret: &lt;mesmo-segredo&gt;</code> e body <code>{"token":"&lt;token-recebido&gt;","items":[...]}</code></li>
+    <li>[ ] Adicionar <code>N8N_KNOWLEDGE_WEBHOOK_URL=&lt;url-do-webhook-n8n&gt;</code> nas variáveis de ambiente do Vercel</li>
+  </ul>
+  <p style="margin-top:8px"><em>Após configurar as variáveis, redeploy automático ativará a funcionalidade. O painel do supervisor já está disponível em <code>/supervisor/conhecimento</code>.</em></p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 2.9 | 17 de agosto de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 3.0 | 17 de agosto de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
