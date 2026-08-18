@@ -273,8 +273,8 @@ export default function CRMPage() {
             {bulkMode ? '✕ Cancelar' : <><IcoSend size={13} style={{verticalAlign:'middle',marginRight:5}}/> Follow-up em lote</>}
           </button>
 
-          {/* ↻ extrema direita — após a busca e o Follow-up */}
-          <button onClick={load} className="btn-outline" style={{ padding: '7px 10px', fontSize: 14 }}>↻</button>
+          {/* ↻ extrema direita */}
+          <button onClick={load} className="btn-outline" style={{ padding: '7px 10px', fontSize: 14, marginLeft: 'auto' }}>↻</button>
         </div>
 
         {/* ── Funil Visual ──────────────────────────────────── */}
