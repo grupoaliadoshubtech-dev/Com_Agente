@@ -192,6 +192,7 @@
       <tr><td>01/08/2026</td><td>2.8</td><td>Migração completa de dados operacionais para Supabase PostgreSQL: 4 migrações SQL (006–009), import completo Lucena Decorações e TrackerMap, 3 novos repositórios TypeScript, auto-provisionamento de schema ao cadastrar empresa, função create_tenant_schema() com 14 tabelas padronizadas</td></tr>
       <tr><td>17/08/2026</td><td>2.9</td><td>Migração Evolution API: banco local → Neon PostgreSQL (nuvem). Correção de 3 bugs críticos gerados pela migração: saveReceivedMessage bloqueando save da Evolution API (6.80), callback SSE com lidJid stale + race condition Neon (6.81), webhook crashando em MESSAGES_UPSERT + CHATS_UPDATE não tratado (6.82). Documentação completa da migração com guia de diagnóstico futuro (6.83).</td></tr>
       <tr><td>17/08/2026</td><td>3.0</td><td>Base de Conhecimento (RAG Enterprise) completa: upload de documentos (PDF/DOCX/TXT/imagem até 25 MB), processamento IA via N8N, Q&amp;A por tenant no Supabase, painel supervisor com busca/filtro/edição. Sistema de nonce multi-tenant (tabela app.knowledge_nonces, TTL 10 min) — N8N nunca recebe o schema, apenas token de uso único. Endpoint /api/knowledge/search criado e imediatamente removido (N8N já consulta Supabase diretamente há +1 ano). Correções de segurança Supabase Advisor: RLS habilitado em public._comagente_notify (6.87) e SET search_path='' em create_tenant_schema() (6.88).</td></tr>
+      <tr><td>18/08/2026</td><td>3.1</td><td>Padronização completa do botão ↻ em todas as telas (mobile e desktop): btn-outline, ícone-only, marginLeft:auto, extrema direita. Correção ia-toggle-off invisível no tema claro. Dashboard: filtro de seções ⋮ com dropdown, card Métricas em Tempo Real redesenhado (padrão UsageCard), emoji removido do exportar. CRM: ícones emoji substituídos por SVG (IcoDatabase, IcoSend). Conversas: botões ↻ padronizados.</td></tr>
     </tbody>
   </table>
 </div>
@@ -1773,11 +1774,83 @@ fetch('/api/evolution/chats').then(r=>r.json()).then(d=>{
   <p style="margin-top:8px"><em>Após configurar as variáveis, redeploy automático ativará a funcionalidade. O painel do supervisor já está disponível em <code>/supervisor/conhecimento</code>.</em></p>
 </div>
 
+<div class="pend-card resolved">
+  <h4>6.90 Correção ia-toggle-off invisível no tema claro — 18/08/2026</h4>
+  <p>O toggle "Somente agendados" (e outros <code>ia-toggle-off</code>) usava <code>background: rgba(255,255,255,.15)</code>, que era completamente invisível sobre fundos claros. Somente o texto aparecia, sem nenhum contorno visual da chave.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Fix aplicado em <code>app/globals.css</code></h4>
+  <ul>
+    <li>Adicionadas regras para <code>@media (prefers-color-scheme: light)</code> e <code>[data-theme='light']</code> com <code>background: rgba(0,0,0,.18)</code> — visível sobre qualquer fundo claro.</li>
+    <li>Regra de touch area (<code>min-height:44px / min-width:44px</code>) passou a excluir <code>.ia-toggle</code> para não deformar a pílula em dispositivos touch.</li>
+  </ul>
+  <pre style="background:var(--bg-2);border-radius:6px;padding:10px;font-size:12px;overflow-x:auto">.ia-toggle-off { background: rgba(255,255,255,.15); }
+@media (prefers-color-scheme: light) { .ia-toggle-off { background: rgba(0,0,0,.18); } }
+[data-theme='light'] .ia-toggle-off { background: rgba(0,0,0,.18); }
+
+@media (hover: none) and (pointer: coarse) {
+  button, a { min-height: 44px; min-width: 44px; }
+  .ia-toggle { min-height: unset; min-width: unset; }
+}</pre>
+</div>
+
+<div class="pend-card resolved">
+  <h4>6.91 Padronização completa do botão ↻ em todas as telas — 18/08/2026</h4>
+  <p>Varredura em todas as páginas do sidebar para padronizar o botão de atualizar: <strong>ícone ↻ sem texto</strong>, classe <code>btn-outline</code>, <code>padding:'7px 10px'</code>, <code>fontSize:14</code> e <code>marginLeft:'auto'</code> para posicionamento na extrema direita dentro do flex container pai (direto filho, não aninhado).</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Páginas corrigidas</h4>
+  <ul>
+    <li><strong>Satisfação</strong> — texto "↻ Atualizar" substituído por ↻ icon-only com marginLeft:auto</li>
+    <li><strong>Transcrições</strong> — adicionado marginLeft:auto e fontSize:14</li>
+    <li><strong>Equipe</strong> — adicionado marginLeft:auto e fontSize:14</li>
+    <li><strong>Distribuição</strong> — header com flexWrap:wrap; grupo [↻ Sincronizar Equipe] + [↻] com marginLeft:auto</li>
+    <li><strong>Conhecimento</strong> — reordenado: [+ Adicionar][↻] (↻ estava antes do +)</li>
+    <li><strong>Templates</strong> — botão ↻ adicionado (não existia): [+ Novo Template][↻]</li>
+    <li><strong>CRM</strong> — ↻ removido do grupo [Lista|Funil]; reposicionado após busca e Follow-up na extrema direita</li>
+    <li><strong>Dashboard</strong> — ↻ separado do grupo [Exportar|⋮], vira elemento irmão com marginLeft:auto (ver 6.92)</li>
+    <li><strong>Workspace/Conversas</strong> — dois botões ↻ migrados de classes Tailwind customizadas para <code>btn-outline</code></li>
+  </ul>
+  <p><strong>Princípio técnico consolidado:</strong> <code>marginLeft:'auto'</code> deve estar diretamente no elemento filho do flex container, nunca dentro de um subgrupo aninhado — caso contrário o auto-margin empurra apenas dentro do subgrupo, não até a borda da página.</p>
+</div>
+
+<div class="pend-card resolved">
+  <h4>6.92 Dashboard: ↻ separado do grupo Exportar/Filtro + card Métricas em Tempo Real — 18/08/2026</h4>
+  <p>O botão ↻ estava aninhado dentro do <code>visRef</code> (div com <code>position:relative</code> que contém o select de exportar e o botão ⋮ com dropdown de visibilidade), impedindo que ficasse na extrema direita.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Correções no Dashboard</h4>
+  <ul>
+    <li><strong>Layout do header:</strong> <code>visRef</code> mantém [Exportar Relatório | ⋮ Filtro de seções] (dropdown precisa de position:relative); ↻ virou elemento irmão com <code>marginLeft:'auto'</code>.</li>
+    <li><strong>Filtro de seções (⋮):</strong> Botão IcoMoreVertical com dropdown para controlar visibilidade individual de 7 seções do dashboard (Atendimentos, WhatsApp, IA, Desempenho, Satisfação, CRM, Métricas em Tempo Real).</li>
+    <li><strong>Card Métricas em Tempo Real:</strong> Redesenhado no padrão UsageCard — header com badge "Ao vivo" animado + grid de métricas em tempo real.</li>
+    <li><strong>Exportar relatório:</strong> Emoji 📥 removido do select de exportação.</li>
+  </ul>
+</div>
+
+<div class="pend-card resolved">
+  <h4>6.93 Agendamentos: toolbar reorganizada em 2 linhas (mobile) — 18/08/2026</h4>
+  <p>Na versão mobile, a barra de ferramentas de Agendamentos foi reestruturada em duas linhas full-width para melhor aproveitamento do espaço.</p>
+  <ul>
+    <li><strong>Linha 1 (nav):</strong> [◀ Mês/Ano ▶] com ↻ na extrema direita via marginLeft:auto</li>
+    <li><strong>Linha 2 (filtros):</strong> Seletor [Mês|Semana|Ano] + toggle "Somente agendados" na extrema direita</li>
+  </ul>
+  <p>Container pai usa <code>flexWrap:'wrap'</code> + cada linha tem <code>width:'100%'</code>. Isso resolve tanto o posicionamento do ↻ quanto a visibilidade do toggle (ia-toggle-off corrigido em 6.90).</p>
+</div>
+
+<div class="pend-card open">
+  <h4>6.94 Landing Page — Site de Apresentação em Scroll — PENDENTE</h4>
+  <p>Criar a rota pública <code>/</code> (arquivo <code>app/page.tsx</code>) como site de apresentação do ComAgente para o domínio <code>comagente.gaht.com.br</code>. Ajuste correspondente no middleware para liberar a rota sem autenticação.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Especificações</h4>
+  <ul>
+    <li><strong>Formato:</strong> Single-page scroll (todas as seções em uma única página com rolagem suave entre âncoras)</li>
+    <li><strong>Seções sugeridas:</strong> Hero (headline + CTA), Funcionalidades, Como funciona, Planos/Preços, Contato/CTA final</li>
+    <li><strong>Tecnologia:</strong> Next.js + CSS/Tailwind, sem dependências externas; design responsivo mobile-first</li>
+    <li><strong>Público:</strong> Empresas interessadas em WhatsApp com IA — tom comercial, linguagem acessível</li>
+    <li><strong>Middleware:</strong> <code>matcher</code> deve excluir <code>/</code> das rotas protegidas por autenticação</li>
+  </ul>
+  <p style="margin-top:8px"><em>Decisão de design pendente: definir paleta, tipografia e tom visual antes de implementar.</em></p>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 3.0 | 17 de agosto de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 3.1 | 18 de agosto de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
