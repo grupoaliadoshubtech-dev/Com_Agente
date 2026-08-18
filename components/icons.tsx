@@ -277,6 +277,25 @@ export function IcoWifi({ size = 16, style, className }: P) {
   )
 }
 
+export function IcoDatabase({ size = 16, style, className }: P) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...S} style={style} className={className}>
+      <ellipse cx="12" cy="5" rx="9" ry="3"/>
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+    </svg>
+  )
+}
+
+export function IcoSend({ size = 16, style, className }: P) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...S} style={style} className={className}>
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  )
+}
+
 // Dot colorido — substitui 🟢⚫🔴🟡 em badges de status
 export function Dot({ color, size = 8 }: { color: string; size?: number }) {
   return <span style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />

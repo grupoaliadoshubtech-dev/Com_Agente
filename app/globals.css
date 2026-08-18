@@ -377,9 +377,14 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
 /* ── Touch: Melhorias de toque ────────────────────────────────── */
 @media (hover: none) and (pointer: coarse) {
   /* Aumenta áreas de toque */
-  button, .ia-toggle, a {
+  button, a {
     min-height: 44px;
     min-width: 44px;
+  }
+  /* .ia-toggle mantém dimensões visuais — o <label> pai absorve a área de toque */
+  .ia-toggle {
+    min-height: unset;
+    min-width: unset;
   }
 
   /* Remove hover effects em touch */

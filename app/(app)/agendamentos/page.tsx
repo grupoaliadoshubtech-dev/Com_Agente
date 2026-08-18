@@ -186,7 +186,7 @@ export default function AgendamentosPage() {
         {/* Navegação mês/semana */}
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <button style={btnArrow} onClick={() => view==='week' ? navWeek(-1) : view==='month' ? navMonth(-1) : setYear(y=>y-1)}>◀</button>
-          <div style={{ minWidth:170, textAlign:'center' }}>
+          <div style={{ minWidth:120, textAlign:'center' }}>
             <span className="font-display" style={{ fontSize:14, fontWeight:700, color:'var(--txt)' }}>
               {view==='month' ? `${MONTHS[month]} ${year}` :
                view==='week'  ? `${weekDays[0].getDate()}/${weekDays[0].getMonth()+1} – ${weekDays[6].getDate()}/${weekDays[6].getMonth()+1}/${year}` :

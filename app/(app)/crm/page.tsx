@@ -7,7 +7,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import type { ClientRecord, CRMStage } from '@/types'
-import { IcoPlusCircle, IcoMessageCircle, IcoClipboard, IcoClock, IcoLink, IcoCheckCircle, IcoXCircle, IcoUsers, IcoFileText } from '@/components/icons'
+import { IcoPlusCircle, IcoMessageCircle, IcoClipboard, IcoClock, IcoLink, IcoCheckCircle, IcoXCircle, IcoUsers, IcoFileText, IcoDatabase, IcoSend, IcoAlertTriangle } from '@/components/icons'
 
 // ── Configuração do Funil ────────────────────────────────────
 
@@ -219,7 +219,7 @@ export default function CRMPage() {
   if (error) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',padding:24}}>
       <div className="card" style={{maxWidth:440,width:'100%',padding:'36px 32px',textAlign:'center'}}>
-        <div style={{fontSize:40,marginBottom:16}}>🗄️</div>
+        <IcoDatabase size={40} style={{color:'var(--txt-3)',marginBottom:16}}/>
         <div className="font-display" style={{fontSize:17,fontWeight:700,color:'var(--txt)',marginBottom:10}}>Banco de dados não configurado</div>
         <p style={{fontSize:13,color:'var(--txt-2)',lineHeight:1.7,marginBottom:24}}>
           Os dados do CRM ainda não estão disponíveis para sua empresa.<br/>
@@ -244,7 +244,7 @@ export default function CRMPage() {
             <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--txt)' }}>CRM Inteligente</div>
             <div style={{ fontSize: 11, color: 'var(--txt-2)', display: 'flex', gap: 12, marginTop: 2 }}>
               <span>{clients.length} clientes</span>
-              {overdueCount > 0 && <span style={{ color: '#EF4444', fontWeight: 600 }}>⚠ {overdueCount} follow-ups atrasados</span>}
+              {overdueCount > 0 && <span style={{ color: '#EF4444', fontWeight: 600, display:'inline-flex', alignItems:'center', gap:4 }}><IcoAlertTriangle size={11}/>{overdueCount} follow-ups atrasados</span>}
             </div>
           </div>
 
@@ -268,7 +268,7 @@ export default function CRMPage() {
           </div>
 
           <button onClick={() => { setBulkMode(!bulkMode); setBulkSelected(new Set()) }} style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', background: bulkMode ? 'var(--neon)' : 'var(--bg-input)', border: `1px solid ${bulkMode ? 'var(--neon)' : 'var(--border)'}`, color: bulkMode ? '#0a0a0a' : 'var(--txt-2)' }}>
-            {bulkMode ? '✕ Cancelar' : '📨 Follow-up em lote'}
+            {bulkMode ? '✕ Cancelar' : <><IcoSend size={13} style={{verticalAlign:'middle',marginRight:5}}/> Follow-up em lote</>}
           </button>
 
           <button onClick={load} style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--txt-2)' }}>↻</button>
@@ -375,8 +375,8 @@ export default function CRMPage() {
 
                       <td style={tdStyle}>
                         {c.proximoFollowUp ? (
-                          <span style={{ fontSize: 11, fontWeight: 600, color: overdue ? '#EF4444' : 'var(--neon)' }}>
-                            {overdue ? '⚠ ' : ''}{fmtDate(c.proximoFollowUp)}
+                          <span style={{ fontSize: 11, fontWeight: 600, color: overdue ? '#EF4444' : 'var(--neon)', display:'inline-flex', alignItems:'center', gap:3 }}>
+                            {overdue && <IcoAlertTriangle size={11}/>}{fmtDate(c.proximoFollowUp)}
                           </span>
                         ) : <span style={{ color: 'var(--txt-3)', fontSize: 11 }}>—</span>}
                       </td>
@@ -477,14 +477,16 @@ export default function CRMPage() {
                 {/* Datas */}
                 {[
                   ['Último contato', daysAgo(selected.ultimoContato) ?? '—'],
-                  ['Próximo follow-up', selected.proximoFollowUp ? `${fmtDate(selected.proximoFollowUp)}${isOverdue(selected.proximoFollowUp) ? ' ⚠ ATRASADO' : ''}` : '—'],
+                  ['Próximo follow-up', selected.proximoFollowUp ? `${fmtDate(selected.proximoFollowUp)}${isOverdue(selected.proximoFollowUp) ? ' ATRASADO' : ''}` : '—'],
                   ['Valor estimado', selected.valorEstimado ? `R$ ${selected.valorEstimado}` : '—'],
                   ['Atendente', selected.atendente || '—'],
                   ['Origem', selected.origem || '—'],
                 ].map(([l, v]) => (
                   <div key={l} style={{ marginBottom: 12 }}>
                     <p style={labelStyle}>{l}</p>
-                    <p style={{ fontSize: 13, color: String(v).includes('ATRASADO') ? '#EF4444' : 'var(--txt-2)', fontWeight: String(v).includes('ATRASADO') ? 600 : 400 }}>{v}</p>
+                    <p style={{ fontSize: 13, color: String(v).includes('ATRASADO') ? '#EF4444' : 'var(--txt-2)', fontWeight: String(v).includes('ATRASADO') ? 600 : 400, display:'flex', alignItems:'center', gap:4 }}>
+                      {String(v).includes('ATRASADO') && <IcoAlertTriangle size={12}/>}{v}
+                    </p>
                   </div>
                 ))}
 
