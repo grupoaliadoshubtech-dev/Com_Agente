@@ -255,7 +255,7 @@
 <table>
   <thead><tr><th>Planilha</th><th>ID</th><th>Abas</th></tr></thead>
   <tbody>
-    <tr><td>Master</td><td><code>1YwEjf8So9vQ-MEPqzc1zERiwF8hvUW9w8U3JuyhfjEc</code></td><td>Usuarios, Empresas, Planos, Leads, ResetTokens, Blacklist, Log_Erros</td></tr>
+    <tr><td>Master</td><td><code>[MASTER_SHEET_ID]</code></td><td>Usuarios, Empresas, Planos, Leads, ResetTokens, Blacklist, Log_Erros</td></tr>
   </tbody>
 </table>
 
@@ -274,9 +274,9 @@
 <table>
   <thead><tr><th>Instância</th><th>Número</th><th>instanceId</th></tr></thead>
   <tbody>
-    <tr><td>lucenadecoracoes</td><td>5516989105704</td><td>8d9a15b5-e063-4e2d-9900-3f5929c6129a</td></tr>
-    <tr><td>agenciadia</td><td>557182608738</td><td>c140e3b2-a32a-4aeb-88c6-0d27ac40a664</td></tr>
-    <tr><td>canecassa</td><td>5516994985975</td><td>d27a6fb3-c5ca-44b6-bd0b-dde1bdfe76b3</td></tr>
+    <tr><td>lucenadecoracoes</td><td>5516989105704</td><td>[INSTANCE_ID_LUCENA]</td></tr>
+    <tr><td>agenciadia</td><td>557182608738</td><td>[INSTANCE_ID_AGENCIADIA]</td></tr>
+    <tr><td>canecassa</td><td>5516994985975</td><td>[INSTANCE_ID_CANECASSA]</td></tr>
   </tbody>
 </table>
 
@@ -502,7 +502,7 @@ await execute(`INSERT INTO ${d.supabaseSchema}.instancia (empresa) VALUES ($1) O
     <tr><td>GOOGLE_MASTER_SHEET_ID</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
     <tr><td>TENANT_LUCENA_SHEET_ID</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
     <tr><td>EVOLUTION_API_URL</td><td><span class="ok">✓ Configurada</span></td><td>https://agenciadia-evolution-api.nxwkfd.easypanel.host</td></tr>
-    <tr><td>EVOLUTION_API_KEY</td><td><span class="ok">✓ Verificada em 28/04/2026</span></td><td>Igual ao n8n — 766D7B97-FB4A-4B07-A993-9B8E92C94366</td></tr>
+    <tr><td>EVOLUTION_API_KEY</td><td><span class="ok">✓ Verificada em 28/04/2026</span></td><td>Igual ao n8n — [EVOLUTION_API_KEY]</td></tr>
     <tr><td>EVOLUTION_WEBHOOK_SECRET</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
     <tr><td>EVOLUTION_DB_URL</td><td><span class="ok">✓ Configurada</span></td><td>Adicionada em 20/04/2026</td></tr>
     <tr><td>N8N_WEBHOOK_URL</td><td><span class="ok">✓ Configurada</span></td><td></td></tr>
@@ -520,7 +520,7 @@ await execute(`INSERT INTO ${d.supabaseSchema}.instancia (empresa) VALUES ($1) O
 <table>
   <thead><tr><th>Variável</th><th>Valor</th></tr></thead>
   <tbody>
-    <tr><td>EVOLUTION_API_KEY</td><td><code>766D7B97-FB4A-4B07-A993-9B8E92C94366</code></td></tr>
+    <tr><td>EVOLUTION_API_KEY</td><td><code>[EVOLUTION_API_KEY]</code></td></tr>
     <tr><td>EVOLUTION_URL</td><td>https://agenciadia-evolution-api.nxwkfd.easypanel.host</td></tr>
     <tr><td>WEBHOOK_URL</td><td>https://agenciadia-n8n.nxwkfd.easypanel.host</td></tr>
     <tr><td>N8N_BLOCK_ENV_ACCESS_IN_NODE</td><td><code>false</code></td></tr>
@@ -551,7 +551,7 @@ await execute(`INSERT INTO ${d.supabaseSchema}.instancia (empresa) VALUES ($1) O
 
 <div class="pend-card done">
   <h4>6.3 EVOLUTION_API_KEY — verificação e sincronização</h4>
-  <p>Verificado em 28/04/2026 via terminal VPS que a chave é idêntica no ComAgente e no n8n: <code>766D7B97-FB4A-4B07-A993-9B8E92C94366</code>. Container foi reiniciado via <code>scale 0→1</code> para aplicar variável atualizada.</p>
+  <p>Verificado em 28/04/2026 via terminal VPS que a chave é idêntica no ComAgente e no n8n: <code>[EVOLUTION_API_KEY]</code>. Container foi reiniciado via <code>scale 0→1</code> para aplicar variável atualizada.</p>
 </div>
 
 <div class="pend-card done">
@@ -1008,7 +1008,7 @@ await execute(`INSERT INTO ${d.supabaseSchema}.instancia (empresa) VALUES ($1) O
 <h3>Ver mensagens recentes no banco</h3>
 <pre>docker exec $(docker ps -q --filter name=postgres) psql -U postgres -d agenciadia -c \
 "SELECT \"key\"->>'fromMe', \"key\"->>'remoteJid', \"pushName\", \"messageTimestamp\" \
-FROM \"Message\" WHERE \"instanceId\" = '8d9a15b5-e063-4e2d-9900-3f5929c6129a' \
+FROM \"Message\" WHERE \"instanceId\" = '[INSTANCE_ID_LUCENA]' \
 ORDER BY \"messageTimestamp\" DESC LIMIT 5;"</pre>
 
 <h3>Ativar swap após reboot</h3>
@@ -1041,7 +1041,7 @@ curl -I http://localhost:3001</pre>
 <table>
   <thead><tr><th>Serviço</th><th>Acesso</th></tr></thead>
   <tbody>
-    <tr><td>ComAgente (admin)</td><td>admin@lucenadecoracoes.com / Admin@1234 (role: supervisor)</td></tr>
+    <tr><td>ComAgente (admin)</td><td>admin@lucenadecoracoes.com / [SENHA_REMOVIDA] (role: supervisor)</td></tr>
     <tr><td>VPS SSH</td><td>root@129.121.39.85</td></tr>
     <tr><td>EasyPanel</td><td>https://comagente-comagente-app.nxwkfd.easypanel.host</td></tr>
     <tr><td>GitHub</td><td>https://github.com/ROGERIO31/comagente (branch: main)</td></tr>
@@ -1150,7 +1150,7 @@ curl -I http://localhost:3001</pre>
 <div class="pend-card done">
   <h4>6.40 E-mail Master atualizado + debug de planilha — 23/07/2026</h4>
   <p>O e-mail da conta Master estava como <code>admin@suaempresa.com.br</code> (placeholder). Atualizado para <code>comagente@gaht.com.br</code> diretamente na coluna C da aba Usuarios da planilha Master.</p>
-  <p>Para diagnóstico foi criado temporariamente <code>app/api/debug/users/route.ts</code> (GET com <code>?secret=comagente-debug-2026</code>) que retorna usuários sem hash de senha. <strong>Remover em produção após uso.</strong></p>
+  <p>Para diagnóstico foi criado temporariamente <code>app/api/debug/users/route.ts</code> (GET com <code>?secret=[DEBUG_SECRET_REMOVIDO]</code>) que retorna usuários sem hash de senha. <strong>Remover em produção após uso.</strong></p>
 </div>
 
 <div class="pend-card done">
