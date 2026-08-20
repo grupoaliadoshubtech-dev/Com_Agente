@@ -1,9 +1,10 @@
 'use client'
 // lib/hooks/use-message-stream.ts
-// Mantém uma conexão SSE com /api/evolution/stream e roteia eventos:
-//  - type='new_message' → onNewMessage
-//  - outros tipos       → onSystemEvent (alertas de sistema, uso_limite, etc.)
-import { useEffect, useRef } from 'react'
+// Conexão via Supabase Realtime na tabela _comagente_notify:
+//  - type='message' → onNewMessage
+//  - outros tipos   → onSystemEvent (alertas de sistema, uso_limite, etc.)
+import { useEffect, useState, useRef } from 'react'
+import { useRealtimeNotify } from '@/hooks/useRealtimeNotify'
 
 export interface StreamSystemEvent {
   type:    string
@@ -15,6 +16,7 @@ export function useMessageStream(
   onNewMessage:  (phone: string | null) => void,
   onSystemEvent?: (event: StreamSystemEvent) => void
 ) {
+  const [instanceName, setInstanceName] = useState<string>('')
   const msgRef = useRef(onNewMessage)
   const sysRef = useRef(onSystemEvent)
   msgRef.current = onNewMessage
@@ -22,42 +24,25 @@ export function useMessageStream(
 
   useEffect(() => {
     if (!enabled) return
-
-    let es: EventSource
-    let retryTimer: ReturnType<typeof setTimeout>
-
-    function connect() {
-      es = new EventSource('/api/evolution/stream')
-
-      es.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data as string) as {
-            type: string
-            phone?: string
-            payload?: Record<string, unknown>
-          }
-
-          if (data.type === 'new_message') {
-            msgRef.current(data.phone ?? null)
-          } else if (data.type === 'reconnect') {
-            es.close()
-            retryTimer = setTimeout(connect, 100)
-          } else if (data.type !== 'connected') {
-            sysRef.current?.({ type: data.type, payload: data.payload ?? null })
-          }
-        } catch {}
-      }
-
-      es.onerror = () => {
-        es.close()
-        retryTimer = setTimeout(connect, 2000)
-      }
-    }
-
-    connect()
-    return () => {
-      clearTimeout(retryTimer)
-      es?.close()
-    }
+    fetch('/api/evolution/instance')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.instanceName) {
+          setInstanceName(d.instanceName)
+        }
+      })
+      .catch(() => {})
   }, [enabled])
+
+  useRealtimeNotify(enabled ? instanceName : '', (notifyRow) => {
+    if (!notifyRow) return
+    if (notifyRow.type === 'message') {
+      msgRef.current(notifyRow.phone ?? null)
+    } else {
+      sysRef.current?.({
+        type: notifyRow.type,
+        payload: notifyRow.payload ?? null
+      })
+    }
+  })
 }

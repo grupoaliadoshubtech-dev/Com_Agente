@@ -1,4 +1,4 @@
-import { query, execute } from '@/lib/supabase/client'
+import { query, execute } from '@/lib/supabase/db'
 
 export interface ConhecimentoRecord {
   id:        number

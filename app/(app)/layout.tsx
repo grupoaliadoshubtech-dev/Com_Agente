@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { useHandoff } from '@/lib/hooks/use-handoff'
 import { ThemeProvider, useTheme } from '@/lib/context/theme-context'
-import type { StreamSystemEvent } from '@/lib/hooks/use-message-stream'
+import { useMessageStream, type StreamSystemEvent } from '@/lib/hooks/use-message-stream'
 
 // SVG icons
 const IC = {
@@ -217,29 +217,16 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const role     = user?.role ?? 'atendente'
   const initials = user?.name?.split(' ').map((n:string)=>n[0]).slice(0,2).join('').toUpperCase() ?? 'AA'
 
-  // ── SSE: escuta alertas de sistema (uso_limite etc.) ─────────
-  // Colocado aqui para que 'role' já esteja declarado
-  useEffect(() => {
-    if (role === 'master') return
-    let es: EventSource
-    let retryTimer: ReturnType<typeof setTimeout>
-    function connect() {
-      es = new EventSource('/api/evolution/stream')
-      es.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data as string) as StreamSystemEvent & { type: string }
-          if (data.type === 'uso_limite' && data.payload) {
-            const p = data.payload as { current: number; limit: number; pct: number; company: string }
-            setLimitAlert(p)
-          }
-          if (data.type === 'reconnect') { es.close(); retryTimer = setTimeout(connect, 100) }
-        } catch {}
+  // ── Realtime: escuta alertas de sistema (uso_limite etc.) ────
+  useMessageStream(
+    role !== 'master',
+    () => {},
+    (evt) => {
+      if (evt.type === 'uso_limite' && evt.payload) {
+        setLimitAlert(evt.payload as { current: number; limit: number; pct: number; company: string })
       }
-      es.onerror = () => { es.close(); retryTimer = setTimeout(connect, 3000) }
     }
-    connect()
-    return () => { clearTimeout(retryTimer); es?.close() }
-  }, [role])
+  )
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

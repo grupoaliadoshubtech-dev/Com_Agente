@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { execute, query } from '@/lib/supabase/client'
+import { execute, query } from '@/lib/supabase/db'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
 import type { ApiResponse } from '@/types'
 

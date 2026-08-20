@@ -1,7 +1,7 @@
 // lib/repositories/templates.repository.ts
 // Migrado de Google Sheets → Supabase (schema do tenant)
 
-import { query, queryOne, execute } from '@/lib/supabase/client'
+import { query, queryOne, execute } from '@/lib/supabase/db'
 import { randomUUID } from 'crypto'
 
 export interface TemplateRecord {

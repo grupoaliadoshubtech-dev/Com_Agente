@@ -3,7 +3,7 @@
 // Tabela: agendamentos (id BIGSERIAL, data JSONB)
 // Campos ficam em data JSONB; _rowIndex = id da linha.
 
-import { query, execute } from '@/lib/supabase/client'
+import { query, execute } from '@/lib/supabase/db'
 import type { AgendamentosData, AgendamentoRow } from '@/types'
 
 const SHEET = 'agendamentos'

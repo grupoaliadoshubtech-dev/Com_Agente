@@ -7,7 +7,7 @@
 //  3. E-mail → e-mail cadastrado da empresa
 // ─────────────────────────────────────────────────────────────
 
-import { queryOne }                from '@/lib/supabase/client'
+import { queryOne }                from '@/lib/supabase/db'
 import { pushSystemNotification }  from './notify'
 import { EvolutionClient }         from './client'
 import { sendMail, limitAlertTemplate } from '@/lib/email/mailer'

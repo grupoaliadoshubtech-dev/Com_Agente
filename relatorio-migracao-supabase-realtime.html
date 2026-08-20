@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório Técnico: Migração Supabase Realtime - ComAgente</title>
+  <style>
+    :root {
+      --bg-primary: #0a0d14;
+      --bg-card: #121824;
+      --bg-card-hover: #192233;
+      --border-color: #232d42;
+      --accent-green: #10b981;
+      --accent-neon: #84cc16;
+      --accent-blue: #3b82f6;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-sub: #6b7280;
+      --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-success {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-warning {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0.75rem 0 0.5rem;
+      color: #ffffff;
+    }
+
+    .meta-info {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .golden-rule {
+      background: linear-gradient(135deg, rgba(132, 204, 22, 0.1), rgba(16, 185, 129, 0.05));
+      border: 1px solid rgba(132, 204, 22, 0.4);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .golden-rule h2 {
+      color: var(--accent-neon);
+      font-size: 1.15rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .sub-card {
+      background-color: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 1rem;
+    }
+
+    .sub-card h3 {
+      font-size: 1rem;
+      color: var(--accent-blue);
+      margin-bottom: 0.5rem;
+    }
+
+    ul, ol {
+      padding-left: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    li {
+      margin-bottom: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    li strong {
+      color: var(--text-main);
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85em;
+      background-color: rgba(255, 255, 255, 0.08);
+      color: var(--accent-neon);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+    }
+
+    pre {
+      background-color: #07090e;
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      color: #e5e7eb;
+      margin: 1rem 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.03);
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    td {
+      color: var(--text-muted);
+    }
+
+    .status-ok {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 3rem;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border-color);
+      padding-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge badge-success">✓ Concluído & Validado</span>
+      <h1>Relatório Técnico: Migração para Supabase Realtime</h1>
+      <div class="meta-info">
+        <span><strong>Projeto:</strong> ComAgente (Grupo Aliados HubTech)</span>
+        <span><strong>Data:</strong> 20 de Agosto de 2026</span>
+        <span><strong>Autor:</strong> Antigravity AI</span>
+      </div>
+    </header>
+
+    <!-- Visão Geral do Problema -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        1. Contexto & Diagnóstico do Problema (Egress Overuse)
+      </div>
+      <p>O projeto atingiu o limite de transferência de dados no Supabase Free (<strong>6,78 GB de 5,00 GB permitidos</strong>), ameaçando a interrupção dos serviços.</p>
+      <br>
+      <p><strong>Causa Raiz Identificada:</strong></p>
+      <ul>
+        <li>O endpoint <code>app/api/evolution/stream/route.ts</code> executava um mecanismo de <em>SSE polling</em> que consultava a tabela <code>_comagente_notify</code> do Postgres via biblioteca <code>pg</code> a cada <strong>3 segundos</strong> por cliente conectado.</li>
+        <li>Isso gerava milhares de requisições HTTP redundantes no servidor e mantinha conexões ativas de longa duração, esgotando a cota de tráfego de dados (egress).</li>
+      </ul>
+    </div>
+
+    <!-- Regra de Ouro da Arquitetura -->
+    <div class="golden-rule">
+      <h2>
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+        2. Regra de Ouro da Nova Arquitetura
+      </h2>
+      <div class="grid-2">
+        <div class="sub-card">
+          <h3>🖥️ Server-Side (APIs, Repositories, Autenticação)</h3>
+          <p>Usa driver nativo <code>pg</code> (Pool de conexões) através do arquivo <code>lib/supabase/db.ts</code> alimentado por <code>SUPABASE_DATABASE_URL</code> (Porta 6543 / Connection Pooler).</p>
+          <p><em>Garante velocidade, transações SQL brutas e suporte a schemas dinâmicos.</em></p>
+        </div>
+        <div class="sub-card">
+          <h3>🌐 Client-Side (React Hooks, Componentes)</h3>
+          <p>Usa SDK <code>@supabase/supabase-js</code> através do arquivo <code>lib/supabase/client.ts</code> (<code>createBrowserClient()</code>) alimentado por <code>NEXT_PUBLIC_SUPABASE_URL</code> e <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.</p>
+          <p><em>Mantém conexão única permanente por WebSockets (0 requisições HTTP repetidas).</em></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modificações Realizadas -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        3. Detalhamento de Arquivos Criados e Modificados
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Arquivo</th>
+            <th>Tipo de Alteração</th>
+            <th>Descrição da Funcionalidade</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>package.json</code></td>
+            <td>Dependência</td>
+            <td>Instalado o pacote oficial <code>@supabase/supabase-js</code> (^2.112.3).</td>
+          </tr>
+          <tr>
+            <td><code>lib/supabase/client.ts</code></td>
+            <td>Novo Arquivo</td>
+            <td>Exporta <code>createBrowserClient()</code> para conexões do cliente Supabase.</td>
+          </tr>
+          <tr>
+            <td><code>lib/supabase/db.ts</code></td>
+            <td>Novo Arquivo</td>
+            <td>Concentra o pool <code>pg</code> (<code>query</code>, <code>queryOne</code>, <code>execute</code>) para o backend server-side.</td>
+          </tr>
+          <tr>
+            <td><code>hooks/useRealtimeNotify.ts</code></td>
+            <td>Novo Arquivo</td>
+            <td>Hook React que assina eventos de <code>INSERT</code> na tabela <code>_comagente_notify</code> filtrados por <code>instance</code>.</td>
+          </tr>
+          <tr>
+            <td><code>app/api/evolution/instance/route.ts</code></td>
+            <td>Nova Rota</td>
+            <td>Endpoint GET que retorna com segurança a instância Evolution API do tenant logado.</td>
+          </tr>
+          <tr>
+            <td><code>lib/hooks/use-message-stream.ts</code></td>
+            <td>Modificado</td>
+            <td>Refatorado para encapsular <code>useRealtimeNotify</code>, eliminando <code>EventSource</code>.</td>
+          </tr>
+          <tr>
+            <td><code>app/(app)/layout.tsx</code></td>
+            <td>Modificado</td>
+            <td>Substituída a escuta SSE manual por <code>useMessageStream</code> para alertas de sistema (<code>uso_limite</code>).</td>
+          </tr>
+          <tr>
+            <td><code>app/api/evolution/stream/route.ts</code></td>
+            <td>Removido ❌</td>
+            <td>Excluída a antiga rota de polling SSE contínuo de 3 segundos.</td>
+          </tr>
+          <tr>
+            <td><code>next.config.js</code></td>
+            <td>Modificado</td>
+            <td>Atualizado <code>connect-src</code> no Content Security Policy (CSP) liberando <code>https://*.supabase.co</code> e <code>wss://*.supabase.co</code>.</td>
+          </tr>
+          <tr>
+            <td><code>lib/repositories/users.repository.ts</code></td>
+            <td>Modificado</td>
+            <td>Garantido o uso exclusivo de <code>lib/supabase/db.ts</code> para autenticação NextAuth via PostgreSQL.</td>
+          </tr>
+          <tr>
+            <td><code>.env.local</code></td>
+            <td>Configuração</td>
+            <td>Adicionadas as variáveis <code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> e <code>SUPABASE_DATABASE_URL</code> (Connection Pooler em us-east-1).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Código do Hook Realtime -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></svg>
+        4. Implementação Chave: Hook de Realtime
+      </div>
+      <p>Código exato do hook responsável pela escuta via WebSockets:</p>
+      <pre><code>'use client'
+import { useEffect } from 'react'
+import { createBrowserClient } from '@/lib/supabase/client'
+
+export function useRealtimeNotify(instanceName: string, onNew: (p: any) => void) {
+  useEffect(() => {
+    if (!instanceName) return;
+    const supabase = createBrowserClient();
+    const ch = supabase.channel(`notify-${instanceName}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: '_comagente_notify',
+        filter: `instance=eq.${instanceName}`
+      }, (pl) => onNew(pl.new))
+      .subscribe()
+
+    return () => { supabase.removeChannel(ch) }
+  }, [instanceName, onNew])
+}</code></pre>
+    </div>
+
+    <!-- Resultados e Testes -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        5. Resultados dos Testes & Validação
+      </div>
+      <ul>
+        <li><strong class="status-ok">✓ Teste de Inserção Realtime:</strong> Registro de teste inserido na tabela <code>_comagente_notify</code> (ID: 42) e notificado instantaneamente ao navegador via WebSocket.</li>
+        <li><strong class="status-ok">✓ Teste de Tráfego de Rede:</strong> Inspeção da aba <em>Network (Fetch/XHR)</em> confirmou a **eliminação total (100%)** das chamadas de polling `/api/evolution/stream`.</li>
+        <li><strong class="status-ok">✓ Teste de Compilação:</strong> Comando <code>npm run build</code> executado com sucesso gerando todas as 59 rotas sem erros de TypeScript ou Webpack.</li>
+        <li><strong class="status-ok">✓ Teste de Autenticação:</strong> Login do usuário master efetuado via pool PostgreSQL através de <code>SUPABASE_DATABASE_URL</code> no <code>lib/supabase/db.ts</code>.</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      Documentação gerada automaticamente para o projeto <strong>ComAgente</strong> — Antigravity Agentic Assistant.
+    </div>
+  </div>
+</body>
+</html>

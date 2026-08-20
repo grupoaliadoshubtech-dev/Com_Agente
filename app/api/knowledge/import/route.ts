@@ -11,7 +11,7 @@
 // Body: { token: string, items: [{pergunta, resposta, categoria?}] }
 
 import { NextRequest, NextResponse } from 'next/server'
-import { query, execute } from '@/lib/supabase/client'
+import { query, execute } from '@/lib/supabase/db'
 import { ConhecimentoRepository } from '@/lib/repositories/conhecimento.repository'
 
 interface ImportItem {

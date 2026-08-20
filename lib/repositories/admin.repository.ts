@@ -1,7 +1,7 @@
 // lib/repositories/admin.repository.ts
 // Migrado de Google Sheets → Supabase
 
-import { query, execute } from '@/lib/supabase/client'
+import { query, execute } from '@/lib/supabase/db'
 import { TenantsRepository } from './plans-tenants-leads.repository'
 
 // ── Log de Erros ──────────────────────────────────────────────

@@ -8,7 +8,7 @@
 // a cada mensagem recebida.
 // ─────────────────────────────────────────────────────────────
 
-import { query } from '@/lib/supabase/client'
+import { query } from '@/lib/supabase/db'
 
 const CACHE_TTL = 5 * 60 * 1000  // 5 minutos
 

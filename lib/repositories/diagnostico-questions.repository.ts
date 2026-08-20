@@ -1,7 +1,7 @@
 // lib/repositories/diagnostico-questions.repository.ts
 // Migrado de Google Sheets → Supabase (schema: app)
 
-import { query, execute } from '@/lib/supabase/client'
+import { query, execute } from '@/lib/supabase/db'
 import { randomUUID } from 'crypto'
 
 export interface QuestionRecord {

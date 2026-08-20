@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { execute, queryOne } from '@/lib/supabase/client'
+import { execute, queryOne } from '@/lib/supabase/db'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)

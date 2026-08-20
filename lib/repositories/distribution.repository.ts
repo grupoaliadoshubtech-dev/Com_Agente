@@ -1,7 +1,7 @@
 // lib/repositories/distribution.repository.ts
 // Migrado de Google Sheets → Supabase (schema do tenant)
 
-import { query, execute } from '@/lib/supabase/client'
+import { query, execute } from '@/lib/supabase/db'
 import { UsersRepository } from './users.repository'
 import { randomUUID } from 'crypto'
 

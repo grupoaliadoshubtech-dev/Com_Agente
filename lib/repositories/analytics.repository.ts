@@ -1,7 +1,7 @@
 // lib/repositories/analytics.repository.ts
 // Migrado de Google Sheets → Supabase (schema do tenant)
 
-import { query, execute } from '@/lib/supabase/client'
+import { query, execute } from '@/lib/supabase/db'
 import type { AtendimentoRecord, SatisfacaoRecord, ClientRecord, CRMStage } from '@/types'
 
 // ── Atendimentos ──────────────────────────────────────────────

@@ -1,7 +1,7 @@
 // lib/repositories/reset-token.repository.ts
 // Migrado de Google Sheets → Supabase (schema: app)
 
-import { query, queryOne, execute } from '@/lib/supabase/client'
+import { query, queryOne, execute } from '@/lib/supabase/db'
 import crypto from 'crypto'
 
 const TTL_MS = 60 * 60 * 1000  // 1 hora

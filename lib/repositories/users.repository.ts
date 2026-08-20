@@ -1,7 +1,7 @@
 // lib/repositories/users.repository.ts
 // Migrado de Google Sheets → Supabase (schema: app)
 
-import { query, queryOne, execute } from '@/lib/supabase/client'
+import { query, queryOne, execute } from '@/lib/supabase/db'
 import type { UserRecord } from '@/types'
 
 function parse(row: Record<string, unknown>): UserRecord {

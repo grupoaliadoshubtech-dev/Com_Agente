@@ -133,29 +133,40 @@ export const authOptions: NextAuthOptions = {
         // ── Login normal ─────────────────────────────────────────
         if (!credentials?.email || !credentials?.password) return null
 
-        const user = await repo.findByEmail(credentials.email)
-        if (!user || !user.isActive) return null
+        try {
+          const user = await repo.findByEmail(credentials.email)
+          if (!user || !user.isActive) {
+            console.warn(`[Auth] Usuário não encontrado ou inativo: ${credentials.email}`)
+            return null
+          }
 
-        const passwordMatch = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash
-        )
-        if (!passwordMatch) return null
+          const passwordMatch = await bcrypt.compare(
+            credentials.password,
+            user.passwordHash
+          )
+          if (!passwordMatch) {
+            console.warn(`[Auth] Senha incorreta para: ${credentials.email}`)
+            return null
+          }
 
-        return {
-          id:                  user.id,
-          email:               user.email,
-          name:                user.name,
-          role:                user.role,
-          tenantId:            user.tenantId,
-          tenantName:          '', // enriquecido no jwt callback
-          canViewDashboard:    user.canViewDashboard,
-          canViewCRM:          user.canViewCRM,
-          canViewTranscricoes: user.canViewTranscricoes,
-          canViewSatisfacao:    user.canViewSatisfacao,
-          canViewAgendamentos:  user.canViewAgendamentos,
-          mustChangePassword:   user.mustChangePassword ?? false,
-          rememberMe:          credentials.remember === 'true',
+          return {
+            id:                  user.id,
+            email:               user.email,
+            name:                user.name,
+            role:                user.role,
+            tenantId:            user.tenantId,
+            tenantName:          '', // enriquecido no jwt callback
+            canViewDashboard:    user.canViewDashboard,
+            canViewCRM:          user.canViewCRM,
+            canViewTranscricoes: user.canViewTranscricoes,
+            canViewSatisfacao:    user.canViewSatisfacao,
+            canViewAgendamentos:  user.canViewAgendamentos,
+            mustChangePassword:   user.mustChangePassword ?? false,
+            rememberMe:          credentials.remember === 'true',
+          }
+        } catch (err) {
+          console.error('[Auth Error ao autenticar usuário]:', err)
+          return null
         }
       },
     }),

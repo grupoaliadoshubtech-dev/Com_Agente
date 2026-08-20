@@ -3,7 +3,7 @@
 // Tabela: fila_humana
 //   id | telefone | status | timestamp | atendente
 
-import { query, execute } from '@/lib/supabase/client'
+import { query, execute } from '@/lib/supabase/db'
 import type { HandoffRecord } from '@/types'
 
 export class HandoffRepository {

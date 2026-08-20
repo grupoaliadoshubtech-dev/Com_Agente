@@ -1,7 +1,7 @@
 // lib/repositories/diagnostico.repository.ts
 // Migrado de Google Sheets → Supabase (schema: app)
 
-import { query, queryOne, execute } from '@/lib/supabase/client'
+import { query, queryOne, execute } from '@/lib/supabase/db'
 import type { DiagnosticoRecord } from '@/types'
 import { randomUUID } from 'crypto'
 

@@ -8,7 +8,7 @@
 // Tabela: app.uso_mensal (tenant_id, ano_mes, total_mensagens, alerta_enviado)
 // ─────────────────────────────────────────────────────────────
 
-import { queryOne, execute, query } from '@/lib/supabase/client'
+import { queryOne, execute, query } from '@/lib/supabase/db'
 
 export interface LimitCheck {
   blocked:   boolean       // true = limite já atingido antes do incremento

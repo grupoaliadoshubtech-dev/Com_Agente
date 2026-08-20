@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession }          from 'next-auth'
 import { authOptions }               from '@/lib/auth'
-import { queryOne }                  from '@/lib/supabase/client'
+import { queryOne }                  from '@/lib/supabase/db'
 import { sendMail }                  from '@/lib/email/mailer'
 
 interface TenantRow extends Record<string, unknown> {
