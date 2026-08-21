@@ -164,7 +164,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>21 de agosto de 2026</strong> (v3.3)<br>
+    Documento consolidado e atualizado — <strong>21 de agosto de 2026</strong> (v3.4)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -196,6 +196,7 @@
       <tr><td>18/08/2026</td><td>3.1</td><td>Padronização completa do botão ↻ em todas as telas (mobile e desktop): btn-outline, ícone-only, marginLeft:auto, extrema direita. Correção ia-toggle-off invisível no tema claro. Dashboard: filtro de seções ⋮ com dropdown, card Métricas em Tempo Real redesenhado (padrão UsageCard), emoji removido do exportar. CRM: ícones emoji substituídos por SVG (IcoDatabase, IcoSend). Conversas: botões ↻ padronizados.</td></tr>
       <tr><td>20/08/2026</td><td>3.2</td><td>Migração SSE polling → Supabase Realtime (Dev. Roberto): eliminação completa do ciclo de queries a cada 3s por usuário conectado, hook useRealtimeNotify via WebSocket, endpoint /api/evolution/stream removido. Arquitetura dual de dados: lib/supabase/client.ts (browser) e lib/supabase/db.ts (server-side pg pool). CSP atualizado para wss://*.supabase.co. Validado com build limpo e 0 chamadas de polling na aba Network (6.95, 6.96).</td></tr>
       <tr><td>21/08/2026</td><td>3.3</td><td>Migração completa Google Sheets → Supabase (6.79): tenant-resolver passa supabaseSchema correto ao MessageProcessor; message-processor substituiu todas as chamadas Sheets por ClientesRepository.findByPhone/upsertCRM e AtendimentosRepository.create; webhook e send usam Supabase para log; nova migration app.log_erros. HandoffRepository/BlacklistRepository/DistributionRepository agora recebem tenantSchema válido.</td></tr>
+      <tr><td>21/08/2026</td><td>3.4</td><td>Limpeza e organização do banco de dados: schema <code>tenant_lucena</code> renomeado para <code>tenant_lucenadecoracoes</code> (ALTER SCHEMA + UPDATE app.empresas); registro obsoleto <code>tenant_lucena_radija</code> removido de app.empresas (schema nunca existiu no PostgreSQL); registro duplicado Rogério Assunção removido de app.empresas (6.97, 6.98).</td></tr>
     </tbody>
   </table>
 </div>
@@ -215,7 +216,7 @@
   <tbody>
     <tr><td>Frontend/Backend</td><td>Next.js 14.2.5 (App Router)</td></tr>
     <tr><td>Autenticação</td><td>NextAuth.js v4 com JWT</td></tr>
-    <tr><td>Banco de dados (operacional)</td><td>Supabase PostgreSQL — schemas multi-tenant (<code>tenant_lucena</code>, <code>tenant_trackermap</code>, …)</td></tr>
+    <tr><td>Banco de dados (operacional)</td><td>Supabase PostgreSQL — schemas multi-tenant (<code>tenant_lucenadecoracoes</code>, <code>tenant_trackermap</code>, …)</td></tr>
     <tr><td>Banco de dados (config/master)</td><td>Google Sheets API (via service account) — planilha master: Usuarios, Empresas, Planos</td></tr>
     <tr><td>WhatsApp</td><td>Evolution API v2 (auto-hospedada)</td></tr>
     <tr><td>IA</td><td>n8n + Gemini (Google)</td></tr>
@@ -266,10 +267,9 @@
 <table>
   <thead><tr><th>Schema</th><th>Empresa</th><th>Tabelas</th></tr></thead>
   <tbody>
-    <tr><td><code>app</code></td><td>Global</td><td>empresas, usuarios, planos</td></tr>
-    <tr><td><code>tenant_lucena</code></td><td>Lucena Decorações</td><td>14 tabelas padrão — migradas em v2.8</td></tr>
+    <tr><td><code>app</code></td><td>Global</td><td>empresas, usuarios, planos, log_erros</td></tr>
+    <tr><td><code>tenant_lucenadecoracoes</code></td><td>Lucena Decorações</td><td>14 tabelas padrão — migradas em v2.8, schema renomeado em v3.4</td></tr>
     <tr><td><code>tenant_trackermap</code></td><td>TrackerMap</td><td>14 tabelas padrão — migradas em v2.8</td></tr>
-    <tr><td><code>tenant_lucena_radija</code></td><td>Lucena Radija</td><td>14 tabelas padrão — dados pendentes</td></tr>
   </tbody>
 </table>
 
@@ -340,10 +340,9 @@
 <table>
   <thead><tr><th>Schema</th><th>Empresa</th><th>Status</th></tr></thead>
   <tbody>
-    <tr><td><code>app</code></td><td>Schema global — <code>app.empresas</code>, <code>app.usuarios</code>, <code>app.planos</code></td><td><span class="ok">✓ Ativo</span></td></tr>
-    <tr><td><code>tenant_lucena</code></td><td>Lucena Decorações</td><td><span class="ok">✓ Migrado (v2.8)</span></td></tr>
+    <tr><td><code>app</code></td><td>Schema global — <code>app.empresas</code>, <code>app.usuarios</code>, <code>app.planos</code>, <code>app.log_erros</code></td><td><span class="ok">✓ Ativo</span></td></tr>
+    <tr><td><code>tenant_lucenadecoracoes</code></td><td>Lucena Decorações</td><td><span class="ok">✓ Migrado (v2.8) · Renomeado (v3.4)</span></td></tr>
     <tr><td><code>tenant_trackermap</code></td><td>TrackerMap</td><td><span class="ok">✓ Migrado (v2.8)</span></td></tr>
-    <tr><td><code>tenant_lucena_radija</code></td><td>Lucena Radija</td><td><span class="pend">■ Pendente</span></td></tr>
   </tbody>
 </table>
 
@@ -1426,7 +1425,7 @@ curl -I http://localhost:3001</pre>
 
 <div class="pend-card done">
   <h4>6.72 Migration 006 — Transcricoes Lucena Decorações (01/08/2026)</h4>
-  <p>Criada tabela <code>tenant_lucena.transcricoes</code> e importados <strong>516 registros</strong> do histórico de atendimentos da planilha Google Sheets (aba "Atendimentos").</p>
+  <p>Criada tabela <code>tenant_lucenadecoracoes.transcricoes</code> e importados <strong>516 registros</strong> do histórico de atendimentos da planilha Google Sheets (aba "Atendimentos").</p>
   <p>Separação de conceitos: a aba "Atendimentos" da planilha continha na verdade logs de mensagens/transcrições, não sessões de atendimento. A tabela <code>transcricoes</code> reflete essa semântica corretamente, enquanto <code>atendimentos</code> fica reservada para sessões estruturadas.</p>
   <p><strong>Arquivo:</strong> <code>supabase/migrations/006_lucena_transcricoes.sql</code></p>
 </div>
@@ -1437,10 +1436,10 @@ curl -I http://localhost:3001</pre>
   <table>
     <thead><tr><th>Tabela</th><th>Registros</th><th>Observação</th></tr></thead>
     <tbody>
-      <tr><td><code>tenant_lucena.instancia</code></td><td>1</td><td>Nome: "Lucena Decorações"</td></tr>
-      <tr><td><code>tenant_lucena.primeiros_contatos</code></td><td>2</td><td>2 leads iniciais</td></tr>
-      <tr><td><code>tenant_lucena.conhecimento</code></td><td>0</td><td>Vazia — alimentada pelo sistema. UNIQUE(pergunta)</td></tr>
-      <tr><td><code>tenant_lucena.transcricoes</code></td><td>516</td><td>Garantia: recria se migration 006 não foi executada</td></tr>
+      <tr><td><code>tenant_lucenadecoracoes.instancia</code></td><td>1</td><td>Nome: "Lucena Decorações"</td></tr>
+      <tr><td><code>tenant_lucenadecoracoes.primeiros_contatos</code></td><td>2</td><td>2 leads iniciais</td></tr>
+      <tr><td><code>tenant_lucenadecoracoes.conhecimento</code></td><td>0</td><td>Vazia — alimentada pelo sistema. UNIQUE(pergunta)</td></tr>
+      <tr><td><code>tenant_lucenadecoracoes.transcricoes</code></td><td>516</td><td>Garantia: recria se migration 006 não foi executada</td></tr>
     </tbody>
   </table>
   <p>Também inseridos/verificados 4 usuários em <code>app.usuarios</code>: Maicom (canecassa@gmail.com), Lucena, Lucena Decorações, Radija Lucena. Uso de <code>WHERE NOT EXISTS</code> para idempotência (evita conflito de constraint única em email).</p>
@@ -1523,9 +1522,9 @@ curl -I http://localhost:3001</pre>
   <p><strong>Arquivo:</strong> <code>app/api/tenants/route.ts</code></p>
 </div>
 
-<div class="pend-card open">
-  <h4>6.78 Migração tenant_lucena_radija — PENDENTE</h4>
-  <p>O schema <code>tenant_lucena_radija</code> existe no Supabase mas nenhum dado foi migrado da planilha Google Sheets correspondente ainda.</p>
+<div class="pend-card resolved">
+  <h4>6.78 Remoção de tenant_lucena_radija — cancelado/removido — 21/08/2026</h4>
+  <p>O registro de <code>tenant_lucena_radija</code> em <code>app.empresas</code> foi removido. O schema PostgreSQL correspondente nunca chegou a ser criado no Supabase (apenas o registro de empresa existia). Os dados da Radija Lucena já estavam importados no schema <code>tenant_lucenadecoracoes</code> (Lucena Decorações), confirmado pelo usuário. Item encerrado sem migração pendente.</p>
 </div>
 
 <div class="pend-card open">
@@ -1897,11 +1896,49 @@ fetch('/api/evolution/chats').then(r=>r.json()).then(d=>{
   </ul>
 </div>
 
+<div class="pend-card resolved">
+  <h4>6.97 Renomeação do schema <code>tenant_lucena</code> → <code>tenant_lucenadecoracoes</code> — 21/08/2026</h4>
+  <p>O schema PostgreSQL do tenant Lucena Decorações estava registrado como <code>tenant_lucena</code> mas os dados da empresa correspondiam a <code>tenant_lucenadecoracoes</code>. A renomeação foi necessária para alinhar o nome do schema com o identificador correto da empresa.</p>
+  <table>
+    <thead><tr><th>Passo</th><th>SQL executado</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1. Renomear schema no PostgreSQL</td>
+        <td><code>ALTER SCHEMA tenant_lucena RENAME TO tenant_lucenadecoracoes;</code></td>
+      </tr>
+      <tr>
+        <td>2. Atualizar referência na tabela master</td>
+        <td><code>UPDATE app.empresas SET supabase_schema = 'tenant_lucenadecoracoes' WHERE supabase_schema = 'tenant_lucena';</code></td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Resultado:</strong> O schema agora aparece como <code>tenant_lucenadecoracoes</code> no Supabase Table Editor com todas as 14 tabelas operacionais íntegras: <code>agendamentos</code>, <code>atendimentos</code>, <code>blacklist</code>, <code>clientes</code>, <code>conhecimento</code>, <code>distribuicao</code>, <code>fila_humana</code>, <code>instancia</code>, <code>log_distribuicao</code>, <code>log_erros</code>, <code>primeiros_contatos</code>, <code>satisfacao</code>, <code>templates</code>, <code>transcricoes</code>.</p>
+</div>
+
+<div class="pend-card resolved">
+  <h4>6.98 Limpeza de registros duplicados e obsoletos em <code>app.empresas</code> — 21/08/2026</h4>
+  <p>Dois registros inválidos foram removidos da tabela <code>app.empresas</code>, que armazena os tenants ativos do sistema.</p>
+  <table>
+    <thead><tr><th>Registro removido</th><th>Motivo</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>tenant_lucena_radija</code> — <em>radijalucenal@hotmail.com</em></td>
+        <td>Schema PostgreSQL nunca foi criado no Supabase. Os dados da usuária Radija Lucena já estavam importados no schema <code>tenant_lucenadecoracoes</code>. Registro era duplicidade com empresa errada.</td>
+      </tr>
+      <tr>
+        <td>Rogério Assunção — <em>rogerio.assuncao@ucsal.edu.br</em> (duplicata)</td>
+        <td>Registro duplicado gerado durante testes de cadastro. A conta legítima do usuário master foi mantida; apenas o duplicado foi removido via DELETE por ID específico (<code>1lsQCYpVx3oN6yC4Dk0hmJllF46m4liDBnT4p7E0F9XU</code>).</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Estado final de <code>app.empresas</code>:</strong> 2 registros ativos — <strong>TrackerMap</strong> (<code>tenant_trackermap</code>) e <strong>Lucena Decorações</strong> (<code>tenant_lucenadecoracoes</code>).</p>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 3.3 | 21 de agosto de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 3.4 | 21 de agosto de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
