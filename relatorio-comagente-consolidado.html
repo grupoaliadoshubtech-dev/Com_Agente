@@ -137,6 +137,7 @@
     .pend-card.resolved h4::before { content: '✓ '; color: var(--ok); }
     .pend-card.open     h4::before { content: '■ '; color: var(--pending); }
     .pend-card.done     h4::before { content: '✓ '; color: var(--neon); }
+    .contrib { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.04em; background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:4px; padding:1px 7px; margin-left:8px; vertical-align:middle; font-family:monospace; }
 
     /* ── RODAPÉ ── */
     footer {
@@ -163,7 +164,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>17 de agosto de 2026</strong> (v3.0)<br>
+    Documento consolidado e atualizado — <strong>20 de agosto de 2026</strong> (v3.2)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -193,6 +194,7 @@
       <tr><td>17/08/2026</td><td>2.9</td><td>Migração Evolution API: banco local → Neon PostgreSQL (nuvem). Correção de 3 bugs críticos gerados pela migração: saveReceivedMessage bloqueando save da Evolution API (6.80), callback SSE com lidJid stale + race condition Neon (6.81), webhook crashando em MESSAGES_UPSERT + CHATS_UPDATE não tratado (6.82). Documentação completa da migração com guia de diagnóstico futuro (6.83).</td></tr>
       <tr><td>17/08/2026</td><td>3.0</td><td>Base de Conhecimento (RAG Enterprise) completa: upload de documentos (PDF/DOCX/TXT/imagem até 25 MB), processamento IA via N8N, Q&amp;A por tenant no Supabase, painel supervisor com busca/filtro/edição. Sistema de nonce multi-tenant (tabela app.knowledge_nonces, TTL 10 min) — N8N nunca recebe o schema, apenas token de uso único. Endpoint /api/knowledge/search criado e imediatamente removido (N8N já consulta Supabase diretamente há +1 ano). Correções de segurança Supabase Advisor: RLS habilitado em public._comagente_notify (6.87) e SET search_path='' em create_tenant_schema() (6.88).</td></tr>
       <tr><td>18/08/2026</td><td>3.1</td><td>Padronização completa do botão ↻ em todas as telas (mobile e desktop): btn-outline, ícone-only, marginLeft:auto, extrema direita. Correção ia-toggle-off invisível no tema claro. Dashboard: filtro de seções ⋮ com dropdown, card Métricas em Tempo Real redesenhado (padrão UsageCard), emoji removido do exportar. CRM: ícones emoji substituídos por SVG (IcoDatabase, IcoSend). Conversas: botões ↻ padronizados.</td></tr>
+      <tr><td>20/08/2026</td><td>3.2</td><td>Migração SSE polling → Supabase Realtime (Dev. Roberto): eliminação completa do ciclo de queries a cada 3s por usuário conectado, hook useRealtimeNotify via WebSocket, endpoint /api/evolution/stream removido. Arquitetura dual de dados: lib/supabase/client.ts (browser) e lib/supabase/db.ts (server-side pg pool). CSP atualizado para wss://*.supabase.co. Validado com build limpo e 0 chamadas de polling na aba Network (6.95, 6.96).</td></tr>
     </tbody>
   </table>
 </div>
@@ -1846,11 +1848,55 @@ fetch('/api/evolution/chats').then(r=>r.json()).then(d=>{
   <p style="margin-top:8px"><em>Decisão de design pendente: definir paleta, tipografia e tom visual antes de implementar.</em></p>
 </div>
 
+<div class="pend-card resolved">
+  <h4>6.95 Migração SSE polling → Supabase Realtime <span class="contrib">Dev. Roberto</span> — 20/08/2026</h4>
+  <p>Eliminação completa do ciclo de polling que causou o consumo de 6,78 GB de egress no Supabase (acima do limite de 5 GB). O endpoint <code>app/api/evolution/stream/route.ts</code> consultava a tabela <code>_comagente_notify</code> a cada 3 segundos por usuário conectado — gerando dezenas de milhares de queries diárias mesmo quando não havia mensagens novas. A solução substitui esse modelo por eventos WebSocket via Supabase Realtime: o banco notifica o cliente apenas quando há um INSERT real na tabela.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Arquivos criados</h4>
+  <ul>
+    <li><strong><code>lib/supabase/client.ts</code></strong> — exporta <code>createBrowserClient()</code> usando <code>@supabase/supabase-js</code>; alimentado por <code>NEXT_PUBLIC_SUPABASE_URL</code> e <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.</li>
+    <li><strong><code>hooks/useRealtimeNotify.ts</code></strong> — hook React que assina eventos <code>INSERT</code> na tabela <code>_comagente_notify</code> filtrados por <code>instance</code>; conexão WebSocket única e persistente, zero requisições HTTP periódicas.</li>
+    <li><strong><code>app/api/evolution/instance/route.ts</code></strong> — endpoint GET que retorna com segurança a instância Evolution API do tenant logado.</li>
+  </ul>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Arquivos modificados</h4>
+  <ul>
+    <li><strong><code>lib/hooks/use-message-stream.ts</code></strong> — refatorado para encapsular <code>useRealtimeNotify</code>, eliminando o <code>EventSource</code>.</li>
+    <li><strong><code>app/(app)/layout.tsx</code></strong> — substituída a escuta SSE manual por <code>useMessageStream</code> para alertas de sistema (<code>uso_limite</code>).</li>
+  </ul>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Arquivo removido</h4>
+  <ul>
+    <li><strong><code>app/api/evolution/stream/route.ts</code></strong> — excluído o endpoint de polling SSE contínuo de 3 segundos; simplifica a arquitetura e elimina o timeout de reconexão de 25s da Vercel.</li>
+  </ul>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Resultados validados</h4>
+  <ul>
+    <li>Inserção na <code>_comagente_notify</code> notificada instantaneamente ao navegador via WebSocket (latência &lt; 50 ms vs. 3.000 ms antes).</li>
+    <li>Aba Network (Fetch/XHR) confirmou <strong>eliminação total (100%)</strong> das chamadas de polling.</li>
+    <li><code>npm run build</code> concluído com sucesso — 59 rotas, sem erros de TypeScript ou Webpack.</li>
+    <li>Login via pool PostgreSQL (<code>SUPABASE_DATABASE_URL</code>) validado normalmente.</li>
+  </ul>
+</div>
+
+<div class="pend-card resolved">
+  <h4>6.96 Arquitetura dual de dados: client.ts (browser) + db.ts (server) <span class="contrib">Dev. Roberto</span> — 20/08/2026</h4>
+  <p>Formalização de duas camadas de acesso ao Supabase, evitando conflito entre operações server-side (PostgreSQL direto) e client-side (WebSocket Realtime).</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Regra da nova arquitetura</h4>
+  <ul>
+    <li><strong>Server-side</strong> (APIs, Repositories, Autenticação NextAuth) — usa driver nativo <code>pg</code> (Pool de conexões) via <code>lib/supabase/db.ts</code>, alimentado por <code>SUPABASE_DATABASE_URL</code> na porta 6543 (Connection Pooler). Garante transações SQL, suporte a schemas dinâmicos por tenant e sem restrições de RLS.</li>
+    <li><strong>Client-side</strong> (React Hooks, Componentes) — usa SDK <code>@supabase/supabase-js</code> via <code>lib/supabase/client.ts</code> (<code>createBrowserClient()</code>), alimentado por <code>NEXT_PUBLIC_SUPABASE_URL</code> + <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>. Mantém conexão WebSocket única permanente — zero requisições HTTP repetidas.</li>
+  </ul>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Demais ajustes incluídos</h4>
+  <ul>
+    <li><strong><code>lib/supabase/db.ts</code></strong> — centraliza o pool <code>pg</code> (<code>query</code>, <code>queryOne</code>, <code>execute</code>) para acesso backend, substituindo instâncias dispersas.</li>
+    <li><strong><code>lib/repositories/users.repository.ts</code></strong> — garantido uso exclusivo de <code>lib/supabase/db.ts</code> para autenticação NextAuth via PostgreSQL.</li>
+    <li><strong><code>next.config.js</code> — CSP atualizado:</strong> adicionados <code>https://*.supabase.co</code> e <code>wss://*.supabase.co</code> ao <code>connect-src</code>, liberando as conexões WebSocket do Realtime sem violar a política de segurança de conteúdo.</li>
+    <li><strong>Variáveis de ambiente adicionadas no Vercel:</strong> <code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> e confirmação de <code>SUPABASE_DATABASE_URL</code> (Connection Pooler us-east-1).</li>
+  </ul>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 3.1 | 18 de agosto de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 3.2 | 20 de agosto de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 

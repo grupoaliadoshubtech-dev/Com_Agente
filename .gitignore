@@ -25,5 +25,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Relatório de segurança — contém credenciais, manter apenas local
+# Relatórios internos — manter apenas local
 relatório consolidado de segurança.html
+relatorio-egress-supabase.html
