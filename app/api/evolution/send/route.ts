@@ -1,4 +1,4 @@
-﻿// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 // app/api/evolution/send/route.ts
 //
 // POST /api/evolution/send
@@ -11,7 +11,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions }      from '@/lib/auth'
 import { EvolutionClient, normalizeNumber } from '@/lib/evolution/client'
 import { TenantsRepository } from '@/lib/repositories/plans-tenants-leads.repository'
-import { appendRows }        from '@/lib/sheets/client'
+import { execute }           from '@/lib/supabase/db'
 import { z } from 'zod'
 import type { ApiResponse } from '@/types'
 
@@ -44,12 +44,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
 
   const { to, text, withTyping, instanceName: overrideInstance } = parsed.data
 
-  // ── Resolve instância — apenas master pode sobrescrever ─────
+  // ── Resolve tenant (instância + schema Supabase) ────────────
+  const tenant = await tenantsRepo.findById(session.user.tenantId)
+
   let instanceName: string | undefined
   if (session.user.role === 'master' && overrideInstance) {
     instanceName = overrideInstance
   } else {
-    const tenant = await tenantsRepo.findById(session.user.tenantId)
     instanceName = tenant?.evolutionInstance
   }
 
@@ -70,17 +71,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
       ? await client.sendTextWithTyping(number, text)
       : await client.sendText({ number, text })
 
-    // Grava na aba Atendimentos como mensagem humana
-    await appendRows(session.user.tenantId, 'Atendimentos!A:H', [[
-      `msg_${Date.now()}`,
-      number,
-      '',
-      new Date().toISOString(),
-      new Date().toISOString(),
-      '',
-      session.user.id,          // atendente que enviou
-      text.slice(0, 100),
-    ]]).catch(console.error)    // não bloqueia se falhar
+    // Grava na tabela atendimentos do tenant como mensagem humana
+    const schema = tenant?.supabaseSchema
+    if (schema) {
+      execute(
+        `INSERT INTO ${schema}.atendimentos (id, telefone, nome, inicio, atendente)
+         VALUES ($1, $2, '', NOW(), $3)
+         ON CONFLICT (id) DO NOTHING`,
+        [`msg_${Date.now()}`, number, session.user.id]
+      ).catch(console.error)
+    }
 
     return NextResponse.json({
       success: true,

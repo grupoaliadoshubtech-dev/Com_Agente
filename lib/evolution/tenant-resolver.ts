@@ -14,7 +14,8 @@ const CACHE_TTL = 5 * 60 * 1000  // 5 minutos
 
 export interface TenantInfo {
   tenantId:          string  // UUID de app.empresas.id
-  spreadsheetId:     string  // Google Sheets ID do tenant (dados operacionais)
+  spreadsheetId:     string  // Google Sheets ID (mantido para retrocompatibilidade)
+  supabaseSchema:    string  // schema PostgreSQL do tenant (ex: tenant_lucena)
   attendantNumber:   string  // número do atendente principal
   instanceName:      string
 }
@@ -33,9 +34,10 @@ async function loadTenants(): Promise<Map<string, TenantInfo>> {
     id: string
     evolution_instance: string
     spreadsheet_id: string
+    supabase_schema: string
     phone: string
   }>(`
-    SELECT id, evolution_instance, spreadsheet_id, phone
+    SELECT id, evolution_instance, spreadsheet_id, supabase_schema, phone
     FROM app.empresas
     WHERE status != 'inactive'
       AND evolution_instance IS NOT NULL
@@ -49,6 +51,7 @@ async function loadTenants(): Promise<Map<string, TenantInfo>> {
     map.set(instanceName, {
       tenantId:        String(r.id),
       spreadsheetId:   String(r.spreadsheet_id ?? ''),
+      supabaseSchema:  String(r.supabase_schema ?? ''),
       attendantNumber: String(r.phone ?? ''),
       instanceName,
     })

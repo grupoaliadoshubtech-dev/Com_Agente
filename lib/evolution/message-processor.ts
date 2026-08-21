@@ -18,15 +18,16 @@ import {
 import { HandoffRepository }          from '@/lib/repositories/handoff.repository'
 import { BlacklistRepository }        from '@/lib/repositories/blacklist.repository'
 import { DistributionRepository }     from '@/lib/repositories/distribution.repository'
+import { ClientesRepository }         from '@/lib/repositories/clientes.repository'
+import { AtendimentosRepository }     from '@/lib/repositories/analytics.repository'
 import { ConversationContextService } from './conversation-context'
-import { readRange, appendRows, rowsToObjects, updateRange } from '@/lib/sheets/client'
 
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL ?? ''
 
 export interface ProcessorConfig {
-  tenantSpreadsheetId: string
-  instanceName:        string
-  attendantNumber:     string
+  tenantSchema:    string   // schema PostgreSQL do tenant (ex: tenant_lucena)
+  instanceName:    string
+  attendantNumber: string
 }
 
 const INTENCAO_PARA_ETAPA: Record<string, string> = {
@@ -36,19 +37,23 @@ const INTENCAO_PARA_ETAPA: Record<string, string> = {
 }
 
 export class MessageProcessor {
-  private evolution:    EvolutionClient
-  private handoff:      HandoffRepository
-  private blacklist:    BlacklistRepository
-  private distribution: DistributionRepository
-  private context:      ConversationContextService
-  private config:       ProcessorConfig
+  private evolution:     EvolutionClient
+  private handoff:       HandoffRepository
+  private blacklist:     BlacklistRepository
+  private distribution:  DistributionRepository
+  private clientes:      ClientesRepository
+  private atendimentos:  AtendimentosRepository
+  private context:       ConversationContextService
+  private config:        ProcessorConfig
 
   constructor(config: ProcessorConfig) {
     this.config       = config
     this.evolution    = EvolutionClient.fromEnv(config.instanceName)
-    this.handoff      = new HandoffRepository(config.tenantSpreadsheetId)
-    this.blacklist    = new BlacklistRepository(config.tenantSpreadsheetId)
-    this.distribution = new DistributionRepository(config.tenantSpreadsheetId)
+    this.handoff      = new HandoffRepository(config.tenantSchema)
+    this.blacklist    = new BlacklistRepository(config.tenantSchema)
+    this.distribution = new DistributionRepository(config.tenantSchema)
+    this.clientes     = new ClientesRepository(config.tenantSchema)
+    this.atendimentos = new AtendimentosRepository(config.tenantSchema)
     this.context      = new ConversationContextService(config.instanceName)
   }
 
@@ -96,7 +101,7 @@ export class MessageProcessor {
       hasMedia:      this.hasMedia(msg),
       mediaType:     this.getMediaType(msg),
       instance:      this.config.instanceName,
-      tenantId:      this.config.tenantSpreadsheetId,
+      tenantId:      this.config.tenantSchema,
       clientName:    clientData?.nome      ?? msg.pushName ?? '',
       clientStatus:  clientData?.status    ?? 'novo',
       clientHistory: clientData?.historico ?? '',
@@ -139,39 +144,12 @@ export class MessageProcessor {
 
   private async atualizarCRM(phone: string, nome: string, intencao: string): Promise<void> {
     try {
-      const rows = await readRange(this.config.tenantSpreadsheetId, 'Clientes!A:M')
-      const headers = rows.length > 0 ? rows[0] : []
-      const phoneCol = headers.findIndex(h => h.toLowerCase() === 'telefone')
-      const rowIndex = rows.findIndex((r, i) => i > 0 && r[phoneCol] === phone)
-
-      if (rowIndex === -1) {
-        await appendRows(this.config.tenantSpreadsheetId, 'Clientes!A:M', [[
-          phone, nome, 'ativo', '', INTENCAO_PARA_ETAPA[intencao] ?? 'novo',
-          intencao, new Date().toISOString(), '', '', '',
-          `Intenção: ${intencao}`, 'WhatsApp', new Date().toISOString(),
-        ]])
-        return
-      }
-
-      const sheetRow = rowIndex + 1
-      const fm: Record<string, number> = {}
-      headers.forEach((h, i) => { fm[h.toLowerCase()] = i })
-      const row = [...rows[rowIndex]]
-
-      if (fm['ultimocontato'] !== undefined) row[fm['ultimocontato']] = new Date().toISOString()
-      if (fm['tags'] !== undefined) {
-        const cur = row[fm['tags']] ?? ''
-        if (!cur.toLowerCase().includes(intencao)) row[fm['tags']] = cur ? `${cur},${intencao}` : intencao
-      }
-      if (fm['etapa'] !== undefined) {
-        const cur = row[fm['etapa']] ?? 'novo'
-        if (cur === 'novo' || cur === '') {
-          const nova = INTENCAO_PARA_ETAPA[intencao]
-          if (nova) row[fm['etapa']] = nova
-        }
-      }
-
-      await updateRange(this.config.tenantSpreadsheetId, `Clientes!A${sheetRow}:M${sheetRow}`, [row])
+      await this.clientes.upsertCRM({
+        telefone: phone,
+        nome,
+        etapa:    INTENCAO_PARA_ETAPA[intencao] ?? 'novo',
+        intencao,
+      })
     } catch (err) { console.error('[Processor] Erro CRM:', err) }
   }
 
@@ -208,20 +186,21 @@ export class MessageProcessor {
 
   private async getClientData(phone: string): Promise<{ nome: string; status: string; historico: string; etapa?: string; tags?: string } | null> {
     try {
-      const rows = await readRange(this.config.tenantSpreadsheetId, 'Clientes!A:M')
-      const records = rowsToObjects<Record<string, string>>(rows)
-      const f = records.find(r => (r.telefone ?? r.Telefone) === phone)
-      if (!f) return null
-      return { nome: f.nome ?? f.Nome ?? '', status: f.status ?? f.Status ?? 'novo', historico: f.historico ?? f.Historico ?? '', etapa: f.etapa ?? f.Etapa ?? 'novo', tags: f.tags ?? f.Tags ?? '' }
+      const row = await this.clientes.findByPhone(phone)
+      if (!row) return null
+      return { nome: row.nome, status: row.status, historico: row.historico, etapa: row.etapa, tags: row.tags }
     } catch { return null }
   }
 
   private async logAtendimento(phone: string, name: string, tipo: 'ia' | 'humano', preview: string, atendente?: string): Promise<void> {
     try {
-      await appendRows(this.config.tenantSpreadsheetId, 'Atendimentos!A:H', [[
-        `atd_${Date.now()}`, phone, name, new Date().toISOString(), '', '',
-        tipo === 'ia' ? 'Bot' : (atendente ?? this.config.attendantNumber), preview.slice(0, 100),
-      ]])
+      await this.atendimentos.create({
+        id:        `atd_${Date.now()}`,
+        telefone:  phone,
+        nome:      name,
+        atendente: tipo === 'ia' ? 'Bot' : (atendente ?? this.config.attendantNumber),
+        preview:   preview.slice(0, 100),
+      })
     } catch (err) { console.error('[Processor] Erro log:', err) }
   }
 

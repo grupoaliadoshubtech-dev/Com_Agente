@@ -18,10 +18,8 @@ import {
   type WebhookMessage,
   type ConnectionUpdateData,
 } from '@/lib/evolution/webhook-types'
-import { appendRows } from '@/lib/sheets/client'
+import { execute } from '@/lib/supabase/db'
 import { pushNotification } from '@/lib/evolution/notify'
-
-const MASTER_ID = process.env.GOOGLE_MASTER_SHEET_ID!
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── 1. Autenticação do webhook ──────────────────────────────
@@ -56,13 +54,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Fire-and-forget com log de erro
   responsePromise.catch(err => {
     console.error(`[Webhook] Erro não tratado — evento ${event}:`, err)
-    // Tenta gravar no log de erros do Master
-    appendRows(MASTER_ID, 'Log_Erros!A:D', [[
-      new Date().toISOString(),
-      `webhook/${event}`,
-      String(err),
-      instance,
-    ]]).catch(console.error)
+    execute(
+      `INSERT INTO app.log_erros (no, erro, instancia) VALUES ($1, $2, $3)`,
+      [`webhook/${event}`, String(err), instance]
+    ).catch(console.error)
   })
 
   return NextResponse.json({ received: true, event })
@@ -119,9 +114,9 @@ async function processWebhookEvent(
       }
 
       const processor = new MessageProcessor({
-        tenantSpreadsheetId: tenant.spreadsheetId,
-        instanceName:        tenant.instanceName,
-        attendantNumber:     tenant.attendantNumber,
+        tenantSchema:    tenant.supabaseSchema,
+        instanceName:    tenant.instanceName,
+        attendantNumber: tenant.attendantNumber,
       })
 
       for (const msg of messages) {

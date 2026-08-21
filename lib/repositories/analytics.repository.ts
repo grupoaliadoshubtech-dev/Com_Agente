@@ -80,6 +80,21 @@ export class AtendimentosRepository {
       taxaHumano:   all.length > 0 ? Math.round((comHumano / all.length) * 100) : 0,
     }
   }
+
+  async create(data: {
+    id:        string
+    telefone:  string
+    nome:      string
+    atendente: string
+    preview:   string
+  }): Promise<void> {
+    await execute(
+      `INSERT INTO ${this.schema}.atendimentos (id, telefone, nome, inicio, atendente)
+       VALUES ($1, $2, $3, NOW(), $4)
+       ON CONFLICT (id) DO NOTHING`,
+      [data.id, data.telefone, data.nome, data.atendente]
+    )
+  }
 }
 
 // ── Satisfação ────────────────────────────────────────────────
