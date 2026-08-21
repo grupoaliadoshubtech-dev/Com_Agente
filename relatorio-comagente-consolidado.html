@@ -164,7 +164,7 @@
 <div class="cover">
   <h1>RELATÓRIO EXECUTIVO<br>PROJETO COMAGENTE</h1>
   <div class="subtitle">
-    Documento consolidado e atualizado — <strong>20 de agosto de 2026</strong> (v3.2)<br>
+    Documento consolidado e atualizado — <strong>21 de agosto de 2026</strong> (v3.3)<br>
     Status: Deploy em produção | Versão: 1.0 + 8 Fases de Melhoria<br>
     Destinatário: Assistente de IA para continuidade do suporte
   </div>
@@ -195,6 +195,7 @@
       <tr><td>17/08/2026</td><td>3.0</td><td>Base de Conhecimento (RAG Enterprise) completa: upload de documentos (PDF/DOCX/TXT/imagem até 25 MB), processamento IA via N8N, Q&amp;A por tenant no Supabase, painel supervisor com busca/filtro/edição. Sistema de nonce multi-tenant (tabela app.knowledge_nonces, TTL 10 min) — N8N nunca recebe o schema, apenas token de uso único. Endpoint /api/knowledge/search criado e imediatamente removido (N8N já consulta Supabase diretamente há +1 ano). Correções de segurança Supabase Advisor: RLS habilitado em public._comagente_notify (6.87) e SET search_path='' em create_tenant_schema() (6.88).</td></tr>
       <tr><td>18/08/2026</td><td>3.1</td><td>Padronização completa do botão ↻ em todas as telas (mobile e desktop): btn-outline, ícone-only, marginLeft:auto, extrema direita. Correção ia-toggle-off invisível no tema claro. Dashboard: filtro de seções ⋮ com dropdown, card Métricas em Tempo Real redesenhado (padrão UsageCard), emoji removido do exportar. CRM: ícones emoji substituídos por SVG (IcoDatabase, IcoSend). Conversas: botões ↻ padronizados.</td></tr>
       <tr><td>20/08/2026</td><td>3.2</td><td>Migração SSE polling → Supabase Realtime (Dev. Roberto): eliminação completa do ciclo de queries a cada 3s por usuário conectado, hook useRealtimeNotify via WebSocket, endpoint /api/evolution/stream removido. Arquitetura dual de dados: lib/supabase/client.ts (browser) e lib/supabase/db.ts (server-side pg pool). CSP atualizado para wss://*.supabase.co. Validado com build limpo e 0 chamadas de polling na aba Network (6.95, 6.96).</td></tr>
+      <tr><td>21/08/2026</td><td>3.3</td><td>Migração completa Google Sheets → Supabase (6.79): tenant-resolver passa supabaseSchema correto ao MessageProcessor; message-processor substituiu todas as chamadas Sheets por ClientesRepository.findByPhone/upsertCRM e AtendimentosRepository.create; webhook e send usam Supabase para log; nova migration app.log_erros. HandoffRepository/BlacklistRepository/DistributionRepository agora recebem tenantSchema válido.</td></tr>
     </tbody>
   </table>
 </div>
@@ -1541,21 +1542,25 @@ curl -I http://localhost:3001</pre>
   <p><strong>Atenção:</strong> Requer teste cuidadoso — CSP restritivo pode quebrar funcionalidades existentes (fonts, scripts inline, etc.).</p>
 </div>
 
-<div class="pend-card open">
-  <h4>6.79 Migração do Google Sheets para Supabase — PENDENTE</h4>
-  <p>O sistema ainda depende do Google Sheets em 4 pontos ativos. O mapeamento completo foi realizado em 16/08/2026 e está documentado no link abaixo.</p>
-  <p><strong>Análise detalhada:</strong> <a href="https://claude.ai/code/artifact/6f863b43-e5de-4ce3-98f1-3a766de6195b" target="_blank" rel="noopener">Dependências Google Sheets — ComAgente (Artifact)</a></p>
-  <p><strong>Pontos ativos por prioridade:</strong></p>
+<div class="pend-card resolved">
+  <h4>6.79 Migração do Google Sheets para Supabase — 21/08/2026</h4>
+  <p>Migração completa dos 4 pontos ativos de dependência do Google Sheets. O sistema agora opera 100% no Supabase PostgreSQL para o fluxo de mensagens, CRM e logs.</p>
   <table>
-    <thead><tr><th>Prioridade</th><th>Arquivo</th><th>O que faz no Sheets</th><th>Alternativa</th></tr></thead>
+    <thead><tr><th>Ponto</th><th>Arquivo</th><th>O que mudou</th></tr></thead>
     <tbody>
-      <tr><td><strong>P1 — Crítico</strong></td><td><code>lib/evolution/tenant-resolver.ts</code></td><td>Lê <code>Empresas!A:H</code> do Master para mapear instância → tenant. Bloqueia todo o fluxo de webhook.</td><td><code>TenantsRepository.findAll()</code> por <code>evolution_instance</code> — pronta</td></tr>
-      <tr><td><strong>P2 — Alto</strong></td><td><code>lib/evolution/message-processor.ts</code></td><td>Lê/escreve <code>Clientes!A:M</code> e <code>Atendimentos!A:H</code> do tenant</td><td><code>ClientesRepository</code> + <code>AtendimentosRepository</code> — prontos</td></tr>
-      <tr><td><strong>P3 — Médio</strong></td><td><code>app/api/evolution/webhook/route.ts</code></td><td>Grava erros em <code>Log_Erros!A:D</code> do Master (fire-and-forget)</td><td>INSERT direto em <code>app.log_erros</code></td></tr>
-      <tr><td><strong>P4 — Médio</strong></td><td><code>app/api/evolution/send/route.ts</code></td><td>Registra mensagem enviada em <code>Atendimentos!A:H</code> do tenant</td><td><code>AtendimentosRepository.create()</code> — pronto</td></tr>
+      <tr><td><span class="ok">✓ P1</span></td><td><code>lib/evolution/tenant-resolver.ts</code></td><td>Adicionado campo <code>supabaseSchema</code> ao <code>TenantInfo</code> — lê <code>supabase_schema</code> de <code>app.empresas</code> junto aos demais dados do tenant.</td></tr>
+      <tr><td><span class="ok">✓ P2</span></td><td><code>lib/evolution/message-processor.ts</code></td><td>Todas as chamadas Sheets removidas. <code>getClientData</code> → <code>ClientesRepository.findByPhone()</code>; <code>atualizarCRM</code> → <code>ClientesRepository.upsertCRM()</code>; <code>logAtendimento</code> → <code>AtendimentosRepository.create()</code>. <code>HandoffRepository</code>, <code>BlacklistRepository</code> e <code>DistributionRepository</code> agora recebem <code>tenantSchema</code> correto (antes recebiam o ID da planilha).</td></tr>
+      <tr><td><span class="ok">✓ P3</span></td><td><code>app/api/evolution/webhook/route.ts</code></td><td>Log de erros migrado de <code>Log_Erros!A:D</code> do Master para INSERT em <code>app.log_erros</code> (nova tabela — migration <code>20260821_app_log_erros.sql</code>). Variável <code>GOOGLE_MASTER_SHEET_ID</code> removida do arquivo.</td></tr>
+      <tr><td><span class="ok">✓ P4</span></td><td><code>app/api/evolution/send/route.ts</code></td><td>Registro de mensagem enviada migrado de <code>Atendimentos!A:H</code> para INSERT direto em <code>{tenantSchema}.atendimentos</code> via <code>execute()</code>.</td></tr>
     </tbody>
   </table>
-  <p style="margin-top:10px"><strong>Atenção:</strong> migrar o P1 (<code>tenant-resolver.ts</code>) primeiro é fundamental — ele passa o <code>supabase_schema</code> correto para todos os outros pontos. Após a migração completa, remover <code>lib/sheets/client.ts</code>, as rotas <code>/api/admin/sheet-inspect</code> e <code>/api/admin/diagnostico-sheets</code>, e as variáveis <code>GOOGLE_SERVICE_ACCOUNT_EMAIL</code>, <code>GOOGLE_PRIVATE_KEY</code> e <code>GOOGLE_MASTER_SHEET_ID</code>.</p>
+  <h4 style="font-weight:600; margin:10px 0 6px; border:none; padding:0;">Novos métodos adicionados aos repositórios</h4>
+  <ul>
+    <li><code>ClientesRepository.findByPhone()</code> — busca CRM completo (status, historico, etapa, tags) por telefone.</li>
+    <li><code>ClientesRepository.upsertCRM()</code> — cria ou atualiza cliente com merge inteligente de etapa e tags baseado na intenção detectada.</li>
+    <li><code>AtendimentosRepository.create()</code> — registra novo atendimento (id, telefone, nome, inicio, atendente).</li>
+  </ul>
+  <p style="margin-top:8px"><strong>Pendência restante:</strong> após validação em produção, remover <code>lib/sheets/client.ts</code>, as rotas <code>/api/admin/sheet-inspect</code> e <code>/api/admin/diagnostico-sheets</code>, e as variáveis de ambiente <code>GOOGLE_SERVICE_ACCOUNT_EMAIL</code>, <code>GOOGLE_PRIVATE_KEY</code> e <code>GOOGLE_MASTER_SHEET_ID</code>.</p>
 </div>
 
 <div class="section">
@@ -1896,7 +1901,7 @@ fetch('/api/evolution/chats').then(r=>r.json()).then(d=>{
      RODAPÉ
 ══════════════════════════════════════════════════════════ -->
 <footer>
-  Relatório Executivo — Projeto ComAgente | Versão 3.2 | 20 de agosto de 2026<br>
+  Relatório Executivo — Projeto ComAgente | Versão 3.3 | 21 de agosto de 2026<br>
   Grupo Aliados Hub Tech | Documento consolidado para continuidade do suporte por IA
 </footer>
 
